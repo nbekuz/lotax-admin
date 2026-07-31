@@ -95,6 +95,18 @@ async function toggleSubscription() {
 }
 
 async function submitDirector() {
+  if (!directorForm.email.trim()) {
+    message.warning('Укажите email')
+    return
+  }
+  if (directorForm.password.length < 6) {
+    message.warning('Пароль: минимум 6 символов')
+    return
+  }
+  if (!directorForm.first_name.trim() || !directorForm.last_name.trim()) {
+    message.warning('Укажите имя и фамилию')
+    return
+  }
   directorSaving.value = true
   try {
     await parks.createDirector(parkId.value, {
@@ -282,7 +294,11 @@ onMounted(load)
           <a-input v-model:value="directorForm.email" size="large" type="email" />
         </a-form-item>
         <a-form-item label="Пароль" required>
-          <a-input-password v-model:value="directorForm.password" size="large" />
+          <a-input-password
+            v-model:value="directorForm.password"
+            size="large"
+            placeholder="Минимум 6 символов"
+          />
         </a-form-item>
         <div class="grid grid-cols-1 md:grid-cols-2 md:gap-3">
           <a-form-item label="Имя" required>

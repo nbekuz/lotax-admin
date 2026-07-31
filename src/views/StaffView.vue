@@ -171,6 +171,10 @@ async function submitCreate() {
 
 async function submitEdit() {
   if (!editing.value) return
+  if (editForm.password.trim() && editForm.password.trim().length < 6) {
+    message.warning('Пароль: минимум 6 символов')
+    return
+  }
   saving.value = true
   try {
     await admins.update(editing.value.id, {
@@ -422,7 +426,7 @@ onMounted(load)
           <a-input-password
             v-model:value="editForm.password"
             size="large"
-            placeholder="Оставьте пустым, чтобы не менять"
+            placeholder="Минимум 6 символов"
           />
         </a-form-item>
       </a-form>

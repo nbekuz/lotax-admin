@@ -23,6 +23,7 @@ const rules: Record<string, Rule[]> = {
   ],
   password: [
     { required: true, message: 'Введите пароль', trigger: 'blur' },
+    { min: 6, message: 'Минимум 6 символов', trigger: 'blur' },
   ],
 }
 
@@ -90,7 +91,7 @@ async function onSubmit() {
             <a-input-password
               v-model:value="form.password"
               size="large"
-              placeholder="Пароль"
+              placeholder="Минимум 6 символов"
               autocomplete="current-password"
               class="!w-full"
             />
