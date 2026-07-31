@@ -80,7 +80,7 @@ async function onSubmit() {
               v-model:value="form.email"
               size="large"
               type="email"
-              placeholder="director@lotax.local"
+              placeholder="email@example.com"
               autocomplete="username"
               class="!w-full"
             />

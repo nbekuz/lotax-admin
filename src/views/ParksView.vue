@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { TableColumnsType } from 'ant-design-vue'
@@ -12,7 +12,11 @@ import type { ParkResponse } from '@/types/api'
 
 const parks = useParksStore()
 const router = useRouter()
-const { isMobile } = useBreakpoint()
+const { isMobile, width } = useBreakpoint()
+
+const stickyConfig = computed(() => ({
+  offsetHeader: width.value >= 1280 ? 72 : width.value >= 768 ? 64 : 56,
+}))
 
 const subscriptionFilter = ref<'all' | 'active' | 'off'>('all')
 const createOpen = ref(false)
@@ -237,6 +241,7 @@ onMounted(load)
         :data-source="parks.items"
         :loading="parks.loading"
         :pagination="pagination"
+        :sticky="stickyConfig"
         :locale="{ emptyText: 'Парки не найдены' }"
         :custom-row="(record: ParkResponse) => ({
           onClick: () => openPark(record),
@@ -360,16 +365,12 @@ onMounted(load)
   }
 }
 
-.parks-table-card :deep(.ant-table-container),
-.parks-table-card :deep(.ant-table-content),
-.parks-table-card :deep(.ant-table-body),
-.parks-table-card :deep(.ant-table-header) {
-  overflow-x: hidden !important;
+.parks-table-card {
+  overflow: visible;
 }
 
 .parks-table-card :deep(.ant-table table) {
   width: 100% !important;
-  table-layout: fixed !important;
 }
 
 :deep(.ant-table) {
@@ -378,27 +379,11 @@ onMounted(load)
 }
 
 :deep(.ant-table-thead > tr > th) {
-  position: sticky !important;
-  top: 56px;
-  z-index: 12;
   background: #fafafa !important;
   padding: 10px 16px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   color: #71717a !important;
-  box-shadow: inset 0 -1px 0 var(--lotax-border);
-}
-
-@media (min-width: 768px) {
-  :deep(.ant-table-thead > tr > th) {
-    top: 64px;
-  }
-}
-
-@media (min-width: 1280px) {
-  :deep(.ant-table-thead > tr > th) {
-    top: 72px;
-  }
 }
 
 :deep(.ant-table-tbody > tr > td) {
@@ -408,5 +393,16 @@ onMounted(load)
 
 :deep(.ant-table-tbody > tr:hover > td) {
   background: #fffbf5 !important;
+}
+
+:deep(.ant-table-pagination.ant-pagination) {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0 !important;
+  padding: 12px 16px 16px !important;
+  border-top: 1px solid var(--lotax-border);
 }
 </style>

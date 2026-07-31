@@ -16,12 +16,17 @@ import TierBadge from '@/components/TierBadge.vue'
 const auth = useAuthStore()
 const drivers = useDriversStore()
 const router = useRouter()
-const { isMobile, isLgUp } = useBreakpoint()
+const { isMobile, isLgUp, width } = useBreakpoint()
 
 const statusFilter = ref<DriverStatus | 'all'>('all')
 
 /** Fixed columns + x-scroll only when viewport is tight (tablet). */
 const needsHorizontalScroll = computed(() => !isLgUp.value)
+
+/** Sticky header offset under AdminLayout topbar (antd sticky). */
+const stickyConfig = computed(() => ({
+  offsetHeader: width.value >= 1280 ? 72 : width.value >= 768 ? 64 : 56,
+}))
 
 const columns = computed<TableColumnsType<DriverListItem>>(() => {
   const pin = needsHorizontalScroll.value
@@ -30,52 +35,53 @@ const columns = computed<TableColumnsType<DriverListItem>>(() => {
       title: 'Имя',
       dataIndex: 'display_name',
       key: 'display_name',
-      ...(pin ? { fixed: 'left' as const, width: 168 } : {}),
+      ...(pin ? { fixed: 'left' as const, width: 168 } : { ellipsis: true }),
     },
     {
       title: 'Телефон',
       dataIndex: 'phone_masked',
       key: 'phone_masked',
-      ...(pin ? { fixed: 'left' as const, width: 148 } : {}),
+      width: pin ? 148 : 170,
+      ...(pin ? { fixed: 'left' as const } : {}),
     },
     {
       title: 'Сист. баллы',
       dataIndex: 'balance_system_points',
       key: 'balance_system_points',
-      width: pin ? 100 : undefined,
+      width: 110,
       align: 'right' as const,
     },
     {
       title: 'Парк',
       dataIndex: 'balance_park_points',
       key: 'balance_park_points',
-      width: pin ? 80 : undefined,
+      width: 90,
       align: 'right' as const,
     },
     {
       title: 'Уровень',
       dataIndex: 'tier',
       key: 'tier',
-      width: pin ? 110 : undefined,
+      width: 120,
     },
     {
       title: 'Статус',
       dataIndex: 'status',
       key: 'status',
-      width: pin ? 120 : undefined,
+      width: 130,
     },
     {
       title: 'Создан',
       dataIndex: 'created_at',
       key: 'created_at',
-      width: pin ? 140 : undefined,
+      width: 160,
     },
   ]
 })
 
 const tableScroll = computed(() => {
   if (needsHorizontalScroll.value) {
-    return { x: 900 }
+    return { x: 1000 }
   }
   return undefined
 })
@@ -85,6 +91,8 @@ const pagination = reactive({
   pageSize: 20,
   total: 0,
   showSizeChanger: true,
+  showQuickJumper: false,
+  pageSizeOptions: ['10', '20', '50'],
   showTotal: (total: number) => `Всего: ${total}`,
 })
 
@@ -250,6 +258,7 @@ onMounted(load)
         :loading="drivers.loading"
         :pagination="pagination"
         :scroll="tableScroll"
+        :sticky="stickyConfig"
         :locale="{
           emptyText: 'Водители не найдены',
         }"
@@ -267,10 +276,6 @@ onMounted(load)
             >
               {{ (record as DriverListItem).display_name || '—' }}
             </a>
-            <div class="text-[13px] text-ink-muted">
-              {{ (record as DriverListItem).first_name_masked }}
-              {{ (record as DriverListItem).last_name_masked }}
-            </div>
           </template>
           <template v-else-if="column.key === 'phone_masked'">
             <span class="font-mono text-[13px] text-ink-muted">
@@ -294,8 +299,8 @@ onMounted(load)
             <StatusBadge :status="(record as DriverListItem).status" />
           </template>
           <template v-else-if="column.key === 'created_at'">
-            <span class="text-[13px] text-ink-muted">
-              {{ dayjs((record as DriverListItem).created_at).format('DD.MM.YYYY HH:mm') }}
+            <span class="whitespace-nowrap text-[13px] tabular-nums text-ink-muted">
+              {{ dayjs((record as DriverListItem).created_at).format('DD.MM.YYYY · HH:mm') }}
             </span>
           </template>
         </template>
@@ -320,29 +325,13 @@ onMounted(load)
   }
 }
 
+/* sticky uchun overflow:hidden bo‘lmasligi kerak */
 .drivers-table-card {
-  /* overflow:hidden sticky thead ni buzadi */
   overflow: visible;
-}
-
-/* Desktop: no phantom horizontal scroll — table fills width */
-.drivers-table-card--fluid :deep(.ant-table-container),
-.drivers-table-card--fluid :deep(.ant-table-content),
-.drivers-table-card--fluid :deep(.ant-table-body),
-.drivers-table-card--fluid :deep(.ant-table-header) {
-  overflow-x: hidden !important;
 }
 
 .drivers-table-card--fluid :deep(.ant-table table) {
   width: 100% !important;
-  table-layout: fixed !important;
-}
-
-.drivers-table-card--fluid :deep(.ant-table-thead > tr > th),
-.drivers-table-card--fluid :deep(.ant-table-tbody > tr > td) {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 :deep(.ant-table) {
@@ -351,24 +340,8 @@ onMounted(load)
 }
 
 :deep(.ant-table-thead > tr > th) {
-  position: sticky !important;
-  top: 56px;
-  z-index: 12;
   background: #fafafa !important;
   padding: 10px 12px !important;
-  box-shadow: inset 0 -1px 0 var(--lotax-border);
-}
-
-@media (min-width: 768px) {
-  :deep(.ant-table-thead > tr > th) {
-    top: 64px;
-  }
-}
-
-@media (min-width: 1280px) {
-  :deep(.ant-table-thead > tr > th) {
-    top: 72px;
-  }
 }
 
 :deep(.ant-table-tbody > tr > td) {
@@ -382,7 +355,7 @@ onMounted(load)
 
 :deep(.ant-table-thead .ant-table-cell-fix-left) {
   background: #fafafa !important;
-  z-index: 13;
+  z-index: 4;
 }
 
 :deep(.ant-table-cell-fix-left-last::after) {
@@ -395,8 +368,18 @@ onMounted(load)
   }
 }
 
-:deep(.ant-pagination) {
-  padding: 12px 16px 16px;
+:deep(.ant-table-pagination.ant-pagination) {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
   margin: 0 !important;
+  padding: 12px 16px 16px !important;
+  border-top: 1px solid var(--lotax-border);
+}
+
+:deep(.ant-pagination-options) {
+  margin-inline-start: 0 !important;
 }
 </style>

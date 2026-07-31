@@ -26,7 +26,11 @@ import type {
 
 const auth = useAuthStore()
 const admins = useAdminsStore()
-const { isMobile } = useBreakpoint()
+const { isMobile, width } = useBreakpoint()
+
+const stickyConfig = computed(() => ({
+  offsetHeader: width.value >= 1280 ? 72 : width.value >= 768 ? 64 : 56,
+}))
 
 const roleFilter = ref<StaffAssignableRole | 'all'>('all')
 const createOpen = ref(false)
@@ -302,6 +306,7 @@ onMounted(load)
         :data-source="admins.items"
         :loading="admins.loading"
         :pagination="pagination"
+        :sticky="stickyConfig"
         :locale="{ emptyText: 'Сотрудники не найдены' }"
         @change="onTableChange"
       >
@@ -426,32 +431,22 @@ onMounted(load)
 </template>
 
 <style scoped>
+.staff-table-card {
+  overflow: visible;
+}
+
 :deep(.ant-table) {
   border: none !important;
 }
 
-:deep(.ant-table-thead > tr > th) {
-  position: sticky !important;
-  top: 56px;
-  z-index: 12;
-  background: #fafafa !important;
-  box-shadow: inset 0 -1px 0 var(--lotax-border);
-}
-
-@media (min-width: 768px) {
-  :deep(.ant-table-thead > tr > th) {
-    top: 64px;
-  }
-}
-
-@media (min-width: 1280px) {
-  :deep(.ant-table-thead > tr > th) {
-    top: 72px;
-  }
-}
-
-:deep(.ant-pagination) {
-  padding: 12px 16px 16px;
+:deep(.ant-table-pagination.ant-pagination) {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
   margin: 0 !important;
+  padding: 12px 16px 16px !important;
+  border-top: 1px solid var(--lotax-border);
 }
 </style>
