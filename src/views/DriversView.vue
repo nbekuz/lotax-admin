@@ -213,15 +213,6 @@ onMounted(load)
               </p>
             </div>
           </div>
-
-          <a-button
-            type="primary"
-            class="lotax-btn-primary mt-4"
-            block
-            @click.stop="openDriver(driver)"
-          >
-            Открыть
-          </a-button>
         </article>
 
         <div class="flex justify-center py-2">

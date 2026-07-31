@@ -152,9 +152,6 @@ onMounted(load)
         <h1 class="lotax-page-title break-words">
           {{ drivers.current.display_name || 'Водитель' }}
         </h1>
-        <p class="lotax-caption mt-1 break-all font-mono">
-          Driver ID · {{ drivers.current.id }}
-        </p>
       </div>
 
       <div
