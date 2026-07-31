@@ -1,4 +1,4 @@
-const DEFAULT_API_HOST = 'http://admin.xn--80aubmrd.xn--p1ai'
+const DEFAULT_API_HOST = 'https://admin.xn--80aubmrd.xn--p1ai'
 const DEFAULT_API_PREFIX = '/api/v1'
 
 export const API_HOST =

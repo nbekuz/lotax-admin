@@ -31,14 +31,14 @@ export default defineConfig({
     proxy: {
       // Used when VITE_API_BASE_URL is empty (relative /api calls).
       '/api': {
-        target: 'http://admin.xn--80aubmrd.xn--p1ai',
+        target: 'https://admin.xn--80aubmrd.xn--p1ai',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
       '/health': {
-        target: 'http://admin.xn--80aubmrd.xn--p1ai',
+        target: 'https://admin.xn--80aubmrd.xn--p1ai',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
     },
   },
