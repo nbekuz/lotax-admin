@@ -1,4 +1,4 @@
-export type AdminRole = 'director' | 'admin' | 'manager'
+export type AdminRole = 'director' | 'admin' | 'manager' | 'super_admin'
 export type AdminStatus = 'active' | 'blocked' | 'inactive'
 export type DriverStatus = 'active' | 'blocked' | 'pending'
 export type DriverTier = 'bronze' | 'silver' | 'gold' | 'platinum'
@@ -20,6 +20,7 @@ export interface AdminProfile {
   last_name: string
   role: AdminRole
   status: AdminStatus
+  park_id?: string | null
   created_at: string
 }
 
@@ -47,6 +48,74 @@ export interface AdminUpdatePayload {
   password?: string | null
   status?: AdminStatus | null
   role?: StaffAssignableRole | null
+}
+
+/* ── Super Admin / Parks ── */
+
+export interface ParkResponse {
+  id: string
+  name: string
+  legal_name?: string | null
+  yandex_park_id?: string | null
+  yandex_client_id?: string | null
+  has_yandex_api_key?: boolean
+  subscription_active: boolean
+  is_active: boolean
+  notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ParkListResponse {
+  items: ParkResponse[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface ParkCreatePayload {
+  name: string
+  legal_name?: string | null
+  yandex_park_id?: string | null
+  yandex_client_id?: string | null
+  yandex_api_key?: string | null
+  subscription_active?: boolean
+  notes?: string | null
+}
+
+export interface ParkUpdatePayload {
+  name?: string | null
+  legal_name?: string | null
+  yandex_park_id?: string | null
+  yandex_client_id?: string | null
+  yandex_api_key?: string | null
+  is_active?: boolean | null
+  notes?: string | null
+}
+
+export interface ParkSubscriptionPayload {
+  subscription_active: boolean
+}
+
+export interface ParkDirectorCreatePayload {
+  email: string
+  password: string
+  first_name: string
+  last_name: string
+}
+
+export interface PlatformSettingItem {
+  key: string
+  value: string
+  description?: string | null
+}
+
+export interface PlatformSettingsResponse {
+  items: PlatformSettingItem[]
+}
+
+export interface PlatformSettingsUpdatePayload {
+  items: PlatformSettingItem[]
 }
 
 export interface DriverListItem {

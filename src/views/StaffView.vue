@@ -295,7 +295,7 @@ onMounted(load)
     </div>
 
     <!-- Desktop / tablet table -->
-    <div v-else class="lotax-card overflow-hidden !p-0">
+    <div v-else class="lotax-card staff-table-card !p-0">
       <a-table
         row-key="id"
         :columns="columns"
@@ -428,6 +428,26 @@ onMounted(load)
 <style scoped>
 :deep(.ant-table) {
   border: none !important;
+}
+
+:deep(.ant-table-thead > tr > th) {
+  position: sticky !important;
+  top: 56px;
+  z-index: 12;
+  background: #fafafa !important;
+  box-shadow: inset 0 -1px 0 var(--lotax-border);
+}
+
+@media (min-width: 768px) {
+  :deep(.ant-table-thead > tr > th) {
+    top: 64px;
+  }
+}
+
+@media (min-width: 1280px) {
+  :deep(.ant-table-thead > tr > th) {
+    top: 72px;
+  }
 }
 
 :deep(.ant-pagination) {

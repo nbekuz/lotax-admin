@@ -340,41 +340,66 @@ body {
   border-color: var(--lotax-border) !important;
 }
 
-/* Keep text/cursor clear of rounded corners */
-.ant-input {
-  padding-inline: 14px !important;
+/*
+  Affix wrappers (password etc.) clip overflow with border-radius.
+  Cursor sits flush on the inner input edge → top/bottom of caret get cut.
+  Fix: enough outer padding + square inner input (no radius, no overflow clip).
+*/
+.ant-input:not(textarea) {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
 }
 
-.ant-input-lg {
-  padding-inline: 16px !important;
+.ant-input-lg:not(textarea) {
+  padding-left: 18px !important;
+  padding-right: 18px !important;
 }
 
 .ant-input-affix-wrapper {
-  padding-inline: 14px !important;
+  padding-left: 16px !important;
+  padding-right: 12px !important;
 }
 
 .ant-input-affix-wrapper-lg {
-  padding-inline: 16px !important;
+  padding-left: 18px !important;
+  padding-right: 14px !important;
 }
 
-.ant-input-affix-wrapper > input.ant-input {
-  padding-inline: 0 !important;
+.ant-input-affix-wrapper > input.ant-input,
+.ant-input-affix-wrapper > input.ant-input-lg {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  /* Small inset so caret never sits on the clip edge */
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+  overflow: visible !important;
+}
+
+.ant-input-number {
+  padding: 0 !important;
+  overflow: hidden;
 }
 
 .ant-input-number .ant-input-number-input {
-  padding-inline: 14px !important;
+  border-radius: 0 !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
 }
 
 .ant-input-number-lg .ant-input-number-input {
-  padding-inline: 16px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
 }
 
-.ant-select-single .ant-select-selector {
-  padding-inline: 14px !important;
+.ant-select-single:not(.ant-select-customize-input) .ant-select-selector {
+  padding-left: 16px !important;
+  padding-right: 32px !important;
 }
 
-.ant-select-single.ant-select-lg .ant-select-selector {
-  padding-inline: 16px !important;
+.ant-select-single.ant-select-lg:not(.ant-select-customize-input) .ant-select-selector {
+  padding-left: 18px !important;
 }
 
 .ant-select-single:not(.ant-select-customize-input) .ant-select-selector .ant-select-selection-search-input {

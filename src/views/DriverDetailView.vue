@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
   CalendarOutlined,
   EditOutlined,
-  EyeOutlined,
-  FieldTimeOutlined,
   GiftOutlined,
   LeftOutlined,
-  SafetyCertificateOutlined,
   StarOutlined,
   StopOutlined,
   TrophyOutlined,
@@ -18,15 +15,10 @@ import {
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
-import {
-  driverStatusLabel,
-  driverTierLabel,
-  extractErrorMessage,
-} from '@/utils/labels'
+import { extractErrorMessage, formatPhone } from '@/utils/labels'
 import type { DriverStatus } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
-import KpiCard from '@/components/KpiCard.vue'
 import CopyableId from '@/components/CopyableId.vue'
 import InfoField from '@/components/InfoField.vue'
 
@@ -39,6 +31,7 @@ const driverId = computed(() => route.params.id as string)
 const balanceOpen = ref(false)
 const statusOpen = ref(false)
 const pdnLoading = ref(false)
+const pdnError = ref<string | null>(null)
 
 const balanceForm = reactive({
   balance_system_points: undefined as number | undefined,
@@ -49,7 +42,25 @@ const statusForm = reactive<{ status: DriverStatus }>({
   status: 'active',
 })
 
+const displayTitle = computed(() => {
+  return (
+    drivers.personalData?.display_name ||
+    drivers.current?.display_name ||
+    'Водитель'
+  )
+})
+
 const initials = computed(() => {
+  const pdn = drivers.personalData
+  if (pdn) {
+    const parts = [pdn.first_name, pdn.last_name].filter(Boolean) as string[]
+    if (parts.length) {
+      return parts
+        .slice(0, 2)
+        .map((p) => p[0]?.toUpperCase() || '')
+        .join('')
+    }
+  }
   const d = drivers.current
   if (!d) return '?'
   const fromName = (d.display_name || '')
@@ -63,6 +74,7 @@ const initials = computed(() => {
 })
 
 async function load() {
+  pdnError.value = null
   try {
     await drivers.fetchById(driverId.value)
     if (drivers.current) {
@@ -70,24 +82,20 @@ async function load() {
       balanceForm.balance_park_points = drivers.current.balance_park_points
       statusForm.status = drivers.current.status
     }
-  } catch (e) {
-    message.error(extractErrorMessage(e))
-  }
-}
 
-async function loadPdn() {
-  if (!auth.canViewPdn) {
-    message.warning('Доступно только директору')
-    return
-  }
-  pdnLoading.value = true
-  try {
-    await drivers.fetchPersonalData(driverId.value)
-    message.success('ПДн загружены (событие записано в аудит-лог)')
+    if (auth.canViewPdn) {
+      pdnLoading.value = true
+      try {
+        await drivers.fetchPersonalData(driverId.value)
+      } catch (e) {
+        pdnError.value = extractErrorMessage(e, 'Не удалось загрузить ПДн')
+        message.error(pdnError.value)
+      } finally {
+        pdnLoading.value = false
+      }
+    }
   } catch (e) {
     message.error(extractErrorMessage(e))
-  } finally {
-    pdnLoading.value = false
   }
 }
 
@@ -137,6 +145,10 @@ function confirmBlock() {
 }
 
 onMounted(load)
+
+watch(driverId, () => {
+  load()
+})
 </script>
 
 <template>
@@ -155,12 +167,12 @@ onMounted(load)
 
         <p class="driver-detail__eyebrow">Карточка водителя</p>
         <h1 class="driver-detail__title">
-          {{ drivers.current.display_name || 'Водитель' }}
+          {{ displayTitle }}
         </h1>
       </div>
 
       <div
-        v-if="auth.canViewPdn || auth.canEditBalance || auth.canEditStatus"
+        v-if="auth.canEditBalance || auth.canEditStatus"
         class="driver-actions"
       >
         <a-button
@@ -171,15 +183,6 @@ onMounted(load)
         >
           <template #icon><WalletOutlined /></template>
           Изменить баланс
-        </a-button>
-        <a-button
-          v-if="auth.canViewPdn"
-          class="driver-btn driver-btn--secondary"
-          :loading="pdnLoading"
-          @click="loadPdn"
-        >
-          <template #icon><EyeOutlined /></template>
-          Показать ПДн
         </a-button>
         <a-button
           v-if="auth.canEditStatus"
@@ -207,7 +210,7 @@ onMounted(load)
         <div class="summary-card__avatar" aria-hidden="true">{{ initials }}</div>
         <div class="summary-card__meta">
           <h2 class="summary-card__name">
-            {{ drivers.current.display_name || 'Водитель' }}
+            {{ displayTitle }}
           </h2>
           <div class="summary-card__badges">
             <TierBadge :tier="drivers.current.tier" />
@@ -223,8 +226,10 @@ onMounted(load)
         </div>
         <div class="summary-meta__body">
           <p class="summary-meta__label">Создан</p>
-          <p class="summary-meta__value">
-            {{ dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm') }}
+          <p class="summary-meta__value summary-meta__value--nowrap">
+            {{ dayjs(drivers.current.created_at).format('DD.MM.YYYY') }}
+            <span class="summary-meta__dot">·</span>
+            {{ dayjs(drivers.current.created_at).format('HH:mm') }}
           </p>
         </div>
       </div>
@@ -242,34 +247,27 @@ onMounted(load)
         </div>
       </div>
 
-      <!-- 4. Balance widget -->
-      <div class="balance-widget">
-        <div class="balance-widget__head">
-          <span class="balance-widget__title-icon" aria-hidden="true">
-            <WalletOutlined />
-          </span>
-          <p class="balance-widget__title">Баланс</p>
-        </div>
-
-        <div class="balance-widget__grid">
-          <div class="balance-mini">
-            <div class="balance-mini__icon balance-mini__icon--system" aria-hidden="true">
-              <StarOutlined />
-            </div>
-            <p class="balance-mini__label">System</p>
-            <p class="balance-mini__value">
+      <!-- 4. Balance — same visual language as meta blocks -->
+      <div class="summary-balance">
+        <div class="summary-balance__item">
+          <div class="summary-balance__icon summary-balance__icon--system" aria-hidden="true">
+            <StarOutlined />
+          </div>
+          <div class="summary-balance__body">
+            <p class="summary-balance__label">System</p>
+            <p class="summary-balance__value">
               {{ drivers.current.balance_system_points }}
             </p>
           </div>
-
-          <div class="balance-widget__divider" aria-hidden="true" />
-
-          <div class="balance-mini">
-            <div class="balance-mini__icon balance-mini__icon--park" aria-hidden="true">
-              <TrophyOutlined />
-            </div>
-            <p class="balance-mini__label">Park</p>
-            <p class="balance-mini__value">
+        </div>
+        <div class="summary-balance__divider" aria-hidden="true" />
+        <div class="summary-balance__item">
+          <div class="summary-balance__icon summary-balance__icon--park" aria-hidden="true">
+            <TrophyOutlined />
+          </div>
+          <div class="summary-balance__body">
+            <p class="summary-balance__label">Park</p>
+            <p class="summary-balance__value">
               {{ drivers.current.balance_park_points }}
             </p>
           </div>
@@ -277,53 +275,47 @@ onMounted(load)
       </div>
     </section>
 
-    <!-- Statistics -->
-    <section class="driver-detail__section">
-      <h2 class="lotax-section-title mb-4 md:mb-6">Статистика</h2>
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4">
-        <KpiCard
-          title="Системные баллы"
-          :value="drivers.current.balance_system_points"
-          hint="Всего начислено"
-          tone="blue"
-        >
-          <template #icon><StarOutlined /></template>
-        </KpiCard>
-        <KpiCard
-          title="Баллы парка"
-          :value="drivers.current.balance_park_points"
-          hint="Всего начислено"
-          tone="green"
-        >
-          <template #icon><TrophyOutlined /></template>
-        </KpiCard>
-        <KpiCard
-          title="Уровень"
-          :value="driverTierLabel[drivers.current.tier]"
-          hint="Текущий уровень"
-          tone="orange"
-        >
-          <template #icon><SafetyCertificateOutlined /></template>
-        </KpiCard>
-        <KpiCard
-          title="Статус"
-          :value="driverStatusLabel[drivers.current.status]"
-          hint="Текущий статус"
-          tone="amber"
-        >
-          <template #icon><FieldTimeOutlined /></template>
-        </KpiCard>
-      </div>
-    </section>
-
     <!-- Information -->
     <section class="driver-detail__section info-grid">
       <div class="detail-card">
-        <h2 class="lotax-section-title mb-6">Профиль</h2>
-        <div class="profile-fields">
+        <div class="mb-6 flex flex-col gap-1">
+          <h2 class="lotax-section-title">Профиль</h2>
+          <p v-if="auth.canViewPdn" class="lotax-caption">
+            Полные ПДн · доступ аудируется
+          </p>
+          <p v-else class="lotax-caption">
+            Персональные данные показаны в маскированном виде
+          </p>
+        </div>
+
+        <div v-if="auth.canViewPdn && pdnLoading" class="flex justify-center py-10">
+          <a-spin />
+        </div>
+
+        <div
+          v-else-if="auth.canViewPdn && pdnError"
+          class="rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
+        >
+          {{ pdnError }}
+        </div>
+
+        <div v-else-if="auth.canViewPdn && drivers.personalData" class="profile-fields">
+          <InfoField label="Имя" :value="drivers.personalData.first_name" />
+          <InfoField label="Фамилия" :value="drivers.personalData.last_name" />
+          <InfoField label="Отчество" :value="drivers.personalData.middle_name" />
+          <InfoField label="Телефон" :value="formatPhone(drivers.personalData.phone)" />
+          <InfoField label="Display name" :value="drivers.personalData.display_name" />
+          <InfoField label="Реферал" :value="drivers.current.referral_code" />
+          <InfoField
+            label="Создан"
+            :value="dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm')"
+          />
+        </div>
+
+        <div v-else class="profile-fields">
           <InfoField label="Имя (маска)" :value="drivers.current.first_name_masked" />
           <InfoField label="Фамилия (маска)" :value="drivers.current.last_name_masked" />
-          <InfoField label="Телефон (маска)" :value="drivers.current.phone_masked" />
+          <InfoField label="Телефон (маска)" :value="formatPhone(drivers.current.phone_masked)" />
           <InfoField label="Реферал" :value="drivers.current.referral_code" />
           <InfoField
             label="Создан"
@@ -338,26 +330,6 @@ onMounted(load)
           <CopyableId label="Driver ID" :value="drivers.current.yandex_driver_id" />
           <CopyableId label="Park ID" :value="drivers.current.yandex_park_id" />
         </div>
-      </div>
-    </section>
-
-    <!-- Personal data -->
-    <section
-      v-if="drivers.personalData"
-      class="detail-card detail-card--pdn overflow-hidden !p-0"
-    >
-      <div class="border-b border-amber-100 bg-amber-50/70 px-5 py-5 md:px-7">
-        <h2 class="lotax-section-title">Персональные данные</h2>
-        <p class="lotax-caption mt-1">
-          Доступ к ПДн аудируется. Используйте только по необходимости.
-        </p>
-      </div>
-      <div class="profile-fields p-5 md:p-7">
-        <InfoField label="Имя" :value="drivers.personalData.first_name" />
-        <InfoField label="Фамилия" :value="drivers.personalData.last_name" />
-        <InfoField label="Отчество" :value="drivers.personalData.middle_name" />
-        <InfoField label="Телефон" :value="drivers.personalData.phone" />
-        <InfoField label="Display name" :value="drivers.personalData.display_name" />
       </div>
     </section>
 
@@ -607,23 +579,22 @@ onMounted(load)
 @media (min-width: 768px) {
   .summary-card {
     padding: 32px;
-    grid-template-columns: 1fr 1fr;
-    gap: 28px;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 28px 32px;
   }
 
-  .summary-card > .balance-widget {
+  .summary-card > .summary-balance {
     grid-column: 1 / -1;
   }
 }
 
 @media (min-width: 1200px) {
   .summary-card {
-    grid-template-columns: minmax(220px, 1.2fr) minmax(140px, 0.7fr) minmax(120px, 0.7fr) minmax(280px, 1.4fr);
-    gap: 28px;
-    align-items: center;
+    grid-template-columns: minmax(200px, 1.3fr) minmax(160px, 0.85fr) minmax(120px, 0.75fr) minmax(240px, 1.3fr);
+    gap: 24px 28px;
   }
 
-  .summary-card > .balance-widget {
+  .summary-card > .summary-balance {
     grid-column: auto;
   }
 }
@@ -703,6 +674,10 @@ onMounted(load)
   color: #f7931a;
 }
 
+.summary-meta__body {
+  min-width: 0;
+}
+
 .summary-meta__label {
   margin: 0 0 4px;
   font-size: 13px;
@@ -718,115 +693,88 @@ onMounted(load)
   word-break: break-word;
 }
 
+.summary-meta__value--nowrap {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-meta__dot {
+  margin: 0 4px;
+  color: #d1d5db;
+  font-weight: 500;
+}
+
 .summary-meta__value--code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.02em;
 }
 
-.balance-widget {
-  padding: 20px;
-  border-radius: 18px;
-  background: #f8f9fb;
-  border: 1px solid #ececec;
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .balance-widget:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-  }
-}
-
-.balance-widget__head {
+/* Balance — aligned with meta blocks, no separate gray box */
+.summary-balance {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.balance-widget__title-icon {
-  display: inline-flex;
-  color: #f7931a;
-  font-size: 16px;
-}
-
-.balance-widget__title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #6b7280;
-}
-
-.balance-widget__grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-@media (min-width: 480px) {
-  .balance-widget__grid {
-    grid-template-columns: 1fr auto 1fr;
-    align-items: stretch;
-    gap: 0;
-  }
-}
-
-.balance-widget__divider {
-  display: none;
-}
-
-@media (min-width: 480px) {
-  .balance-widget__divider {
-    display: block;
-    width: 1px;
-    margin: 4px 16px;
-    background: #ececec;
-  }
-}
-
-.balance-mini {
+  gap: 0;
   min-width: 0;
-  padding: 4px 0;
 }
 
-.balance-mini__icon {
+.summary-balance__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-balance__divider {
+  width: 1px;
+  height: 40px;
+  margin: 0 16px;
+  flex-shrink: 0;
+  background: #ececec;
+}
+
+.summary-balance__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  margin-bottom: 10px;
-  border-radius: 12px;
-  font-size: 16px;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  font-size: 18px;
 }
 
-.balance-mini__icon--system {
+.summary-balance__icon--system {
   background: #eef4ff;
   color: #3b82f6;
 }
 
-.balance-mini__icon--park {
+.summary-balance__icon--park {
   background: #ecfdf3;
   color: #22c55e;
 }
 
-.balance-mini__label {
-  margin: 0 0 6px;
-  font-size: 14px;
+.summary-balance__label {
+  margin: 0 0 2px;
+  font-size: 13px;
   font-weight: 500;
   color: #6b7280;
 }
 
-.balance-mini__value {
+.summary-balance__value {
   margin: 0;
-  font-size: clamp(2rem, 1.7rem + 0.8vw, 2.75rem);
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   color: #111111;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 1200px) {
+  .summary-balance__value {
+    font-size: 26px;
+  }
 }
 
 .info-grid {
@@ -852,9 +800,5 @@ onMounted(load)
   .profile-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-.detail-card--pdn:hover {
-  transform: none;
 }
 </style>

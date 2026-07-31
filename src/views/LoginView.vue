@@ -40,7 +40,8 @@ async function onSubmit() {
   }
 
   message.success('Добро пожаловать')
-  const redirect = (route.query.redirect as string) || '/drivers'
+  const fallback = auth.isSuperAdmin ? '/parks' : '/drivers'
+  const redirect = (route.query.redirect as string) || fallback
   router.replace(redirect)
 }
 </script>

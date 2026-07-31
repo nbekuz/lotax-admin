@@ -22,13 +22,18 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: (s) => Boolean(s.admin),
     role: (s): AdminRole | null => s.admin?.role ?? null,
+    isSuperAdmin: (s) => s.admin?.role === 'super_admin',
     isDirector: (s) => s.admin?.role === 'director',
-    isAdmin: (s) => s.admin?.role === 'admin' || s.admin?.role === 'director',
+    isAdmin: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+    /** Park-scoped admin UI (not global super admin panel). */
+    isParkAdmin: (s) =>
+      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
     canEditBalance: (s) =>
       ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
     canEditStatus: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
     canSync: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
-    canViewPdn: (s) => s.admin?.role === 'director',
+    canViewPdn: (s) =>
+      ['director', 'super_admin'].includes(s.admin?.role ?? ''),
     canManageStaff: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
     creatableRoles: (s): StaffAssignableRole[] => {
       if (s.admin?.role === 'director') return ['admin', 'manager']

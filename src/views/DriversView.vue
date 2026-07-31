@@ -8,7 +8,7 @@ import { CloudSyncOutlined, ReloadOutlined, RightOutlined } from '@ant-design/ic
 import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import { extractErrorMessage } from '@/utils/labels'
+import { extractErrorMessage, formatPhone } from '@/utils/labels'
 import type { DriverListItem, DriverStatus } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
@@ -75,9 +75,9 @@ const columns = computed<TableColumnsType<DriverListItem>>(() => {
 
 const tableScroll = computed(() => {
   if (needsHorizontalScroll.value) {
-    return { x: 900, y: 'calc(100vh - 320px)' }
+    return { x: 900 }
   }
-  return { y: 'calc(100vh - 320px)' }
+  return undefined
 })
 
 const pagination = reactive({
@@ -188,7 +188,7 @@ onMounted(load)
                 {{ driver.display_name || '—' }}
               </h3>
               <p class="mt-0.5 font-mono text-[12px] text-ink-muted">
-                {{ driver.phone_masked || '—' }}
+                {{ formatPhone(driver.phone_masked) }}
               </p>
             </div>
             <RightOutlined class="mt-1 shrink-0 text-ink-muted" />
@@ -274,7 +274,7 @@ onMounted(load)
           </template>
           <template v-else-if="column.key === 'phone_masked'">
             <span class="font-mono text-[13px] text-ink-muted">
-              {{ (record as DriverListItem).phone_masked || '—' }}
+              {{ formatPhone((record as DriverListItem).phone_masked) }}
             </span>
           </template>
           <template v-else-if="column.key === 'balance_system_points'">
@@ -321,7 +321,8 @@ onMounted(load)
 }
 
 .drivers-table-card {
-  overflow: hidden;
+  /* overflow:hidden sticky thead ni buzadi */
+  overflow: visible;
 }
 
 /* Desktop: no phantom horizontal scroll — table fills width */
@@ -350,15 +351,28 @@ onMounted(load)
 }
 
 :deep(.ant-table-thead > tr > th) {
+  position: sticky !important;
+  top: 56px;
+  z-index: 12;
   background: #fafafa !important;
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  padding: 8px 12px !important;
+  padding: 10px 12px !important;
+  box-shadow: inset 0 -1px 0 var(--lotax-border);
+}
+
+@media (min-width: 768px) {
+  :deep(.ant-table-thead > tr > th) {
+    top: 64px;
+  }
+}
+
+@media (min-width: 1280px) {
+  :deep(.ant-table-thead > tr > th) {
+    top: 72px;
+  }
 }
 
 :deep(.ant-table-tbody > tr > td) {
-  padding: 8px 12px !important;
+  padding: 10px 12px !important;
 }
 
 :deep(.ant-table-cell-fix-left) {
@@ -368,7 +382,7 @@ onMounted(load)
 
 :deep(.ant-table-thead .ant-table-cell-fix-left) {
   background: #fafafa !important;
-  z-index: 4;
+  z-index: 13;
 }
 
 :deep(.ant-table-cell-fix-left-last::after) {

@@ -2,12 +2,14 @@
 import { computed, h, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  BankOutlined,
   CarOutlined,
   CloudSyncOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
+  SettingOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons-vue'
@@ -24,6 +26,8 @@ const collapsed = ref(false)
 const drawerOpen = ref(false)
 
 const selectedKeys = computed(() => {
+  if (route.path.startsWith('/parks')) return ['parks']
+  if (route.path.startsWith('/settings')) return ['settings']
   if (route.path.startsWith('/sync')) return ['sync']
   if (route.path.startsWith('/staff')) return ['staff']
   if (route.path.startsWith('/profile')) return ['profile']
@@ -31,6 +35,29 @@ const selectedKeys = computed(() => {
 })
 
 const menuItems = computed(() => {
+  if (auth.isSuperAdmin) {
+    return [
+      {
+        key: 'parks',
+        icon: () => h(BankOutlined),
+        label: 'Таксопарки',
+        title: 'Таксопарки',
+      },
+      {
+        key: 'settings',
+        icon: () => h(SettingOutlined),
+        label: 'Настройки',
+        title: 'Настройки',
+      },
+      {
+        key: 'profile',
+        icon: () => h(UserOutlined),
+        label: 'Профиль',
+        title: 'Профиль',
+      },
+    ]
+  }
+
   const items = [
     {
       key: 'drivers',
@@ -85,7 +112,7 @@ watch(isMobile, (mobile) => {
 
 function onMenuClick(info: { key: string | number }) {
   const key = String(info.key)
-  router.push(`/${key === 'drivers' ? 'drivers' : key}`)
+  router.push(`/${key}`)
   if (isMobile.value) {
     drawerOpen.value = false
   }
@@ -107,7 +134,6 @@ function toggleNav() {
 
 <template>
   <a-layout class="min-h-full">
-    <!-- Desktop / Tablet sidebar -->
     <a-layout-sider
       v-if="!isMobile"
       v-model:collapsed="collapsed"
@@ -142,7 +168,6 @@ function toggleNav() {
       </div>
     </a-layout-sider>
 
-    <!-- Mobile drawer -->
     <a-drawer
       v-model:open="drawerOpen"
       placement="left"
@@ -192,7 +217,7 @@ function toggleNav() {
             <div
               class="truncate tracking-tight"
               :class="
-                route.name === 'driver-detail'
+                route.name === 'driver-detail' || route.name === 'park-detail'
                   ? 'text-[13px] font-medium text-ink-muted md:text-[14px]'
                   : 'text-base font-semibold text-ink md:text-[20px]'
               "
@@ -207,7 +232,6 @@ function toggleNav() {
             {{ auth.fullName || auth.admin?.email }}
           </div>
 
-          <!-- Mobile avatar -->
           <button
             type="button"
             class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-soft text-[13px] font-semibold text-brand md:hidden"

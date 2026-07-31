@@ -17,15 +17,15 @@ const theme = {
     colorBorder: '#ECECEC',
     colorBgLayout: '#F8F9FB',
     colorBgContainer: '#FFFFFF',
-    borderRadius: 12,
-    borderRadiusLG: 16,
+    borderRadius: 10,
+    borderRadiusLG: 12,
     fontFamily:
       "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     fontSize: 15,
     controlHeight: 42,
     controlHeightLG: 44,
     paddingContentHorizontal: 16,
-    controlPaddingHorizontal: 14,
+    controlPaddingHorizontal: 16,
     controlPaddingHorizontalSM: 12,
   },
 }
