@@ -2,23 +2,387 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --lotax-primary: #f7931a;
+  --lotax-primary-hover: #e8860f;
+  --lotax-primary-soft: rgba(247, 147, 26, 0.1);
+  --lotax-bg: #f8f9fb;
+  --lotax-card: #ffffff;
+  --lotax-border: #ececec;
+  --lotax-text: #111111;
+  --lotax-text-secondary: #6b7280;
+  --lotax-danger: #ef4444;
+  --lotax-success: #22c55e;
+  --lotax-warning: #f59e0b;
+  --lotax-radius: 16px;
+  --lotax-radius-lg: 24px;
+  --lotax-shadow: 0 1px 2px rgba(17, 17, 17, 0.04), 0 4px 16px rgba(17, 17, 17, 0.04);
+  --lotax-shadow-hover: 0 4px 12px rgba(17, 17, 17, 0.06), 0 12px 32px rgba(17, 17, 17, 0.06);
+  --lotax-transition: 150ms ease;
+  --lotax-sidebar-expanded: 260px;
+  --lotax-sidebar-collapsed: 72px;
+}
+
 html,
 body,
 #app {
   height: 100%;
   margin: 0;
+  overflow-x: clip;
 }
 
 body {
   font-family:
+    'Inter',
     -apple-system,
     BlinkMacSystemFont,
+    'SF Pro Text',
     'Segoe UI',
     Roboto,
     'Helvetica Neue',
     Arial,
-    'Noto Sans',
     sans-serif;
-  background: #f5f5f7;
-  color: #1c1c1e;
+  background: var(--lotax-bg);
+  color: var(--lotax-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--lotax-primary);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .lotax-card {
+    @apply rounded-2xl border bg-white;
+    border-color: var(--lotax-border);
+    box-shadow: var(--lotax-shadow);
+    transition:
+      box-shadow var(--lotax-transition),
+      transform var(--lotax-transition);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .lotax-card-hover:hover {
+      box-shadow: var(--lotax-shadow-hover);
+      transform: translateY(-2px);
+    }
+  }
+
+  .lotax-page-title {
+    font-size: clamp(1.75rem, 1.5rem + 1.2vw, 2.25rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    color: var(--lotax-text);
+  }
+
+  .lotax-section-title {
+    font-size: clamp(1.25rem, 1.15rem + 0.4vw, 1.375rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    color: var(--lotax-text);
+  }
+
+  .lotax-body {
+    font-size: clamp(0.875rem, 0.85rem + 0.15vw, 0.9375rem);
+    color: var(--lotax-text);
+  }
+
+  .lotax-caption {
+    font-size: clamp(0.75rem, 0.72rem + 0.1vw, 0.8125rem);
+    color: var(--lotax-text-secondary);
+  }
+
+  .lotax-field-label {
+    font-size: clamp(0.75rem, 0.72rem + 0.1vw, 0.8125rem);
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: var(--lotax-text-secondary);
+  }
+
+  .lotax-field-value {
+    font-size: clamp(0.875rem, 0.85rem + 0.15vw, 0.9375rem);
+    font-weight: 500;
+    color: var(--lotax-text);
+    word-break: break-word;
+  }
+
+  .lotax-code {
+    @apply font-mono rounded-xl px-3 py-2.5;
+    font-size: clamp(0.75rem, 0.72rem + 0.1vw, 0.8125rem);
+    word-break: break-all;
+    background: #f3f4f6;
+    color: var(--lotax-text);
+    border: 1px solid var(--lotax-border);
+  }
+
+  .lotax-btn-primary,
+  .lotax-btn-secondary,
+  .lotax-btn-danger {
+    height: 42px !important;
+    border-radius: 12px !important;
+    font-weight: 500 !important;
+    transition:
+      background var(--lotax-transition),
+      border-color var(--lotax-transition),
+      transform var(--lotax-transition),
+      box-shadow var(--lotax-transition) !important;
+  }
+
+  .lotax-btn-primary {
+    background: var(--lotax-primary) !important;
+    border-color: var(--lotax-primary) !important;
+    box-shadow: 0 1px 2px rgba(247, 147, 26, 0.25) !important;
+  }
+
+  .lotax-btn-secondary {
+    background: #fff !important;
+    border-color: var(--lotax-border) !important;
+    color: var(--lotax-text) !important;
+  }
+
+  .lotax-btn-danger {
+    background: #fff !important;
+    border-color: #fecaca !important;
+    color: var(--lotax-danger) !important;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .lotax-btn-primary:hover:not(:disabled) {
+      background: var(--lotax-primary-hover) !important;
+      border-color: var(--lotax-primary-hover) !important;
+      transform: translateY(-1px);
+    }
+
+    .lotax-btn-secondary:hover:not(:disabled) {
+      background: #fafafa !important;
+      border-color: #d4d4d8 !important;
+      transform: translateY(-1px);
+    }
+
+    .lotax-btn-danger:hover:not(:disabled) {
+      background: #fef2f2 !important;
+      border-color: var(--lotax-danger) !important;
+      transform: translateY(-1px);
+    }
+  }
+
+  .lotax-btn-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .lotax-page-pad {
+    padding: 16px;
+  }
+
+  @media (min-width: 768px) {
+    .lotax-page-pad {
+      padding: 24px;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .lotax-page-pad {
+      padding: 32px;
+    }
+  }
+
+  /* Mobile: full-width action buttons */
+  @media (max-width: 767px) {
+    .lotax-btn-primary,
+    .lotax-btn-secondary,
+    .lotax-btn-danger {
+      height: 50px !important;
+    }
+
+    .lotax-btn-stack > .ant-btn,
+    .lotax-btn-stack > button,
+    .lotax-actions-mobile .ant-btn {
+      width: 100% !important;
+      height: 50px !important;
+    }
+
+    .lotax-filter-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .lotax-filter-stack .ant-select,
+    .lotax-filter-stack .ant-btn {
+      width: 100% !important;
+    }
+  }
+}
+
+/* Ant Design overrides for premium look */
+.ant-layout {
+  background: var(--lotax-bg) !important;
+}
+
+.ant-table-wrapper .ant-table {
+  background: #fff;
+}
+
+.lotax-card > .ant-table-wrapper .ant-table,
+.lotax-card .ant-spin-nested-loading .ant-table {
+  border: none;
+  border-radius: 0;
+}
+
+.ant-table-thead > tr > th {
+  background: #fafafa !important;
+  color: var(--lotax-text-secondary) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid var(--lotax-border) !important;
+  padding: 10px 12px !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--lotax-border) !important;
+  padding: 10px 12px !important;
+  font-size: 14px;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #fafbfc !important;
+}
+
+.ant-table-tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+.ant-pagination {
+  margin-top: 20px !important;
+}
+
+.ant-modal-content {
+  border-radius: 24px !important;
+  overflow: hidden;
+  padding: clamp(20px, 4vw, 28px) !important;
+  box-shadow: 0 24px 64px rgba(17, 17, 17, 0.16) !important;
+  max-width: calc(100vw - 32px);
+  margin-inline: auto;
+}
+
+@media (max-width: 767px) {
+  .ant-modal {
+    max-width: calc(100vw - 32px) !important;
+    margin: 16px auto !important;
+  }
+
+  .ant-modal-footer {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .ant-modal-footer .ant-btn {
+    width: 100% !important;
+    height: 50px !important;
+    margin: 0 !important;
+  }
+
+  .ant-table-tbody > tr > td,
+  .ant-table-thead > tr > th {
+    padding: 12px !important;
+    font-size: 14px;
+  }
+}
+
+.ant-modal-mask {
+  backdrop-filter: blur(6px);
+  background: rgba(17, 17, 17, 0.35) !important;
+}
+
+.ant-modal-header {
+  margin-bottom: 16px !important;
+}
+
+.ant-modal-title {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+}
+
+.ant-modal-footer {
+  margin-top: 24px !important;
+}
+
+.ant-modal-footer .ant-btn {
+  height: 42px !important;
+  border-radius: 12px !important;
+  padding-inline: 20px !important;
+  font-weight: 500 !important;
+}
+
+.ant-btn-primary {
+  background: var(--lotax-primary) !important;
+  border-color: var(--lotax-primary) !important;
+}
+
+.ant-btn-primary:hover:not(:disabled) {
+  background: var(--lotax-primary-hover) !important;
+  border-color: var(--lotax-primary-hover) !important;
+}
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-number,
+.ant-select-selector {
+  border-radius: 12px !important;
+  border-color: var(--lotax-border) !important;
+}
+
+.ant-input:hover,
+.ant-input-affix-wrapper:hover,
+.ant-input-number:hover,
+.ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+  border-color: #d4d4d8 !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused,
+.ant-input-number-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--lotax-primary) !important;
+  box-shadow: 0 0 0 3px var(--lotax-primary-soft) !important;
+}
+
+.ant-menu-light .ant-menu-item-selected {
+  background: var(--lotax-primary-soft) !important;
+  color: var(--lotax-primary) !important;
+  font-weight: 600;
+}
+
+.ant-menu-light .ant-menu-item {
+  border-radius: 12px !important;
+  margin-inline: 8px !important;
+  width: calc(100% - 16px) !important;
+  transition: all var(--lotax-transition) !important;
+}
+
+.ant-menu-light .ant-menu-item:hover {
+  background: #f3f4f6 !important;
+  color: var(--lotax-text) !important;
+}
+
+.ant-menu-inline .ant-menu-item::after {
+  display: none !important;
+}
+
+.ant-card {
+  border-radius: 16px !important;
+  border-color: var(--lotax-border) !important;
+  box-shadow: var(--lotax-shadow) !important;
+}
+
+.ant-spin-dot-item {
+  background-color: var(--lotax-primary) !important;
 }

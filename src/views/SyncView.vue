@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { CloudSyncOutlined } from '@ant-design/icons-vue'
+import { CarOutlined, CloudSyncOutlined, RocketOutlined } from '@ant-design/icons-vue'
 import { useDriversStore } from '@/stores/drivers'
 import { extractErrorMessage } from '@/utils/labels'
+import CopyableId from '@/components/CopyableId.vue'
 
 const drivers = useDriversStore()
 const loadingDrivers = ref(false)
@@ -36,68 +37,75 @@ async function syncRides() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl space-y-6">
+  <div class="mx-auto flex w-full max-w-4xl flex-col gap-5 md:gap-6 xl:gap-8">
     <div>
-      <h2 class="text-xl font-semibold">Синхронизация с Yandex Fleet</h2>
-      <p class="mt-1 text-sm text-neutral-500">
-        Эндпоинты только ставят задачу в Celery. Синхронизация выполняется в фоне.
+      <h1 class="lotax-page-title">Синхронизация</h1>
+      <p class="lotax-caption mt-1 max-w-2xl">
+        Эндпоинты только ставят задачу в Celery. Синхронизация с Yandex Fleet выполняется в фоне.
       </p>
     </div>
 
-    <a-row :gutter="[16, 16]">
-      <a-col :xs="24" :md="12">
-        <a-card class="!rounded-2xl">
-          <template #title>
-            <div class="flex items-center gap-2">
-              <CloudSyncOutlined />
-              Водители
-            </div>
-          </template>
-          <p class="mb-4 text-sm text-neutral-500">
-            POST /api/v1/sync/drivers · расписание ~6 ч
-          </p>
-          <a-button
-            type="primary"
-            block
-            class="!h-11 !rounded-xl !bg-[#1c1c1e] !border-[#1c1c1e]"
-            :loading="loadingDrivers"
-            @click="syncDrivers"
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div class="lotax-card lotax-card-hover p-4 md:p-6">
+        <div class="mb-5 flex items-start gap-3">
+          <div
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand"
           >
-            Запустить синхронизацию водителей
-          </a-button>
-        </a-card>
-      </a-col>
+            <CarOutlined class="text-lg" />
+          </div>
+          <div class="min-w-0">
+            <h2 class="lotax-section-title">Водители</h2>
+            <p class="lotax-caption mt-1 break-all">
+              POST /api/v1/sync/drivers · расписание ~6 ч
+            </p>
+          </div>
+        </div>
+        <a-button
+          type="primary"
+          block
+          class="lotax-btn-primary"
+          :loading="loadingDrivers"
+          @click="syncDrivers"
+        >
+          <template #icon><CloudSyncOutlined /></template>
+          Запустить синхронизацию водителей
+        </a-button>
+      </div>
 
-      <a-col :xs="24" :md="12">
-        <a-card class="!rounded-2xl">
-          <template #title>
-            <div class="flex items-center gap-2">
-              <CloudSyncOutlined />
-              Поездки
-            </div>
-          </template>
-          <p class="mb-4 text-sm text-neutral-500">
-            POST /api/v1/sync/rides · расписание ~15 мин
-          </p>
-          <a-button
-            type="primary"
-            block
-            class="!h-11 !rounded-xl !bg-[#1c1c1e] !border-[#1c1c1e]"
-            :loading="loadingRides"
-            @click="syncRides"
+      <div class="lotax-card lotax-card-hover p-4 md:p-6">
+        <div class="mb-5 flex items-start gap-3">
+          <div
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand"
           >
-            Запустить синхронизацию поездок
-          </a-button>
-        </a-card>
-      </a-col>
-    </a-row>
+            <RocketOutlined class="text-lg" />
+          </div>
+          <div class="min-w-0">
+            <h2 class="lotax-section-title">Поездки</h2>
+            <p class="lotax-caption mt-1 break-all">
+              POST /api/v1/sync/rides · расписание ~15 мин
+            </p>
+          </div>
+        </div>
+        <a-button
+          type="primary"
+          block
+          class="lotax-btn-primary"
+          :loading="loadingRides"
+          @click="syncRides"
+        >
+          <template #icon><CloudSyncOutlined /></template>
+          Запустить синхронизацию поездок
+        </a-button>
+      </div>
+    </div>
 
-    <a-alert
-      v-if="lastTask"
-      type="success"
-      show-icon
-      :message="lastTask.message"
-      :description="`task_id: ${lastTask.task_id}`"
-    />
+    <div v-if="lastTask" class="lotax-card border-emerald-200 bg-emerald-50/40 p-4 md:p-6">
+      <p class="break-words text-[14px] font-medium text-emerald-800 md:text-[15px]">
+        {{ lastTask.message }}
+      </p>
+      <div class="mt-4">
+        <CopyableId label="task_id" :value="lastTask.task_id" />
+      </div>
+    </div>
   </div>
 </template>

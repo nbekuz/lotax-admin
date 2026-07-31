@@ -1,19 +1,26 @@
 <script setup lang="ts">
-import { computed, h } from 'vue'
+import { computed, h, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   CarOutlined,
   CloudSyncOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
+  MenuOutlined,
+  MenuUnfoldOutlined,
   UserOutlined,
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
-import { APP_NAME } from '@/config'
-import { roleLabel } from '@/utils/labels'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+import BrandMark from '@/components/BrandMark.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
+const { isMobile, isLgUp } = useBreakpoint()
+
+const collapsed = ref(false)
+const drawerOpen = ref(false)
 
 const selectedKeys = computed(() => {
   if (route.path.startsWith('/sync')) return ['sync']
@@ -47,71 +54,206 @@ const menuItems = computed(() => {
   return items
 })
 
-function onMenuClick({ key }: { key: string }) {
+const userInitial = computed(() =>
+  (auth.admin?.first_name?.[0] || auth.admin?.email?.[0] || 'A').toUpperCase(),
+)
+
+watch(isLgUp, (lg) => {
+  if (lg) {
+    collapsed.value = false
+    drawerOpen.value = false
+  } else if (!isMobile.value) {
+    collapsed.value = true
+  }
+}, { immediate: true })
+
+watch(isMobile, (mobile) => {
+  if (mobile) {
+    drawerOpen.value = false
+  }
+})
+
+function onMenuClick(info: { key: string | number }) {
+  const key = String(info.key)
   router.push(`/${key === 'drivers' ? 'drivers' : key}`)
+  if (isMobile.value) {
+    drawerOpen.value = false
+  }
 }
 
 function logout() {
   auth.logout()
   router.push({ name: 'login' })
 }
+
+function toggleNav() {
+  if (isMobile.value) {
+    drawerOpen.value = !drawerOpen.value
+  } else {
+    collapsed.value = !collapsed.value
+  }
+}
 </script>
 
 <template>
   <a-layout class="min-h-full">
+    <!-- Desktop / Tablet sidebar -->
     <a-layout-sider
-      breakpoint="lg"
-      collapsed-width="0"
-      class="!bg-[#1c1c1e]"
-      :width="240"
+      v-if="!isMobile"
+      v-model:collapsed="collapsed"
+      collapsible
+      :trigger="null"
+      :width="260"
+      :collapsed-width="72"
+      theme="light"
+      class="lotax-sider !bg-white"
     >
-      <div class="flex h-16 items-center gap-3 px-5 text-white">
-        <div
-          class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-600 text-lg font-bold"
-        >
-          L
-        </div>
-        <div>
-          <div class="text-base font-semibold leading-tight">{{ APP_NAME }}</div>
-          <div class="text-xs text-white/50">Панель управления</div>
-        </div>
+      <div
+        class="flex h-16 items-center border-b border-line px-4 xl:h-[72px]"
+        :class="collapsed ? 'justify-center' : 'justify-start'"
+      >
+        <BrandMark
+          :size="collapsed ? 36 : 44"
+          :show-wordmark="!collapsed"
+          layout="inline"
+        />
       </div>
-      <a-menu
-        theme="dark"
-        mode="inline"
-        class="!bg-transparent"
-        :selected-keys="selectedKeys"
-        :items="menuItems"
-        @click="onMenuClick"
-      />
+
+      <div class="px-2 py-4">
+        <a-menu
+          theme="light"
+          mode="inline"
+          class="!border-none !bg-transparent"
+          :selected-keys="selectedKeys"
+          :items="menuItems"
+          :inline-collapsed="collapsed"
+          @click="onMenuClick"
+        />
+      </div>
     </a-layout-sider>
 
-    <a-layout>
+    <!-- Mobile drawer -->
+    <a-drawer
+      v-model:open="drawerOpen"
+      placement="left"
+      :width="280"
+      :closable="false"
+      class="lotax-nav-drawer"
+      :body-style="{ padding: 0 }"
+    >
+      <div class="flex h-16 items-center border-b border-line px-4">
+        <BrandMark :size="40" layout="inline" />
+      </div>
+      <div class="px-2 py-4">
+        <a-menu
+          theme="light"
+          mode="inline"
+          class="!border-none !bg-transparent"
+          :selected-keys="selectedKeys"
+          :items="menuItems"
+          @click="onMenuClick"
+        />
+      </div>
+      <div class="absolute inset-x-0 bottom-0 border-t border-line p-4">
+        <a-button class="lotax-btn-secondary w-full" block @click="logout">
+          <template #icon><LogoutOutlined /></template>
+          Выйти
+        </a-button>
+      </div>
+    </a-drawer>
+
+    <a-layout class="!min-w-0 !bg-surface">
       <a-layout-header
-        class="!flex !h-16 !items-center !justify-between !bg-white !px-6 shadow-sm"
+        class="lotax-topbar !sticky !top-0 !z-20 !flex !h-14 !items-center !justify-between !bg-white/95 !px-4 !backdrop-blur-md md:!h-16 md:!px-6 xl:!h-[72px]"
       >
-        <div class="text-lg font-semibold text-neutral-900">
-          {{ route.meta.title || 'Lotax' }}
-        </div>
-        <div class="flex items-center gap-4">
-          <div class="hidden text-right sm:block">
-            <div class="text-sm font-medium">{{ auth.fullName || auth.admin?.email }}</div>
-            <div class="text-xs text-neutral-500">
-              {{ auth.role ? roleLabel[auth.role] : '' }}
+        <div class="flex min-w-0 flex-1 items-center gap-3">
+          <button
+            type="button"
+            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-muted transition-all duration-fast md:hover:border-zinc-300 md:hover:text-ink"
+            :aria-label="isMobile ? 'Открыть меню' : collapsed ? 'Развернуть меню' : 'Свернуть меню'"
+            @click="toggleNav"
+          >
+            <MenuOutlined v-if="isMobile" />
+            <MenuUnfoldOutlined v-else-if="collapsed" />
+            <MenuFoldOutlined v-else />
+          </button>
+
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-base font-semibold tracking-tight text-ink md:text-[20px]">
+              {{ route.meta.title || 'Lotax' }}
             </div>
           </div>
-          <a-button type="default" @click="logout">
+        </div>
+
+        <div class="flex shrink-0 items-center gap-2 md:gap-3">
+          <div class="hidden text-[15px] font-medium text-ink lg:block">
+            {{ auth.fullName || auth.admin?.email }}
+          </div>
+
+          <!-- Mobile avatar -->
+          <button
+            type="button"
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-soft text-[13px] font-semibold text-brand md:hidden"
+            aria-label="Профиль"
+            @click="router.push('/profile')"
+          >
+            {{ userInitial }}
+          </button>
+
+          <a-button class="lotax-btn-secondary !hidden md:!inline-flex" @click="logout">
             <template #icon><LogoutOutlined /></template>
-            Выйти
+            <span class="hidden lg:inline">Выйти</span>
           </a-button>
         </div>
       </a-layout-header>
 
-      <a-layout-content class="m-4 md:m-6">
-        <div class="min-h-[calc(100vh-8rem)] rounded-2xl bg-white p-4 shadow-sm md:p-6">
+      <a-layout-content class="lotax-page-pad">
+        <div class="mx-auto min-h-[calc(100vh-5rem)] w-full max-w-[1400px]">
           <router-view />
         </div>
       </a-layout-content>
     </a-layout>
   </a-layout>
 </template>
+
+<style scoped>
+.lotax-sider {
+  border-right: 1px solid var(--lotax-border) !important;
+  transition: width 150ms ease !important;
+  position: sticky !important;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+}
+
+.lotax-topbar {
+  border-bottom: 1px solid var(--lotax-border);
+}
+
+:deep(.ant-layout-sider-children) {
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.ant-menu-item-selected) {
+  position: relative;
+}
+
+:deep(.ant-menu-item-selected)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 0 4px 4px 0;
+  background: var(--lotax-primary);
+}
+
+:deep(.ant-drawer-body) {
+  position: relative;
+  min-height: 100%;
+  padding-bottom: 88px !important;
+}
+</style>

@@ -3,17 +3,29 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { ArrowLeftOutlined } from '@ant-design/icons-vue'
+import {
+  ArrowLeftOutlined,
+  EditOutlined,
+  EyeOutlined,
+  SafetyCertificateOutlined,
+  StarOutlined,
+  StopOutlined,
+  TrophyOutlined,
+  WalletOutlined,
+} from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import {
-  driverStatusColor,
   driverStatusLabel,
-  driverTierColor,
   driverTierLabel,
   extractErrorMessage,
 } from '@/utils/labels'
 import type { DriverStatus } from '@/types/api'
+import StatusBadge from '@/components/StatusBadge.vue'
+import TierBadge from '@/components/TierBadge.vue'
+import KpiCard from '@/components/KpiCard.vue'
+import CopyableId from '@/components/CopyableId.vue'
+import InfoField from '@/components/InfoField.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,12 +38,25 @@ const statusOpen = ref(false)
 const pdnLoading = ref(false)
 
 const balanceForm = reactive({
-  balance_system_points: null as number | null,
-  balance_park_points: null as number | null,
+  balance_system_points: undefined as number | undefined,
+  balance_park_points: undefined as number | undefined,
 })
 
-const statusForm = reactive<{ status: DriverStatus }> ({
+const statusForm = reactive<{ status: DriverStatus }>({
   status: 'active',
+})
+
+const initials = computed(() => {
+  const d = drivers.current
+  if (!d) return '?'
+  const fromName = (d.display_name || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() || '')
+    .join('')
+  if (fromName) return fromName
+  return (d.first_name_masked?.[0] || 'D').toUpperCase()
 })
 
 async function load() {
@@ -73,8 +98,8 @@ async function saveBalance() {
   }
   try {
     await drivers.updateBalance(driverId.value, {
-      balance_system_points: balanceForm.balance_system_points,
-      balance_park_points: balanceForm.balance_park_points,
+      balance_system_points: balanceForm.balance_system_points ?? null,
+      balance_park_points: balanceForm.balance_park_points ?? null,
     })
     message.success('Баланс обновлён')
     balanceOpen.value = false
@@ -100,6 +125,7 @@ function confirmBlock() {
     okText: 'Заблокировать',
     cancelText: 'Отмена',
     okButtonProps: { danger: true },
+    centered: true,
     async onOk() {
       statusForm.status = 'blocked'
       await saveStatus()
@@ -111,145 +137,182 @@ onMounted(load)
 </script>
 
 <template>
-  <div v-if="drivers.current" class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <a-button @click="router.push('/drivers')">
-          <template #icon><ArrowLeftOutlined /></template>
-          Назад
-        </a-button>
-        <div>
-          <h2 class="text-xl font-semibold">
-            {{ drivers.current.display_name || 'Водитель' }}
-          </h2>
-          <p class="text-sm text-neutral-500">ID: {{ drivers.current.id }}</p>
-        </div>
+  <div v-if="drivers.current" class="flex flex-col gap-5 md:gap-6 xl:gap-8">
+    <!-- Header -->
+    <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div class="min-w-0">
+        <button
+          type="button"
+          class="mb-3 inline-flex items-center gap-2 rounded-xl px-2 py-1.5 text-[13px] font-medium text-ink-muted transition-all duration-fast md:mb-4 md:hover:bg-white md:hover:text-ink"
+          @click="router.push('/drivers')"
+        >
+          <ArrowLeftOutlined />
+          Назад к списку
+        </button>
+        <h1 class="lotax-page-title break-words">
+          {{ drivers.current.display_name || 'Водитель' }}
+        </h1>
+        <p class="lotax-caption mt-1 break-all font-mono">
+          Driver ID · {{ drivers.current.id }}
+        </p>
       </div>
-      <div class="flex flex-wrap gap-2">
+
+      <div
+        v-if="auth.canViewPdn || auth.canEditBalance || auth.canEditStatus"
+        class="lotax-actions-mobile lotax-btn-stack rounded-2xl border border-line bg-white p-2 shadow-card md:inline-flex md:w-auto"
+      >
         <a-button
           v-if="auth.canViewPdn"
+          class="lotax-btn-secondary"
           :loading="pdnLoading"
           @click="loadPdn"
         >
+          <template #icon><EyeOutlined /></template>
           Показать ПДн
         </a-button>
-        <a-button v-if="auth.canEditBalance" @click="balanceOpen = true">
+        <a-button
+          v-if="auth.canEditBalance"
+          class="lotax-btn-secondary"
+          @click="balanceOpen = true"
+        >
+          <template #icon><WalletOutlined /></template>
           Изменить баланс
         </a-button>
-        <a-button v-if="auth.canEditStatus" @click="statusOpen = true">
+        <a-button
+          v-if="auth.canEditStatus"
+          class="lotax-btn-secondary"
+          @click="statusOpen = true"
+        >
+          <template #icon><EditOutlined /></template>
           Изменить статус
         </a-button>
         <a-button
           v-if="auth.canEditStatus && drivers.current.status !== 'blocked'"
-          danger
+          class="lotax-btn-danger"
           @click="confirmBlock"
         >
+          <template #icon><StopOutlined /></template>
           Заблокировать
         </a-button>
       </div>
     </div>
 
-    <a-row :gutter="[16, 16]">
-      <a-col :xs="24" :md="12" :lg="8">
-        <a-card title="Профиль" class="h-full !rounded-2xl">
-          <a-descriptions :column="1" size="small">
-            <a-descriptions-item label="Имя (маска)">
-              {{ drivers.current.first_name_masked || '—' }}
-            </a-descriptions-item>
-            <a-descriptions-item label="Фамилия (маска)">
-              {{ drivers.current.last_name_masked || '—' }}
-            </a-descriptions-item>
-            <a-descriptions-item label="Телефон (маска)">
-              {{ drivers.current.phone_masked || '—' }}
-            </a-descriptions-item>
-            <a-descriptions-item label="Реферал">
-              {{ drivers.current.referral_code || '—' }}
-            </a-descriptions-item>
-            <a-descriptions-item label="Создан">
-              {{ dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm') }}
-            </a-descriptions-item>
-          </a-descriptions>
-        </a-card>
-      </a-col>
-
-      <a-col :xs="24" :md="12" :lg="8">
-        <a-card title="Баланс и статус" class="h-full !rounded-2xl">
-          <div class="mb-4 flex gap-2">
-            <a-tag :color="driverTierColor[drivers.current.tier]">
-              {{ driverTierLabel[drivers.current.tier] }}
-            </a-tag>
-            <a-tag :color="driverStatusColor[drivers.current.status]">
-              {{ driverStatusLabel[drivers.current.status] }}
-            </a-tag>
+    <!-- Summary card -->
+    <section class="lotax-card p-4 md:p-6 xl:p-7">
+      <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-6">
+        <div class="flex min-w-0 items-center gap-3 md:gap-4">
+          <div
+            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FFB000] via-brand to-[#E67E00] text-lg font-semibold text-white shadow-card md:h-16 md:w-16 md:text-xl"
+          >
+            {{ initials }}
           </div>
-          <a-statistic
-            title="Системные баллы"
-            :value="drivers.current.balance_system_points"
-            class="mb-4"
-          />
-          <a-statistic
-            title="Баллы парка"
-            :value="drivers.current.balance_park_points"
-          />
-        </a-card>
-      </a-col>
+          <div class="min-w-0">
+            <div class="truncate text-[18px] font-semibold tracking-tight text-ink md:text-[20px]">
+              {{ drivers.current.display_name || 'Водитель' }}
+            </div>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <TierBadge :tier="drivers.current.tier" />
+              <StatusBadge :status="drivers.current.status" />
+            </div>
+          </div>
+        </div>
 
-      <a-col :xs="24" :lg="8">
-        <a-card title="Yandex IDs" class="h-full !rounded-2xl">
-          <a-descriptions :column="1" size="small">
-            <a-descriptions-item label="Driver ID">
-              {{ drivers.current.yandex_driver_id || '—' }}
-            </a-descriptions-item>
-            <a-descriptions-item label="Park ID">
-              {{ drivers.current.yandex_park_id || '—' }}
-            </a-descriptions-item>
-          </a-descriptions>
-        </a-card>
-      </a-col>
-    </a-row>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
+          <InfoField
+            label="Создан"
+            :value="dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm')"
+          />
+          <InfoField label="Реферал" :value="drivers.current.referral_code" />
+          <div>
+            <p class="lotax-field-label">Баланс</p>
+            <p class="text-[18px] font-semibold tracking-tight text-ink md:text-[20px]">
+              {{ drivers.current.balance_system_points }}
+              <span class="text-[12px] font-medium text-ink-muted md:text-[13px]">сист.</span>
+              <span class="mx-1.5 text-ink-muted">·</span>
+              {{ drivers.current.balance_park_points }}
+              <span class="text-[12px] font-medium text-ink-muted md:text-[13px]">парк</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <a-card
-      v-if="drivers.personalData"
-      title="Персональные данные (расшифровано)"
-      class="!rounded-2xl !border-amber-200"
-    >
-      <a-alert
-        type="warning"
-        show-icon
-        class="mb-4"
-        message="Доступ к ПДн аудируется. Используйте только по необходимости."
-      />
-      <a-descriptions bordered :column="{ xs: 1, md: 2 }">
-        <a-descriptions-item label="Имя">
-          {{ drivers.personalData.first_name || '—' }}
-        </a-descriptions-item>
-        <a-descriptions-item label="Фамилия">
-          {{ drivers.personalData.last_name || '—' }}
-        </a-descriptions-item>
-        <a-descriptions-item label="Отчество">
-          {{ drivers.personalData.middle_name || '—' }}
-        </a-descriptions-item>
-        <a-descriptions-item label="Телефон">
-          {{ drivers.personalData.phone || '—' }}
-        </a-descriptions-item>
-        <a-descriptions-item label="Display name">
-          {{ drivers.personalData.display_name || '—' }}
-        </a-descriptions-item>
-      </a-descriptions>
-    </a-card>
+    <!-- Statistics: 1 / 2 / 4 cols -->
+    <section>
+      <h2 class="lotax-section-title mb-3 md:mb-4">Статистика</h2>
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <KpiCard title="Системные баллы" :value="drivers.current.balance_system_points">
+          <template #icon><StarOutlined /></template>
+        </KpiCard>
+        <KpiCard title="Баллы парка" :value="drivers.current.balance_park_points">
+          <template #icon><TrophyOutlined /></template>
+        </KpiCard>
+        <KpiCard title="Уровень" :value="driverTierLabel[drivers.current.tier]">
+          <template #icon><SafetyCertificateOutlined /></template>
+        </KpiCard>
+        <KpiCard title="Статус" :value="driverStatusLabel[drivers.current.status]">
+          <template #icon><EditOutlined /></template>
+        </KpiCard>
+      </div>
+    </section>
+
+    <!-- Info cards: mobile stack, tablet 2, desktop 2 -->
+    <section class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div class="lotax-card p-4 md:p-6">
+        <h2 class="lotax-section-title mb-4 md:mb-5">Профиль</h2>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+          <InfoField label="Имя (маска)" :value="drivers.current.first_name_masked" />
+          <InfoField label="Фамилия (маска)" :value="drivers.current.last_name_masked" />
+          <InfoField label="Телефон (маска)" :value="drivers.current.phone_masked" />
+          <InfoField label="Реферал" :value="drivers.current.referral_code" />
+          <InfoField
+            label="Создан"
+            :value="dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm')"
+          />
+        </div>
+      </div>
+
+      <div class="lotax-card p-4 md:p-6">
+        <h2 class="lotax-section-title mb-4 md:mb-5">Yandex IDs</h2>
+        <div class="flex flex-col gap-4">
+          <CopyableId label="Driver ID" :value="drivers.current.yandex_driver_id" />
+          <CopyableId label="Park ID" :value="drivers.current.yandex_park_id" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Personal data -->
+    <section v-if="drivers.personalData" class="lotax-card overflow-hidden border-amber-200 p-0">
+      <div class="border-b border-amber-100 bg-amber-50/70 px-4 py-4 md:px-6">
+        <h2 class="lotax-section-title">Персональные данные</h2>
+        <p class="lotax-caption mt-1">
+          Доступ к ПДн аудируется. Используйте только по необходимости.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 md:gap-5 md:p-6">
+        <InfoField label="Имя" :value="drivers.personalData.first_name" />
+        <InfoField label="Фамилия" :value="drivers.personalData.last_name" />
+        <InfoField label="Отчество" :value="drivers.personalData.middle_name" />
+        <InfoField label="Телефон" :value="drivers.personalData.phone" />
+        <InfoField label="Display name" :value="drivers.personalData.display_name" />
+      </div>
+    </section>
 
     <a-modal
       v-model:open="balanceOpen"
       title="Изменить баланс"
       ok-text="Сохранить"
       cancel-text="Отмена"
+      centered
+      :width="440"
       @ok="saveBalance"
     >
-      <a-form layout="vertical" class="mt-4">
+      <a-form layout="vertical" class="mt-2">
         <a-form-item label="Системные баллы">
           <a-input-number
             v-model:value="balanceForm.balance_system_points"
             class="!w-full"
+            size="large"
             :min="0"
           />
         </a-form-item>
@@ -257,6 +320,7 @@ onMounted(load)
           <a-input-number
             v-model:value="balanceForm.balance_park_points"
             class="!w-full"
+            size="large"
             :min="0"
           />
         </a-form-item>
@@ -268,12 +332,16 @@ onMounted(load)
       title="Изменить статус"
       ok-text="Сохранить"
       cancel-text="Отмена"
+      centered
+      :width="440"
       @ok="saveStatus"
     >
-      <a-form layout="vertical" class="mt-4">
+      <a-form layout="vertical" class="mt-2">
         <a-form-item label="Статус">
           <a-select
             v-model:value="statusForm.status"
+            size="large"
+            class="!w-full"
             :options="[
               { value: 'active', label: 'Активен' },
               { value: 'blocked', label: 'Заблокирован' },
@@ -285,7 +353,8 @@ onMounted(load)
     </a-modal>
   </div>
 
-  <div v-else class="flex justify-center py-20">
+  <div v-else class="flex flex-col items-center justify-center gap-3 py-20 md:py-28">
     <a-spin size="large" />
+    <p class="lotax-caption">Загрузка карточки водителя…</p>
   </div>
 </template>

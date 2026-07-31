@@ -29,15 +29,16 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // Used when VITE_API_BASE_URL is empty (relative /api calls).
       '/api': {
-        target: 'https://autoconfig.xn--80aubmrd.xn--p1ai',
+        target: 'http://admin.xn--80aubmrd.xn--p1ai',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       },
       '/health': {
-        target: 'https://autoconfig.xn--80aubmrd.xn--p1ai',
+        target: 'http://admin.xn--80aubmrd.xn--p1ai',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       },
     },
   },

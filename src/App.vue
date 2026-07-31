@@ -8,10 +8,22 @@ dayjs.locale('ru')
 
 const theme = {
   token: {
-    colorPrimary: '#1c1c1e',
+    colorPrimary: '#F7931A',
+    colorSuccess: '#22C55E',
+    colorWarning: '#F59E0B',
+    colorError: '#EF4444',
+    colorText: '#111111',
+    colorTextSecondary: '#6B7280',
+    colorBorder: '#ECECEC',
+    colorBgLayout: '#F8F9FB',
+    colorBgContainer: '#FFFFFF',
     borderRadius: 12,
+    borderRadiusLG: 16,
     fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+      "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    fontSize: 15,
+    controlHeight: 42,
+    controlHeightLG: 44,
   },
 }
 </script>
