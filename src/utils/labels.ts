@@ -4,7 +4,7 @@ export const roleLabel: Record<AdminRole, string> = {
   director: 'Директор',
   admin: 'Админ',
   manager: 'Менеджер',
-  super_admin: 'Super Admin',
+  super_admin: 'Супер-админ',
 }
 
 export const adminStatusLabel: Record<AdminStatus, string> = {

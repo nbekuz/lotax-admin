@@ -113,7 +113,7 @@ const permissions = computed(() => {
       </div>
 
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
-        <InfoField label="Email" :value="auth.admin.email" />
+        <InfoField label="Эл. почта" :value="auth.admin.email" />
         <InfoField label="Имя" :value="auth.admin.first_name" />
         <InfoField label="Фамилия" :value="auth.admin.last_name" />
         <InfoField label="Статус">

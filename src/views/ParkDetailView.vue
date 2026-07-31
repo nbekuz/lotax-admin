@@ -192,11 +192,11 @@ onMounted(load)
           :value="dayjs(parks.current.updated_at).format('DD.MM.YYYY HH:mm')"
         />
         <InfoField
-          label="Yandex API Key"
+          label="API-ключ Яндекс"
           :value="parks.current.has_yandex_api_key ? 'Задан' : 'Не задан'"
         />
       </div>
-      <CopyableId label="Park UUID" :value="parks.current.id" />
+      <CopyableId label="UUID парка" :value="parks.current.id" />
 
       <a-form layout="vertical" class="mt-6">
         <div class="grid grid-cols-1 gap-x-4 md:grid-cols-2">
@@ -206,13 +206,13 @@ onMounted(load)
           <a-form-item label="Юридическое название">
             <a-input v-model:value="editForm.legal_name" size="large" />
           </a-form-item>
-          <a-form-item label="Yandex Park ID">
+          <a-form-item label="ID парка Яндекс">
             <a-input v-model:value="editForm.yandex_park_id" size="large" />
           </a-form-item>
-          <a-form-item label="Yandex Client ID">
+          <a-form-item label="ID клиента Яндекс">
             <a-input v-model:value="editForm.yandex_client_id" size="large" />
           </a-form-item>
-          <a-form-item label="Новый Yandex API Key">
+          <a-form-item label="Новый API-ключ Яндекс">
             <a-input-password
               v-model:value="editForm.yandex_api_key"
               size="large"
@@ -290,7 +290,7 @@ onMounted(load)
       @ok="submitDirector"
     >
       <a-form layout="vertical" class="mt-2">
-        <a-form-item label="Email" required>
+        <a-form-item label="Эл. почта" required>
           <a-input v-model:value="directorForm.email" size="large" type="email" />
         </a-form-item>
         <a-form-item label="Пароль" required>

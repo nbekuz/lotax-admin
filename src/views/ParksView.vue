@@ -34,7 +34,7 @@ const createForm = reactive({
 
 const columns: TableColumnsType<ParkResponse> = [
   { title: 'Парк', dataIndex: 'name', key: 'name', ellipsis: true },
-  { title: 'Yandex ID', dataIndex: 'yandex_park_id', key: 'yandex_park_id', width: 160 },
+  { title: 'ID Яндекс', dataIndex: 'yandex_park_id', key: 'yandex_park_id', width: 160 },
   { title: 'Подписка', key: 'subscription', width: 140 },
   { title: 'Статус', key: 'is_active', width: 140 },
   { title: 'Создан', dataIndex: 'created_at', key: 'created_at', width: 170 },
@@ -329,13 +329,13 @@ onMounted(load)
         <a-form-item label="Юридическое название">
           <a-input v-model:value="createForm.legal_name" size="large" />
         </a-form-item>
-        <a-form-item label="Yandex Park ID">
+        <a-form-item label="ID парка Яндекс">
           <a-input v-model:value="createForm.yandex_park_id" size="large" />
         </a-form-item>
-        <a-form-item label="Yandex Client ID">
+        <a-form-item label="ID клиента Яндекс">
           <a-input v-model:value="createForm.yandex_client_id" size="large" />
         </a-form-item>
-        <a-form-item label="Yandex API Key">
+        <a-form-item label="API-ключ Яндекс">
           <a-input-password v-model:value="createForm.yandex_api_key" size="large" />
         </a-form-item>
         <a-form-item label="Подписка">

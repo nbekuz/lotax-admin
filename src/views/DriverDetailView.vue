@@ -254,7 +254,7 @@ watch(driverId, () => {
             <StarOutlined />
           </div>
           <div class="summary-balance__body">
-            <p class="summary-balance__label">System</p>
+            <p class="summary-balance__label">Система</p>
             <p class="summary-balance__value">
               {{ drivers.current.balance_system_points }}
             </p>
@@ -266,7 +266,7 @@ watch(driverId, () => {
             <TrophyOutlined />
           </div>
           <div class="summary-balance__body">
-            <p class="summary-balance__label">Park</p>
+            <p class="summary-balance__label">Парк</p>
             <p class="summary-balance__value">
               {{ drivers.current.balance_park_points }}
             </p>
@@ -304,7 +304,7 @@ watch(driverId, () => {
           <InfoField label="Фамилия" :value="drivers.personalData.last_name" />
           <InfoField label="Отчество" :value="drivers.personalData.middle_name" />
           <InfoField label="Телефон" :value="formatPhone(drivers.personalData.phone)" />
-          <InfoField label="Display name" :value="drivers.personalData.display_name" />
+          <InfoField label="Отображаемое имя" :value="drivers.personalData.display_name" />
           <InfoField label="Реферал" :value="drivers.current.referral_code" />
           <InfoField
             label="Создан"
@@ -325,10 +325,10 @@ watch(driverId, () => {
       </div>
 
       <div class="detail-card">
-        <h2 class="lotax-section-title mb-6">Yandex IDs</h2>
+        <h2 class="lotax-section-title mb-6">ID Яндекс</h2>
         <div class="flex flex-col gap-6">
-          <CopyableId label="Driver ID" :value="drivers.current.yandex_driver_id" />
-          <CopyableId label="Park ID" :value="drivers.current.yandex_park_id" />
+          <CopyableId label="ID водителя" :value="drivers.current.yandex_driver_id" />
+          <CopyableId label="ID парка" :value="drivers.current.yandex_park_id" />
         </div>
       </div>
     </section>

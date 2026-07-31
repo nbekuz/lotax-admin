@@ -41,7 +41,7 @@ async function syncRides() {
     <div>
       <h1 class="lotax-page-title">Синхронизация</h1>
       <p class="lotax-caption mt-1 max-w-2xl">
-        Эндпоинты только ставят задачу в Celery. Синхронизация с Yandex Fleet выполняется в фоне.
+        Эндпоинты только ставят задачу в Celery. Синхронизация с Яндекс.Таксопарк выполняется в фоне.
       </p>
     </div>
 
@@ -104,7 +104,7 @@ async function syncRides() {
         {{ lastTask.message }}
       </p>
       <div class="mt-4">
-        <CopyableId label="task_id" :value="lastTask.task_id" />
+        <CopyableId label="ID задачи" :value="lastTask.task_id" />
       </div>
     </div>
   </div>

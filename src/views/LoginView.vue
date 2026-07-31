@@ -76,7 +76,7 @@ async function onSubmit() {
           layout="vertical"
           @finish="onSubmit"
         >
-          <a-form-item label="Email" name="email">
+          <a-form-item label="Эл. почта" name="email">
             <a-input
               v-model:value="form.email"
               size="large"

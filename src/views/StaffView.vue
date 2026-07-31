@@ -87,7 +87,7 @@ const createRules: Record<string, Rule[]> = {
 
 const columns = computed<TableColumnsType<AdminListItem>>(() => [
   { title: 'Имя', key: 'name' },
-  { title: 'Email', dataIndex: 'email', key: 'email' },
+  { title: 'Эл. почта', dataIndex: 'email', key: 'email' },
   { title: 'Роль', dataIndex: 'role', key: 'role', width: 130 },
   { title: 'Статус', dataIndex: 'status', key: 'status', width: 150 },
   { title: 'Создан', dataIndex: 'created_at', key: 'created_at', width: 160 },
@@ -362,7 +362,7 @@ onMounted(load)
       @ok="submitCreate"
     >
       <a-form layout="vertical" class="mt-2" :model="createForm" :rules="createRules">
-        <a-form-item label="Email" name="email">
+        <a-form-item label="Эл. почта" name="email">
           <a-input v-model:value="createForm.email" size="large" type="email" />
         </a-form-item>
         <a-form-item label="Пароль" name="password">
