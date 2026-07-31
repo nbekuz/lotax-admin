@@ -340,6 +340,47 @@ body {
   border-color: var(--lotax-border) !important;
 }
 
+/* Keep text/cursor clear of rounded corners */
+.ant-input {
+  padding-inline: 14px !important;
+}
+
+.ant-input-lg {
+  padding-inline: 16px !important;
+}
+
+.ant-input-affix-wrapper {
+  padding-inline: 14px !important;
+}
+
+.ant-input-affix-wrapper-lg {
+  padding-inline: 16px !important;
+}
+
+.ant-input-affix-wrapper > input.ant-input {
+  padding-inline: 0 !important;
+}
+
+.ant-input-number .ant-input-number-input {
+  padding-inline: 14px !important;
+}
+
+.ant-input-number-lg .ant-input-number-input {
+  padding-inline: 16px !important;
+}
+
+.ant-select-single .ant-select-selector {
+  padding-inline: 14px !important;
+}
+
+.ant-select-single.ant-select-lg .ant-select-selector {
+  padding-inline: 16px !important;
+}
+
+.ant-select-single:not(.ant-select-customize-input) .ant-select-selector .ant-select-selection-search-input {
+  padding-inline: 0 !important;
+}
+
 .ant-input:hover,
 .ant-input-affix-wrapper:hover,
 .ant-input-number:hover,

@@ -2,11 +2,15 @@ export type AdminRole = 'director' | 'admin' | 'manager'
 export type AdminStatus = 'active' | 'blocked' | 'inactive'
 export type DriverStatus = 'active' | 'blocked' | 'pending'
 export type DriverTier = 'bronze' | 'silver' | 'gold' | 'platinum'
+/** Roles that can be assigned via Staff CRUD (never director via HTTP). */
+export type StaffAssignableRole = 'admin' | 'manager'
 
 export interface TokenResponse {
   access_token: string
   refresh_token: string
   token_type: string
+  role?: AdminRole
+  email?: string
 }
 
 export interface AdminProfile {
@@ -17,6 +21,32 @@ export interface AdminProfile {
   role: AdminRole
   status: AdminStatus
   created_at: string
+}
+
+/** Staff list/detail item — same shape as AdminProfile for park admins. */
+export type AdminListItem = AdminProfile
+
+export interface AdminListResponse {
+  items: AdminListItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface AdminCreatePayload {
+  email: string
+  password: string
+  first_name: string
+  last_name: string
+  role: StaffAssignableRole
+}
+
+export interface AdminUpdatePayload {
+  first_name?: string | null
+  last_name?: string | null
+  password?: string | null
+  status?: AdminStatus | null
+  role?: StaffAssignableRole | null
 }
 
 export interface DriverListItem {

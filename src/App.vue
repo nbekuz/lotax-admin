@@ -24,6 +24,9 @@ const theme = {
     fontSize: 15,
     controlHeight: 42,
     controlHeightLG: 44,
+    paddingContentHorizontal: 16,
+    controlPaddingHorizontal: 14,
+    controlPaddingHorizontalSM: 12,
   },
 }
 </script>

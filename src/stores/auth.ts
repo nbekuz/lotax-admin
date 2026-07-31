@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { authApi } from '@/api/auth'
 import { tokenStorage } from '@/utils/tokenStorage'
 import { extractErrorMessage } from '@/utils/labels'
-import type { AdminLoginPayload, AdminProfile, AdminRole } from '@/types/api'
+import type { AdminLoginPayload, AdminProfile, AdminRole, StaffAssignableRole } from '@/types/api'
 
 interface AuthState {
   admin: AdminProfile | null
@@ -29,6 +29,12 @@ export const useAuthStore = defineStore('auth', {
     canEditStatus: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
     canSync: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
     canViewPdn: (s) => s.admin?.role === 'director',
+    canManageStaff: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+    creatableRoles: (s): StaffAssignableRole[] => {
+      if (s.admin?.role === 'director') return ['admin', 'manager']
+      if (s.admin?.role === 'admin') return ['manager']
+      return []
+    },
     fullName: (s) => {
       if (!s.admin) return ''
       return `${s.admin.first_name} ${s.admin.last_name}`.trim()

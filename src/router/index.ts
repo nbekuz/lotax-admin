@@ -40,6 +40,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Синхронизация', roles: ['director', 'admin'] },
       },
       {
+        path: 'staff',
+        name: 'staff',
+        component: () => import('@/views/StaffView.vue'),
+        meta: { title: 'Сотрудники', roles: ['director', 'admin'] },
+      },
+      {
         path: 'profile',
         name: 'profile',
         component: () => import('@/views/ProfileView.vue'),

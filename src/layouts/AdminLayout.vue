@@ -8,6 +8,7 @@ import {
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
+  TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
@@ -24,6 +25,7 @@ const drawerOpen = ref(false)
 
 const selectedKeys = computed(() => {
   if (route.path.startsWith('/sync')) return ['sync']
+  if (route.path.startsWith('/staff')) return ['staff']
   if (route.path.startsWith('/profile')) return ['profile']
   return ['drivers']
 })
@@ -43,6 +45,14 @@ const menuItems = computed(() => {
       icon: () => h(CloudSyncOutlined),
       label: 'Синхронизация',
       title: 'Синхронизация',
+    })
+  }
+  if (auth.canManageStaff) {
+    items.push({
+      key: 'staff',
+      icon: () => h(TeamOutlined),
+      label: 'Сотрудники',
+      title: 'Сотрудники',
     })
   }
   items.push({
@@ -179,7 +189,14 @@ function toggleNav() {
           </button>
 
           <div class="min-w-0 flex-1">
-            <div class="truncate text-base font-semibold tracking-tight text-ink md:text-[20px]">
+            <div
+              class="truncate tracking-tight"
+              :class="
+                route.name === 'driver-detail'
+                  ? 'text-[13px] font-medium text-ink-muted md:text-[14px]'
+                  : 'text-base font-semibold text-ink md:text-[20px]'
+              "
+            >
               {{ route.meta.title || 'Lotax' }}
             </div>
           </div>

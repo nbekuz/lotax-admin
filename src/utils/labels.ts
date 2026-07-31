@@ -1,9 +1,21 @@
-import type { AdminRole, DriverStatus, DriverTier } from '@/types/api'
+import type { AdminRole, AdminStatus, DriverStatus, DriverTier } from '@/types/api'
 
 export const roleLabel: Record<AdminRole, string> = {
   director: 'Директор',
   admin: 'Админ',
   manager: 'Менеджер',
+}
+
+export const adminStatusLabel: Record<AdminStatus, string> = {
+  active: 'Активен',
+  blocked: 'Заблокирован',
+  inactive: 'Неактивен',
+}
+
+export const adminStatusTone: Record<AdminStatus, string> = {
+  active: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  blocked: 'bg-red-50 text-red-700 ring-red-200',
+  inactive: 'bg-slate-100 text-slate-600 ring-slate-300',
 }
 
 export const driverStatusLabel: Record<DriverStatus, string> = {

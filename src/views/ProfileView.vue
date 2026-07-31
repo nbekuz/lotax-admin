@@ -85,6 +85,13 @@ const userInitial = computed(() =>
           Синхронизация водителей и поездок
         </li>
         <li
+          v-if="auth.canManageStaff"
+          class="flex items-center gap-2 rounded-xl bg-surface px-3 py-2.5 text-[14px] text-ink md:text-[15px]"
+        >
+          <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+          Управление сотрудниками
+        </li>
+        <li
           class="flex items-center gap-2 rounded-xl bg-surface px-3 py-2.5 text-[14px] text-ink md:text-[15px]"
         >
           <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
