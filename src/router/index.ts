@@ -21,7 +21,16 @@ const routes: RouteRecordRaw[] = [
         path: '',
         redirect: () => {
           const auth = useAuthStore()
-          return auth.isSuperAdmin ? '/parks' : '/drivers'
+          return auth.isSuperAdmin ? '/organizations' : '/organization'
+        },
+      },
+      {
+        path: 'organization',
+        name: 'organization',
+        component: () => import('@/views/OrgOverviewView.vue'),
+        meta: {
+          title: 'Организация',
+          roles: ['director', 'admin', 'manager'],
         },
       },
       {
@@ -55,17 +64,20 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Сотрудники', roles: ['director', 'admin'] },
       },
       {
-        path: 'parks',
-        name: 'parks',
-        component: () => import('@/views/ParksView.vue'),
-        meta: { title: 'Таксопарки', roles: ['super_admin'] },
+        path: 'organizations',
+        name: 'organizations',
+        component: () => import('@/views/OrganizationsView.vue'),
+        meta: { title: 'Организации', roles: ['super_admin'] },
       },
       {
-        path: 'parks/:id',
-        name: 'park-detail',
-        component: () => import('@/views/ParkDetailView.vue'),
-        meta: { title: 'Парк', roles: ['super_admin'] },
+        path: 'organizations/:id',
+        name: 'organization-detail',
+        component: () => import('@/views/OrganizationDetailView.vue'),
+        meta: { title: 'Организация', roles: ['super_admin'] },
       },
+      // Legacy redirects (park-centric → org-centric)
+      { path: 'parks', redirect: '/organizations' },
+      { path: 'parks/:id', redirect: '/organizations' },
       {
         path: 'settings',
         name: 'settings',
@@ -92,7 +104,9 @@ export const router = createRouter({
 })
 
 function homeForRole(auth: ReturnType<typeof useAuthStore>) {
-  return auth.isSuperAdmin ? { name: 'parks' as const } : { name: 'drivers' as const }
+  return auth.isSuperAdmin
+    ? { name: 'organizations' as const }
+    : { name: 'organization' as const }
 }
 
 router.beforeEach(async (to) => {

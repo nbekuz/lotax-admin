@@ -11,6 +11,7 @@ export interface TokenResponse {
   token_type: string
   role?: AdminRole
   email?: string
+  organization_id?: string | null
 }
 
 export interface AdminProfile {
@@ -20,11 +21,13 @@ export interface AdminProfile {
   last_name: string
   role: AdminRole
   status: AdminStatus
+  /** Legacy single-park link; prefer organization_id. */
   park_id?: string | null
+  organization_id?: string | null
   created_at: string
 }
 
-/** Staff list/detail item — same shape as AdminProfile for park admins. */
+/** Staff list/detail item — same shape as AdminProfile for org staff. */
 export type AdminListItem = AdminProfile
 
 export interface AdminListResponse {
@@ -50,10 +53,68 @@ export interface AdminUpdatePayload {
   role?: StaffAssignableRole | null
 }
 
-/* ── Super Admin / Parks ── */
+export interface PasswordChangePayload {
+  current_password: string
+  new_password: string
+}
+
+export interface MessageResponse {
+  message: string
+}
+
+/* ── Organization (tenant) ── */
+
+export interface OrganizationResponse {
+  id: string
+  name: string
+  legal_name?: string | null
+  subscription_active: boolean
+  is_active: boolean
+  notes?: string | null
+  parks_count?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface OrganizationListResponse {
+  items: OrganizationResponse[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface OrganizationCreatePayload {
+  name: string
+  legal_name?: string | null
+  subscription_active?: boolean
+  notes?: string | null
+}
+
+export interface OrganizationUpdatePayload {
+  name?: string | null
+  legal_name?: string | null
+  is_active?: boolean | null
+  notes?: string | null
+}
+
+export interface OrganizationSubscriptionPayload {
+  subscription_active: boolean
+}
+
+export interface OrgMeResponse {
+  organization: OrganizationResponse
+  role: AdminRole
+  email: string
+  first_name: string
+  last_name: string
+  admin_id: string
+}
+
+/* ── Parks ── */
 
 export interface ParkResponse {
   id: string
+  organization_id?: string | null
   name: string
   legal_name?: string | null
   yandex_park_id?: string | null
@@ -89,15 +150,12 @@ export interface ParkUpdatePayload {
   yandex_park_id?: string | null
   yandex_client_id?: string | null
   yandex_api_key?: string | null
+  subscription_active?: boolean | null
   is_active?: boolean | null
   notes?: string | null
 }
 
-export interface ParkSubscriptionPayload {
-  subscription_active: boolean
-}
-
-export interface ParkDirectorCreatePayload {
+export interface OrgDirectorCreatePayload {
   email: string
   password: string
   first_name: string

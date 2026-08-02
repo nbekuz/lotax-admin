@@ -1,73 +1,118 @@
 import { http } from './http'
 import type {
+  AdminListItem,
   AdminListResponse,
+  OrganizationCreatePayload,
+  OrganizationListResponse,
+  OrganizationResponse,
+  OrganizationSubscriptionPayload,
+  OrganizationUpdatePayload,
+  OrgDirectorCreatePayload,
   ParkCreatePayload,
-  ParkDirectorCreatePayload,
   ParkListResponse,
   ParkResponse,
-  ParkSubscriptionPayload,
   ParkUpdatePayload,
   PlatformSettingsResponse,
   PlatformSettingsUpdatePayload,
-  AdminListItem,
 } from '@/types/api'
 
-export interface ParksQuery {
+export interface OrganizationsQuery {
   page?: number
   page_size?: number
   subscription_active?: boolean | null
 }
 
 export const superAdminApi = {
-  listParks(params: ParksQuery = {}) {
-    return http.get<ParkListResponse>('/super-admin/parks', {
+  listOrganizations(params: OrganizationsQuery = {}) {
+    return http.get<OrganizationListResponse>('/super-admin/organizations', {
       params: {
         page: params.page ?? 1,
         page_size: params.page_size ?? 20,
         subscription_active:
-          params.subscription_active === null || params.subscription_active === undefined
+          params.subscription_active === null ||
+          params.subscription_active === undefined
             ? undefined
             : params.subscription_active,
       },
     })
   },
 
-  createPark(payload: ParkCreatePayload) {
-    return http.post<ParkResponse>('/super-admin/parks', payload)
+  createOrganization(payload: OrganizationCreatePayload) {
+    return http.post<OrganizationResponse>(
+      '/super-admin/organizations',
+      payload,
+    )
   },
 
-  getPark(parkId: string) {
-    return http.get<ParkResponse>(`/super-admin/parks/${parkId}`)
+  getOrganization(orgId: string) {
+    return http.get<OrganizationResponse>(
+      `/super-admin/organizations/${orgId}`,
+    )
+  },
+
+  updateOrganization(orgId: string, payload: OrganizationUpdatePayload) {
+    return http.patch<OrganizationResponse>(
+      `/super-admin/organizations/${orgId}`,
+      payload,
+    )
+  },
+
+  setOrganizationSubscription(
+    orgId: string,
+    payload: OrganizationSubscriptionPayload,
+  ) {
+    return http.patch<OrganizationResponse>(
+      `/super-admin/organizations/${orgId}/subscription`,
+      payload,
+    )
+  },
+
+  listOrganizationParks(
+    orgId: string,
+    params: { page?: number; page_size?: number } = {},
+  ) {
+    return http.get<ParkListResponse>(
+      `/super-admin/organizations/${orgId}/parks`,
+      {
+        params: {
+          page: params.page ?? 1,
+          page_size: params.page_size ?? 20,
+        },
+      },
+    )
+  },
+
+  createPark(orgId: string, payload: ParkCreatePayload) {
+    return http.post<ParkResponse>(
+      `/super-admin/organizations/${orgId}/parks`,
+      payload,
+    )
   },
 
   updatePark(parkId: string, payload: ParkUpdatePayload) {
     return http.patch<ParkResponse>(`/super-admin/parks/${parkId}`, payload)
   },
 
-  setSubscription(parkId: string, payload: ParkSubscriptionPayload) {
-    return http.patch<ParkResponse>(
-      `/super-admin/parks/${parkId}/subscription`,
-      payload,
-    )
-  },
-
-  createDirector(parkId: string, payload: ParkDirectorCreatePayload) {
+  createDirector(orgId: string, payload: OrgDirectorCreatePayload) {
     return http.post<AdminListItem>(
-      `/super-admin/parks/${parkId}/directors`,
+      `/super-admin/organizations/${orgId}/directors`,
       payload,
     )
   },
 
-  listParkStaff(
-    parkId: string,
+  listOrganizationStaff(
+    orgId: string,
     params: { page?: number; page_size?: number } = {},
   ) {
-    return http.get<AdminListResponse>(`/super-admin/parks/${parkId}/staff`, {
-      params: {
-        page: params.page ?? 1,
-        page_size: params.page_size ?? 20,
+    return http.get<AdminListResponse>(
+      `/super-admin/organizations/${orgId}/staff`,
+      {
+        params: {
+          page: params.page ?? 1,
+          page_size: params.page_size ?? 20,
+        },
       },
-    })
+    )
   },
 
   getSettings() {

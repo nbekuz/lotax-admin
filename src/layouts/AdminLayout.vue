@@ -26,7 +26,10 @@ const collapsed = ref(false)
 const drawerOpen = ref(false)
 
 const selectedKeys = computed(() => {
-  if (route.path.startsWith('/parks')) return ['parks']
+  if (route.path.startsWith('/organizations')) return ['organizations']
+  if (route.path === '/organization' || route.path.startsWith('/organization/')) {
+    return ['organization']
+  }
   if (route.path.startsWith('/settings')) return ['settings']
   if (route.path.startsWith('/sync')) return ['sync']
   if (route.path.startsWith('/staff')) return ['staff']
@@ -38,10 +41,10 @@ const menuItems = computed(() => {
   if (auth.isSuperAdmin) {
     return [
       {
-        key: 'parks',
+        key: 'organizations',
         icon: () => h(BankOutlined),
-        label: 'Таксопарки',
-        title: 'Таксопарки',
+        label: 'Организации',
+        title: 'Организации',
       },
       {
         key: 'settings',
@@ -59,6 +62,12 @@ const menuItems = computed(() => {
   }
 
   const items = [
+    {
+      key: 'organization',
+      icon: () => h(BankOutlined),
+      label: 'Организация',
+      title: 'Организация',
+    },
     {
       key: 'drivers',
       icon: () => h(CarOutlined),
@@ -217,7 +226,8 @@ function toggleNav() {
             <div
               class="truncate tracking-tight"
               :class="
-                route.name === 'driver-detail' || route.name === 'park-detail'
+                route.name === 'driver-detail' ||
+                route.name === 'organization-detail'
                   ? 'text-[13px] font-medium text-ink-muted md:text-[14px]'
                   : 'text-base font-semibold text-ink md:text-[20px]'
               "

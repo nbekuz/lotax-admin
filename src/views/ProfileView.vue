@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import dayjs from 'dayjs'
-import { computed, h } from 'vue'
+import { computed, h, reactive, ref } from 'vue'
+import { message } from 'ant-design-vue'
 import {
   BankOutlined,
   CarOutlined,
@@ -13,10 +14,22 @@ import {
   EditOutlined,
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
-import { adminStatusLabel, adminStatusTone, roleLabel } from '@/utils/labels'
+import {
+  adminStatusLabel,
+  adminStatusTone,
+  extractErrorMessage,
+  roleLabel,
+} from '@/utils/labels'
 import InfoField from '@/components/InfoField.vue'
 
 const auth = useAuthStore()
+
+const passwordForm = reactive({
+  current_password: '',
+  new_password: '',
+  confirm_password: '',
+})
+const passwordSaving = ref(false)
 
 const userInitial = computed(() =>
   (auth.admin?.first_name?.[0] || auth.admin?.email?.[0] || 'A').toUpperCase(),
@@ -27,14 +40,21 @@ const permissions = computed(() => {
 
   if (auth.isSuperAdmin) {
     items.push({
-      key: 'parks',
-      label: 'Управление таксопарками и подписками',
+      key: 'orgs',
+      label: 'Управление организациями и парками',
       icon: () => h(BankOutlined),
     })
     items.push({
       key: 'settings',
       label: 'Глобальные настройки платформы',
       icon: () => h(SettingOutlined),
+    })
+  }
+  if (auth.isParkAdmin) {
+    items.push({
+      key: 'org',
+      label: 'Просмотр организации и парков ЛК',
+      icon: () => h(BankOutlined),
     })
   }
   if (auth.canViewPdn) {
@@ -82,6 +102,41 @@ const permissions = computed(() => {
 
   return items
 })
+
+async function changePassword() {
+  if (passwordForm.current_password.length < 1) {
+    message.warning('Укажите текущий пароль')
+    return
+  }
+  if (passwordForm.new_password.length < 8) {
+    message.warning('Новый пароль: минимум 8 символов')
+    return
+  }
+  if (passwordForm.new_password === passwordForm.current_password) {
+    message.warning('Новый пароль должен отличаться от текущего')
+    return
+  }
+  if (passwordForm.new_password !== passwordForm.confirm_password) {
+    message.warning('Пароли не совпадают')
+    return
+  }
+
+  passwordSaving.value = true
+  try {
+    const res = await auth.changePassword({
+      current_password: passwordForm.current_password,
+      new_password: passwordForm.new_password,
+    })
+    message.success(res.message || 'Пароль успешно изменён')
+    passwordForm.current_password = ''
+    passwordForm.new_password = ''
+    passwordForm.confirm_password = ''
+  } catch (e) {
+    message.error(extractErrorMessage(e, 'Не удалось изменить пароль'))
+  } finally {
+    passwordSaving.value = false
+  }
+}
 </script>
 
 <template>
@@ -133,10 +188,54 @@ const permissions = computed(() => {
           </span>
         </InfoField>
         <InfoField
+          v-if="auth.admin.organization_id"
+          label="Организация"
+          :value="auth.admin.organization_id"
+        />
+        <InfoField
           label="Создан"
           :value="dayjs(auth.admin.created_at).format('DD.MM.YYYY HH:mm')"
         />
       </div>
+    </section>
+
+    <section class="lotax-card p-4 md:p-6 xl:p-7">
+      <h2 class="lotax-section-title mb-1">Сменить пароль</h2>
+      <p class="lotax-caption mb-5">
+        Свой пароль меняйте здесь, не через список сотрудников
+      </p>
+      <a-form layout="vertical" class="max-w-md" @finish="changePassword">
+        <a-form-item label="Текущий пароль" required>
+          <a-input-password
+            v-model:value="passwordForm.current_password"
+            size="large"
+            autocomplete="current-password"
+          />
+        </a-form-item>
+        <a-form-item label="Новый пароль" required>
+          <a-input-password
+            v-model:value="passwordForm.new_password"
+            size="large"
+            placeholder="Минимум 8 символов"
+            autocomplete="new-password"
+          />
+        </a-form-item>
+        <a-form-item label="Повторите новый пароль" required>
+          <a-input-password
+            v-model:value="passwordForm.confirm_password"
+            size="large"
+            autocomplete="new-password"
+          />
+        </a-form-item>
+        <a-button
+          type="primary"
+          html-type="submit"
+          class="lotax-btn-primary"
+          :loading="passwordSaving"
+        >
+          Обновить пароль
+        </a-button>
+      </a-form>
     </section>
 
     <section class="lotax-card p-4 md:p-6 xl:p-7">

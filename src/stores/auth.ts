@@ -2,7 +2,13 @@ import { defineStore } from 'pinia'
 import { authApi } from '@/api/auth'
 import { tokenStorage } from '@/utils/tokenStorage'
 import { extractErrorMessage } from '@/utils/labels'
-import type { AdminLoginPayload, AdminProfile, AdminRole, StaffAssignableRole } from '@/types/api'
+import type {
+  AdminLoginPayload,
+  AdminProfile,
+  AdminRole,
+  PasswordChangePayload,
+  StaffAssignableRole,
+} from '@/types/api'
 
 interface AuthState {
   admin: AdminProfile | null
@@ -25,9 +31,10 @@ export const useAuthStore = defineStore('auth', {
     isSuperAdmin: (s) => s.admin?.role === 'super_admin',
     isDirector: (s) => s.admin?.role === 'director',
     isAdmin: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
-    /** Park-scoped admin UI (not global super admin panel). */
+    /** Org ЛК roles (not global super admin panel). */
     isParkAdmin: (s) =>
       ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
+    organizationId: (s) => s.admin?.organization_id ?? null,
     canEditBalance: (s) =>
       ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
     canEditStatus: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
@@ -90,6 +97,11 @@ export const useAuthStore = defineStore('auth', {
       tokenStorage.clear()
       this.admin = null
       this.error = null
+    },
+
+    async changePassword(payload: PasswordChangePayload) {
+      const { data } = await authApi.changePassword(payload)
+      return data
     },
   },
 })

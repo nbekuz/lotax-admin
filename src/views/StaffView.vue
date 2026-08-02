@@ -78,7 +78,7 @@ const createRules: Record<string, Rule[]> = {
   ],
   password: [
     { required: true, message: 'Введите пароль', trigger: 'blur' },
-    { min: 6, message: 'Минимум 6 символов', trigger: 'blur' },
+    { min: 8, message: 'Минимум 8 символов', trigger: 'blur' },
   ],
   first_name: [{ required: true, message: 'Введите имя', trigger: 'blur' }],
   last_name: [{ required: true, message: 'Введите фамилию', trigger: 'blur' }],
@@ -171,8 +171,8 @@ async function submitCreate() {
 
 async function submitEdit() {
   if (!editing.value) return
-  if (editForm.password.trim() && editForm.password.trim().length < 6) {
-    message.warning('Пароль: минимум 6 символов')
+  if (editForm.password.trim() && editForm.password.trim().length < 8) {
+    message.warning('Пароль: минимум 8 символов')
     return
   }
   saving.value = true
@@ -426,7 +426,7 @@ onMounted(load)
           <a-input-password
             v-model:value="editForm.password"
             size="large"
-            placeholder="Минимум 6 символов"
+            placeholder="Минимум 8 символов"
           />
         </a-form-item>
       </a-form>

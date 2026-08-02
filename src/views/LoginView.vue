@@ -41,7 +41,7 @@ async function onSubmit() {
   }
 
   message.success('Добро пожаловать')
-  const fallback = auth.isSuperAdmin ? '/parks' : '/drivers'
+  const fallback = auth.isSuperAdmin ? '/organizations' : '/organization'
   const redirect = (route.query.redirect as string) || fallback
   router.replace(redirect)
 }

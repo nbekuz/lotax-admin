@@ -2,6 +2,8 @@ import { http } from './http'
 import type {
   AdminLoginPayload,
   AdminProfile,
+  MessageResponse,
+  PasswordChangePayload,
   TokenResponse,
 } from '@/types/api'
 
@@ -16,5 +18,8 @@ export const authApi = {
     return http.post<TokenResponse>('/auth/refresh', {
       refresh_token: refreshToken,
     })
+  },
+  changePassword(payload: PasswordChangePayload) {
+    return http.patch<MessageResponse>('/auth/me/admin/password', payload)
   },
 }

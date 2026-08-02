@@ -1,31 +1,36 @@
 import { defineStore } from 'pinia'
-import { superAdminApi, type ParksQuery } from '@/api/superAdmin'
+import { superAdminApi, type OrganizationsQuery } from '@/api/superAdmin'
 import { extractErrorMessage } from '@/utils/labels'
 import type {
   AdminListItem,
+  OrganizationCreatePayload,
+  OrganizationResponse,
+  OrganizationUpdatePayload,
+  OrgDirectorCreatePayload,
   ParkCreatePayload,
-  ParkDirectorCreatePayload,
   ParkResponse,
   ParkUpdatePayload,
   PlatformSettingItem,
 } from '@/types/api'
 
-interface ParksState {
-  items: ParkResponse[]
+interface OrganizationsState {
+  items: OrganizationResponse[]
   total: number
   page: number
   pageSize: number
   subscriptionFilter: boolean | null
   loading: boolean
-  current: ParkResponse | null
+  current: OrganizationResponse | null
+  parks: ParkResponse[]
+  parksTotal: number
   staff: AdminListItem[]
   staffTotal: number
   settings: PlatformSettingItem[]
   error: string | null
 }
 
-export const useParksStore = defineStore('parks', {
-  state: (): ParksState => ({
+export const useOrganizationsStore = defineStore('organizations', {
+  state: (): OrganizationsState => ({
     items: [],
     total: 0,
     page: 1,
@@ -33,6 +38,8 @@ export const useParksStore = defineStore('parks', {
     subscriptionFilter: null,
     loading: false,
     current: null,
+    parks: [],
+    parksTotal: 0,
     staff: [],
     staffTotal: 0,
     settings: [],
@@ -40,7 +47,7 @@ export const useParksStore = defineStore('parks', {
   }),
 
   actions: {
-    async fetchList(query: Partial<ParksQuery> = {}) {
+    async fetchList(query: Partial<OrganizationsQuery> = {}) {
       this.loading = true
       this.error = null
       if (query.page != null) this.page = query.page
@@ -49,7 +56,7 @@ export const useParksStore = defineStore('parks', {
         this.subscriptionFilter = query.subscription_active ?? null
       }
       try {
-        const { data } = await superAdminApi.listParks({
+        const { data } = await superAdminApi.listOrganizations({
           page: this.page,
           page_size: this.pageSize,
           subscription_active: this.subscriptionFilter,
@@ -59,7 +66,7 @@ export const useParksStore = defineStore('parks', {
         this.page = data.page
         this.pageSize = data.page_size
       } catch (e) {
-        this.error = extractErrorMessage(e, 'Не удалось загрузить парки')
+        this.error = extractErrorMessage(e, 'Не удалось загрузить организации')
         throw e
       } finally {
         this.loading = false
@@ -70,11 +77,11 @@ export const useParksStore = defineStore('parks', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await superAdminApi.getPark(id)
+        const { data } = await superAdminApi.getOrganization(id)
         this.current = data
         return data
       } catch (e) {
-        this.error = extractErrorMessage(e, 'Парк не найден')
+        this.error = extractErrorMessage(e, 'Организация не найдена')
         this.current = null
         throw e
       } finally {
@@ -82,36 +89,59 @@ export const useParksStore = defineStore('parks', {
       }
     },
 
-    async create(payload: ParkCreatePayload) {
-      const { data } = await superAdminApi.createPark(payload)
+    async create(payload: OrganizationCreatePayload) {
+      const { data } = await superAdminApi.createOrganization(payload)
       await this.fetchList()
       return data
     },
 
-    async update(id: string, payload: ParkUpdatePayload) {
-      const { data } = await superAdminApi.updatePark(id, payload)
+    async update(id: string, payload: OrganizationUpdatePayload) {
+      const { data } = await superAdminApi.updateOrganization(id, payload)
       this.current = data
-      const idx = this.items.findIndex((p) => p.id === id)
+      const idx = this.items.findIndex((o) => o.id === id)
       if (idx >= 0) this.items[idx] = data
       return data
     },
 
     async setSubscription(id: string, subscription_active: boolean) {
-      const { data } = await superAdminApi.setSubscription(id, {
+      const { data } = await superAdminApi.setOrganizationSubscription(id, {
         subscription_active,
       })
       this.current = data
-      const idx = this.items.findIndex((p) => p.id === id)
+      const idx = this.items.findIndex((o) => o.id === id)
       if (idx >= 0) this.items[idx] = data
       return data
     },
 
-    async createDirector(id: string, payload: ParkDirectorCreatePayload) {
-      return (await superAdminApi.createDirector(id, payload)).data
+    async fetchParks(orgId: string, page = 1, pageSize = 50) {
+      const { data } = await superAdminApi.listOrganizationParks(orgId, {
+        page,
+        page_size: pageSize,
+      })
+      this.parks = data.items
+      this.parksTotal = data.total
+      return data
     },
 
-    async fetchStaff(id: string, page = 1, pageSize = 20) {
-      const { data } = await superAdminApi.listParkStaff(id, {
+    async createPark(orgId: string, payload: ParkCreatePayload) {
+      const { data } = await superAdminApi.createPark(orgId, payload)
+      await this.fetchParks(orgId)
+      return data
+    },
+
+    async updatePark(parkId: string, payload: ParkUpdatePayload) {
+      const { data } = await superAdminApi.updatePark(parkId, payload)
+      const idx = this.parks.findIndex((p) => p.id === parkId)
+      if (idx >= 0) this.parks[idx] = data
+      return data
+    },
+
+    async createDirector(orgId: string, payload: OrgDirectorCreatePayload) {
+      return (await superAdminApi.createDirector(orgId, payload)).data
+    },
+
+    async fetchStaff(orgId: string, page = 1, pageSize = 20) {
+      const { data } = await superAdminApi.listOrganizationStaff(orgId, {
         page,
         page_size: pageSize,
       })

@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { PlusOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons-vue'
-import { useParksStore } from '@/stores/parks'
+import { useOrganizationsStore } from '@/stores/organizations'
 import { extractErrorMessage } from '@/utils/labels'
 
 type SettingsDraftRow = {
@@ -11,14 +11,14 @@ type SettingsDraftRow = {
   description: string
 }
 
-const parks = useParksStore()
+const orgs = useOrganizationsStore()
 const saving = ref(false)
 const draft = ref<SettingsDraftRow[]>([])
 
 async function load() {
   try {
-    await parks.fetchSettings()
-    draft.value = parks.settings.map((item) => ({
+    await orgs.fetchSettings()
+    draft.value = orgs.settings.map((item) => ({
       key: item.key,
       value: item.value,
       description: item.description ?? '',
@@ -52,8 +52,8 @@ async function save() {
 
   saving.value = true
   try {
-    await parks.saveSettings(items)
-    draft.value = parks.settings.map((item) => ({
+    await orgs.saveSettings(items)
+    draft.value = orgs.settings.map((item) => ({
       key: item.key,
       value: item.value,
       description: item.description ?? '',
@@ -97,7 +97,7 @@ onMounted(load)
       </div>
     </div>
 
-    <div v-if="parks.loading && !draft.length" class="flex justify-center py-20">
+    <div v-if="orgs.loading && !draft.length" class="flex justify-center py-20">
       <a-spin size="large" />
     </div>
 
