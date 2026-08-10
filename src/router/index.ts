@@ -124,6 +124,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Рефералы', roles: ['director', 'admin'] },
       },
       {
+        path: 'push',
+        name: 'push',
+        component: () => import('@/views/PushNotifyView.vue'),
+        meta: { title: 'Push', roles: ['director', 'admin'] },
+      },
+      {
         path: 'sync',
         name: 'sync',
         component: () => import('@/views/SyncView.vue'),
@@ -146,6 +152,12 @@ const routes: RouteRecordRaw[] = [
         name: 'organization-detail',
         component: () => import('@/views/OrganizationDetailView.vue'),
         meta: { title: 'Организация', roles: ['super_admin'] },
+      },
+      {
+        path: 'directors',
+        name: 'directors',
+        component: () => import('@/views/DirectorsView.vue'),
+        meta: { title: 'Директоры', roles: ['super_admin'] },
       },
       { path: 'parks', redirect: '/organizations' },
       { path: 'parks/:id', redirect: '/organizations' },

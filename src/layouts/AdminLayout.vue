@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, h, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import {
   ApiOutlined,
   AuditOutlined,
@@ -14,6 +15,7 @@ import {
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
+  NotificationOutlined,
   SettingOutlined,
   ShareAltOutlined,
   TeamOutlined,
@@ -23,6 +25,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { extractErrorMessage } from '@/utils/labels'
 import BrandMark from '@/components/BrandMark.vue'
 
 const auth = useAuthStore()
@@ -36,6 +39,7 @@ const drawerOpen = ref(false)
 
 const selectedKeys = computed(() => {
   if (route.path.startsWith('/organizations')) return ['organizations']
+  if (route.path.startsWith('/directors')) return ['directors']
   if (route.path.startsWith('/system-rewards')) return ['system-rewards']
   if (route.path.startsWith('/organization/yandex')) return ['organization-yandex']
   if (route.path === '/organization' || route.path.startsWith('/organization/')) {
@@ -47,6 +51,7 @@ const selectedKeys = computed(() => {
   if (route.path.startsWith('/tasks')) return ['tasks']
   if (route.path.startsWith('/competitions')) return ['competitions']
   if (route.path.startsWith('/referral')) return ['referral']
+  if (route.path.startsWith('/push')) return ['push']
   if (route.path.startsWith('/settings')) return ['settings']
   if (route.path.startsWith('/sync')) return ['sync']
   if (route.path.startsWith('/staff')) return ['staff']
@@ -62,6 +67,12 @@ const menuItems = computed(() => {
         icon: () => h(BankOutlined),
         label: 'Организации',
         title: 'Организации',
+      },
+      {
+        key: 'directors',
+        icon: () => h(TeamOutlined),
+        label: 'Директоры',
+        title: 'Директоры',
       },
       {
         key: 'system-rewards',
@@ -142,6 +153,14 @@ const menuItems = computed(() => {
       title: 'Рефералы',
     })
   }
+  if (auth.canManageRewards) {
+    items.push({
+      key: 'push',
+      icon: () => h(NotificationOutlined),
+      label: 'Push',
+      title: 'Push',
+    })
+  }
   if (auth.canManageYandex) {
     items.push({
       key: 'organization-yandex',
@@ -179,6 +198,10 @@ const parkSelectOptions = computed(() =>
   org.parks.map((p) => ({ value: p.id, label: p.name })),
 )
 
+const orgSelectOptions = computed(() =>
+  org.myOrganizations.map((o) => ({ value: o.id, label: o.name })),
+)
+
 const userInitial = computed(() =>
   (auth.admin?.first_name?.[0] || auth.admin?.email?.[0] || 'A').toUpperCase(),
 )
@@ -186,7 +209,7 @@ const userInitial = computed(() =>
 onMounted(async () => {
   if (auth.isParkAdmin) {
     try {
-      await org.fetchParks()
+      await org.loadDashboard()
     } catch {
       /* ignore */
     }
@@ -218,6 +241,16 @@ function onMenuClick(info: { key: string | number }) {
 
 function onParkChange(id: string) {
   org.selectPark(id)
+}
+
+async function onOrgChange(id: string) {
+  if (id === org.organization?.id) return
+  try {
+    await org.switchOrganization(id)
+    message.success('Организация переключена')
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  }
 }
 
 function logout() {
@@ -331,6 +364,16 @@ function toggleNav() {
         </div>
 
         <div class="flex shrink-0 items-center gap-2 md:gap-3">
+          <a-select
+            v-if="auth.isParkAdmin && org.hasMultipleOrgs"
+            :value="org.organization?.id"
+            class="!w-36 md:!w-44"
+            size="large"
+            :options="orgSelectOptions"
+            :loading="org.switching"
+            placeholder="Организация"
+            @change="(v) => onOrgChange(String(v))"
+          />
           <a-select
             v-if="auth.isParkAdmin && parkSelectOptions.length"
             :value="org.selectedParkId ?? undefined"

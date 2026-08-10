@@ -143,7 +143,6 @@ async function submitPark() {
         yandex_park_id: parkForm.yandex_park_id.trim() || null,
         yandex_client_id: parkForm.yandex_client_id.trim() || null,
         yandex_api_key: parkForm.yandex_api_key.trim() || null,
-        subscription_active: parkForm.subscription_active,
         is_active: parkForm.is_active,
         notes: parkForm.notes.trim() || null,
       })
@@ -173,23 +172,28 @@ async function submitDirector() {
     message.warning('Укажите email')
     return
   }
-  if (directorForm.password.length < 8) {
-    message.warning('Пароль: минимум 8 символов')
+  const isNewAccount = Boolean(directorForm.password.trim())
+  if (isNewAccount && directorForm.password.length < 8) {
+    message.warning('Пароль нового директора: минимум 8 символов')
     return
   }
-  if (!directorForm.first_name.trim() || !directorForm.last_name.trim()) {
-    message.warning('Укажите имя и фамилию')
+  if (isNewAccount && (!directorForm.first_name.trim() || !directorForm.last_name.trim())) {
+    message.warning('Для нового директора укажите имя и фамилию')
     return
   }
   directorSaving.value = true
   try {
     await orgs.createDirector(orgId.value, {
       email: directorForm.email.trim(),
-      password: directorForm.password,
-      first_name: directorForm.first_name.trim(),
-      last_name: directorForm.last_name.trim(),
+      password: isNewAccount ? directorForm.password : null,
+      first_name: directorForm.first_name.trim() || undefined,
+      last_name: directorForm.last_name.trim() || undefined,
     })
-    message.success('Директор назначен')
+    message.success(
+      isNewAccount
+        ? 'Директор создан и привязан к организации'
+        : 'Существующий директор привязан к организации',
+    )
     directorOpen.value = false
     directorForm.email = ''
     directorForm.password = ''
@@ -197,7 +201,7 @@ async function submitDirector() {
     directorForm.last_name = ''
     await orgs.fetchStaff(orgId.value)
   } catch (e) {
-    message.error(extractErrorMessage(e, 'Не удалось создать директора'))
+    message.error(extractErrorMessage(e, 'Не удалось назначить директора'))
   } finally {
     directorSaving.value = false
   }
@@ -433,29 +437,33 @@ onMounted(load)
     <a-modal
       v-model:open="directorOpen"
       title="Назначить директора"
-      ok-text="Создать"
+      ok-text="Назначить"
       cancel-text="Отмена"
       centered
-      :width="480"
+      :width="520"
       :confirm-loading="directorSaving"
       @ok="submitDirector"
     >
+      <p class="mb-4 text-[13px] text-ink-muted">
+        Новый аккаунт — укажите пароль (мин. 8). Существующий директор другой org —
+        достаточно email, пароль не нужен.
+      </p>
       <a-form layout="vertical" class="mt-2">
         <a-form-item label="Эл. почта" required>
           <a-input v-model:value="directorForm.email" size="large" type="email" />
         </a-form-item>
-        <a-form-item label="Пароль" required>
+        <a-form-item label="Пароль (для нового аккаунта)">
           <a-input-password
             v-model:value="directorForm.password"
             size="large"
-            placeholder="Минимум 8 символов"
+            placeholder="Оставьте пустым для существующего директора"
           />
         </a-form-item>
         <div class="grid grid-cols-1 md:grid-cols-2 md:gap-3">
-          <a-form-item label="Имя" required>
+          <a-form-item label="Имя">
             <a-input v-model:value="directorForm.first_name" size="large" />
           </a-form-item>
-          <a-form-item label="Фамилия" required>
+          <a-form-item label="Фамилия">
             <a-input v-model:value="directorForm.last_name" size="large" />
           </a-form-item>
         </div>

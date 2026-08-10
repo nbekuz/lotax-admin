@@ -7,12 +7,14 @@ const PARK_STORAGE_KEY = 'lotax_selected_park_id'
 
 interface OrgState {
   organization: OrganizationResponse | null
+  myOrganizations: OrganizationResponse[]
   parks: ParkResponse[]
   parksTotal: number
   page: number
   pageSize: number
   selectedParkId: string | null
   loading: boolean
+  switching: boolean
   error: string | null
 }
 
@@ -20,18 +22,21 @@ interface OrgState {
 export const useOrgStore = defineStore('org', {
   state: (): OrgState => ({
     organization: null,
+    myOrganizations: [],
     parks: [],
     parksTotal: 0,
     page: 1,
     pageSize: 20,
     selectedParkId: localStorage.getItem(PARK_STORAGE_KEY),
     loading: false,
+    switching: false,
     error: null,
   }),
 
   getters: {
     selectedPark: (s): ParkResponse | null =>
       s.parks.find((p) => p.id === s.selectedParkId) ?? null,
+    hasMultipleOrgs: (s) => s.myOrganizations.length > 1,
   },
 
   actions: {
@@ -75,6 +80,39 @@ export const useOrgStore = defineStore('org', {
       }
     },
 
+    async fetchMyOrganizations() {
+      try {
+        const { data } = await orgApi.listMyOrganizations({ page_size: 50 })
+        this.myOrganizations = data.items
+        return data.items
+      } catch (e) {
+        this.myOrganizations = this.organization ? [this.organization] : []
+        throw e
+      }
+    },
+
+    async switchOrganization(organizationId: string) {
+      this.switching = true
+      this.error = null
+      try {
+        const { data } = await orgApi.switchOrganization({
+          organization_id: organizationId,
+        })
+        this.organization = data.organization
+        this.selectPark(null)
+        await this.fetchParks(1, this.pageSize)
+        return data
+      } catch (e) {
+        this.error = extractErrorMessage(
+          e,
+          'Не удалось переключить организацию',
+        )
+        throw e
+      } finally {
+        this.switching = false
+      }
+    },
+
     async fetchParks(page = 1, pageSize = 50) {
       this.loading = true
       this.error = null
@@ -99,6 +137,11 @@ export const useOrgStore = defineStore('org', {
 
     async loadDashboard() {
       await this.fetchMe()
+      try {
+        await this.fetchMyOrganizations()
+      } catch {
+        /* optional for single-org accounts */
+      }
       await this.fetchParks(1, this.pageSize)
     },
   },

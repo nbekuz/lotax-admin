@@ -475,6 +475,7 @@ export interface TaskAdminUpdatePayload {
   end_date?: string | null
   auto_join?: boolean | null
   status?: TaskStatus | null
+  notify_on_create?: boolean | null
 }
 
 export interface TaskProgressParticipant {

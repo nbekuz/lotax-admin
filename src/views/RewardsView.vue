@@ -24,7 +24,6 @@ const editing = ref<RewardAdminItem | null>(null)
 const form = reactive({
   title: '',
   description: '',
-  image_url: '',
   type: 'car_wash' as RewardType,
   points_type: 'park' as PointsType,
   points_cost: 100,
@@ -33,6 +32,9 @@ const form = reactive({
   sort_order: 0,
   is_active: true,
 })
+
+const imageFile = ref<File | null>(null)
+const imagePreview = ref<string | null>(null)
 
 const typeOptions = [
   { value: 'free_shift', label: rewardTypeLabel.free_shift },
@@ -82,7 +84,6 @@ function openCreate() {
   editing.value = null
   form.title = ''
   form.description = ''
-  form.image_url = ''
   form.type = 'car_wash'
   form.points_type = 'park'
   form.points_cost = 100
@@ -90,6 +91,8 @@ function openCreate() {
   form.min_tier = 'bronze'
   form.sort_order = 0
   form.is_active = true
+  imageFile.value = null
+  imagePreview.value = null
   modalOpen.value = true
 }
 
@@ -97,7 +100,6 @@ function openEdit(item: RewardAdminItem) {
   editing.value = item
   form.title = item.title
   form.description = item.description || ''
-  form.image_url = item.image_url || ''
   form.type = item.type as RewardType
   form.points_type = item.points_type
   form.points_cost = item.points_cost
@@ -105,7 +107,15 @@ function openEdit(item: RewardAdminItem) {
   form.min_tier = item.min_tier
   form.sort_order = item.sort_order
   form.is_active = item.is_active
+  imageFile.value = null
+  imagePreview.value = item.image_url || null
   modalOpen.value = true
+}
+
+function onImageSelect(file: File) {
+  imageFile.value = file
+  imagePreview.value = URL.createObjectURL(file)
+  return false
 }
 
 async function save() {
@@ -115,18 +125,16 @@ async function save() {
   }
   saving.value = true
   try {
-    const image_url = form.image_url.trim() || null
     if (editing.value) {
       await adminRewardsApi.update(editing.value.id, {
         title: form.title.trim(),
         description: form.description.trim() || null,
-        image_url,
-        type: form.type,
         points_cost: form.points_cost,
         stock_total: form.stock_total ?? null,
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
+        image: imageFile.value,
       })
       message.success('Награда обновлена')
     } else {
@@ -134,7 +142,6 @@ async function save() {
         park_id: parkId.value,
         title: form.title.trim(),
         description: form.description.trim() || null,
-        image_url,
         type: form.type,
         points_type: form.points_type,
         points_cost: form.points_cost,
@@ -142,6 +149,7 @@ async function save() {
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
+        image: imageFile.value,
       })
       message.success('Награда создана')
     }
@@ -252,15 +260,18 @@ onMounted(async () => {
             :auto-size="{ minRows: 2, maxRows: 4 }"
           />
         </a-form-item>
-        <a-form-item label="Изображение (URL)">
-          <a-input
-            v-model:value="form.image_url"
-            placeholder="https://…"
-            allow-clear
-          />
+        <a-form-item label="Изображение">
+          <a-upload
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            :show-upload-list="false"
+            :before-upload="onImageSelect"
+          >
+            <a-button class="lotax-btn-secondary">Выбрать файл</a-button>
+          </a-upload>
+          <p class="lotax-caption mt-1">JPEG / PNG / WEBP / GIF · multipart</p>
           <img
-            v-if="form.image_url.trim()"
-            :src="form.image_url.trim()"
+            v-if="imagePreview"
+            :src="imagePreview"
             alt=""
             class="mt-2 h-20 w-20 rounded-lg object-cover ring-1 ring-line"
           />
