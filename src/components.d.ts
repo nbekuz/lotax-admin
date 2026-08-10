@@ -32,6 +32,7 @@ declare module 'vue' {
     ASwitch: typeof import('ant-design-vue/es')['Switch']
     ATable: typeof import('ant-design-vue/es')['Table']
     ATextarea: typeof import('ant-design-vue/es')['Textarea']
+    AUpload: typeof import('ant-design-vue/es')['Upload']
     BrandMark: typeof import('./components/BrandMark.vue')['default']
     CopyableId: typeof import('./components/CopyableId.vue')['default']
     InfoField: typeof import('./components/InfoField.vue')['default']
