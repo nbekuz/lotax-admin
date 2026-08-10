@@ -1,4 +1,13 @@
-import type { AdminRole, AdminStatus, DriverStatus, DriverTier } from '@/types/api'
+import type {
+  AdminRole,
+  AdminStatus,
+  CompetitionCriteria,
+  CompetitionStatus,
+  DriverStatus,
+  DriverTier,
+  TaskStatus,
+  TaskType,
+} from '@/types/api'
 
 export const roleLabel: Record<AdminRole, string> = {
   director: 'Директор',
@@ -32,6 +41,26 @@ export const driverTierLabel: Record<DriverTier, string> = {
   platinum: 'Платина',
 }
 
+/** Alias for reward forms */
+export const tierLabel = driverTierLabel
+
+export const rewardTypeLabel: Record<
+  | 'free_shift'
+  | 'certificate'
+  | 'fuel_card'
+  | 'car_wash'
+  | 'merchandise'
+  | 'other',
+  string
+> = {
+  free_shift: 'Свободная смена',
+  certificate: 'Сертификат',
+  fuel_card: 'Топливная карта',
+  car_wash: 'Мойка',
+  merchandise: 'Мерч',
+  other: 'Другое',
+}
+
 export const driverStatusColor: Record<DriverStatus, string> = {
   active: 'success',
   blocked: 'error',
@@ -43,6 +72,49 @@ export const driverTierColor: Record<DriverTier, string> = {
   silver: 'default',
   gold: 'gold',
   platinum: 'purple',
+}
+
+export const taskTypeLabel: Record<TaskType, string> = {
+  ride_count: 'Кол-во поездок',
+  earn_points: 'Набрать баллы',
+  fare_total: 'Сумма поездок, ₽',
+  streak_days: 'Дни подряд',
+  custom: 'Ручной трекинг',
+}
+
+export const taskStatusLabel: Record<TaskStatus, string> = {
+  draft: 'Черновик',
+  scheduled: 'Запланировано',
+  active: 'Активно',
+  completed: 'Завершено',
+}
+
+export const taskStatusTone: Record<TaskStatus, string> = {
+  draft: 'bg-slate-100 text-slate-600 ring-slate-300',
+  scheduled: 'bg-blue-50 text-blue-700 ring-blue-200',
+  active: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  completed: 'bg-slate-100 text-slate-600 ring-slate-300',
+}
+
+export const competitionCriteriaLabel: Record<CompetitionCriteria, string> = {
+  max_points: 'Максимум баллов',
+  max_rides: 'Максимум поездок',
+}
+
+export const competitionStatusLabel: Record<CompetitionStatus, string> = {
+  draft: 'Черновик',
+  scheduled: 'Запланировано',
+  active: 'Активно',
+  finalizing: 'Подведение итогов',
+  completed: 'Завершено',
+}
+
+export const competitionStatusTone: Record<CompetitionStatus, string> = {
+  draft: 'bg-slate-100 text-slate-600 ring-slate-300',
+  scheduled: 'bg-blue-50 text-blue-700 ring-blue-200',
+  active: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  finalizing: 'bg-amber-50 text-amber-700 ring-amber-200',
+  completed: 'bg-slate-100 text-slate-600 ring-slate-300',
 }
 
 export function extractErrorMessage(error: unknown, fallback = 'Ошибка запроса'): string {

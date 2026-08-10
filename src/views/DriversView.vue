@@ -4,9 +4,10 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { TableColumnsType } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { CloudSyncOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons-vue'
+import { CloudSyncOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
+import { useOrgStore } from '@/stores/org'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { extractErrorMessage, formatPhone } from '@/utils/labels'
 import type { DriverListItem, DriverStatus } from '@/types/api'
@@ -15,10 +16,20 @@ import TierBadge from '@/components/TierBadge.vue'
 
 const auth = useAuthStore()
 const drivers = useDriversStore()
+const org = useOrgStore()
 const router = useRouter()
 const { isMobile, isLgUp, width } = useBreakpoint()
 
 const statusFilter = ref<DriverStatus | 'all'>('all')
+const createOpen = ref(false)
+const creating = ref(false)
+const createForm = reactive({
+  phone: '',
+  first_name: '',
+  last_name: '',
+  middle_name: '',
+  yandex_driver_id: '',
+})
 
 /** Fixed columns + x-scroll only when viewport is tight (tablet). */
 const needsHorizontalScroll = computed(() => !isLgUp.value)
@@ -131,12 +142,55 @@ function onMobilePageChange(page: number) {
   load()
 }
 
+async function submitCreate() {
+  if (!org.selectedParkId) {
+    message.warning('Выберите парк в шапке')
+    return
+  }
+  if (!createForm.phone.trim() || !createForm.first_name.trim() || !createForm.last_name.trim()) {
+    message.warning('Заполните телефон, имя и фамилию')
+    return
+  }
+  creating.value = true
+  try {
+    const driver = await drivers.createManual({
+      park_id: org.selectedParkId,
+      phone: createForm.phone.trim(),
+      first_name: createForm.first_name.trim(),
+      last_name: createForm.last_name.trim(),
+      middle_name: createForm.middle_name.trim() || null,
+      yandex_driver_id: createForm.yandex_driver_id.trim() || null,
+    })
+    message.success('Водитель добавлен')
+    createOpen.value = false
+    createForm.phone = ''
+    createForm.first_name = ''
+    createForm.last_name = ''
+    createForm.middle_name = ''
+    createForm.yandex_driver_id = ''
+    router.push({ name: 'driver-detail', params: { id: driver.id } })
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  } finally {
+    creating.value = false
+  }
+}
+
 watch(statusFilter, () => {
   pagination.current = 1
   load()
 })
 
-onMounted(load)
+onMounted(async () => {
+  if (auth.isParkAdmin && !org.parks.length) {
+    try {
+      await org.fetchParks()
+    } catch {
+      /* ignore */
+    }
+  }
+  await load()
+})
 </script>
 
 <template>
@@ -161,6 +215,15 @@ onMounted(load)
         <a-button class="lotax-btn-secondary" @click="load">
           <template #icon><ReloadOutlined /></template>
           Обновить
+        </a-button>
+        <a-button
+          v-if="auth.canCreateDriver"
+          type="primary"
+          class="lotax-btn-primary"
+          @click="createOpen = true"
+        >
+          <template #icon><PlusOutlined /></template>
+          Добавить
         </a-button>
         <a-button
           v-if="auth.canSync"
@@ -306,6 +369,38 @@ onMounted(load)
         </template>
       </a-table>
     </div>
+
+    <a-modal
+      v-model:open="createOpen"
+      title="Добавить водителя"
+      ok-text="Создать"
+      cancel-text="Отмена"
+      :confirm-loading="creating"
+      centered
+      :width="480"
+      @ok="submitCreate"
+    >
+      <a-form layout="vertical" class="mt-2">
+        <a-form-item label="Телефон" required>
+          <a-input v-model:value="createForm.phone" size="large" placeholder="+79001234567" />
+        </a-form-item>
+        <a-form-item label="Имя" required>
+          <a-input v-model:value="createForm.first_name" size="large" />
+        </a-form-item>
+        <a-form-item label="Фамилия" required>
+          <a-input v-model:value="createForm.last_name" size="large" />
+        </a-form-item>
+        <a-form-item label="Отчество">
+          <a-input v-model:value="createForm.middle_name" size="large" />
+        </a-form-item>
+        <a-form-item label="Yandex driver ID">
+          <a-input v-model:value="createForm.yandex_driver_id" size="large" />
+        </a-form-item>
+        <p class="lotax-caption">
+          Парк: {{ org.selectedPark?.name || 'не выбран' }}
+        </p>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 

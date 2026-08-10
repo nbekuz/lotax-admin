@@ -34,6 +34,12 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'organization/yandex',
+        name: 'organization-yandex',
+        component: () => import('@/views/YandexParkSettingsView.vue'),
+        meta: { title: 'Yandex Fleet', roles: ['director'] },
+      },
+      {
         path: 'drivers',
         name: 'drivers',
         component: () => import('@/views/DriversView.vue'),
@@ -50,6 +56,72 @@ const routes: RouteRecordRaw[] = [
           title: 'Карточка водителя',
           roles: ['director', 'admin', 'manager'],
         },
+      },
+      {
+        path: 'rewards',
+        name: 'rewards',
+        component: () => import('@/views/RewardsView.vue'),
+        meta: {
+          title: 'Награды',
+          roles: ['director', 'admin', 'manager'],
+        },
+      },
+      {
+        path: 'orders',
+        name: 'orders',
+        component: () => import('@/views/OrdersView.vue'),
+        meta: {
+          title: 'Заявки',
+          roles: ['director', 'admin', 'manager'],
+        },
+      },
+      {
+        path: 'rules',
+        name: 'rules',
+        component: () => import('@/views/RulesView.vue'),
+        meta: { title: 'Правила', roles: ['director', 'admin'] },
+      },
+      {
+        path: 'tasks',
+        name: 'tasks',
+        component: () => import('@/views/TasksView.vue'),
+        meta: {
+          title: 'Задания',
+          roles: ['director', 'admin', 'manager'],
+        },
+      },
+      {
+        path: 'tasks/:id/progress',
+        name: 'task-progress',
+        component: () => import('@/views/TaskProgressView.vue'),
+        meta: {
+          title: 'Прогресс задания',
+          roles: ['director', 'admin', 'manager'],
+        },
+      },
+      {
+        path: 'competitions',
+        name: 'competitions',
+        component: () => import('@/views/CompetitionsView.vue'),
+        meta: {
+          title: 'Соревнования',
+          roles: ['director', 'admin', 'manager'],
+        },
+      },
+      {
+        path: 'competitions/:id/leaderboard',
+        name: 'competition-leaderboard',
+        component: () => import('@/views/CompetitionLeaderboardView.vue'),
+        meta: {
+          title: 'Лидерборд соревнования',
+          roles: ['director', 'admin', 'manager'],
+        },
+      },
+      {
+        path: 'referral',
+        name: 'referral',
+        component: () => import('@/views/ReferralProgramView.vue'),
+        meta: { title: 'Рефералы', roles: ['director', 'admin'] },
       },
       {
         path: 'sync',
@@ -75,7 +147,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/OrganizationDetailView.vue'),
         meta: { title: 'Организация', roles: ['super_admin'] },
       },
-      // Legacy redirects (park-centric → org-centric)
       { path: 'parks', redirect: '/organizations' },
       { path: 'parks/:id', redirect: '/organizations' },
       {
@@ -83,6 +154,12 @@ const routes: RouteRecordRaw[] = [
         name: 'settings',
         component: () => import('@/views/PlatformSettingsView.vue'),
         meta: { title: 'Настройки', roles: ['super_admin'] },
+      },
+      {
+        path: 'system-rewards',
+        name: 'system-rewards',
+        component: () => import('@/views/SystemRewardsView.vue'),
+        meta: { title: 'Каталог LOTAX', roles: ['super_admin'] },
       },
       {
         path: 'profile',

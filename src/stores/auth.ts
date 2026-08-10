@@ -36,12 +36,37 @@ export const useAuthStore = defineStore('auth', {
       ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
     organizationId: (s) => s.admin?.organization_id ?? null,
     canEditBalance: (s) =>
-      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
+      ['director', 'admin'].includes(s.admin?.role ?? ''),
     canEditStatus: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
     canSync: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
     canViewPdn: (s) =>
       ['director', 'super_admin'].includes(s.admin?.role ?? ''),
     canManageStaff: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+    canManageYandex: (s) => s.admin?.role === 'director',
+    canCreateDriver: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+    canManageRewards: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+    canViewRewards: (s) =>
+      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
+    canModerateOrders: (s) =>
+      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
+    canManageRules: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+    canAdjustPoints: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+    canManageTasks: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+    canViewTasks: (s) =>
+      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
+    canManageCompetitions: (s) =>
+      ['director', 'admin'].includes(s.admin?.role ?? ''),
+    canViewCompetitions: (s) =>
+      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
+    canManageReferral: (s) =>
+      ['director', 'admin'].includes(s.admin?.role ?? ''),
+    canFinalizeCompetition: (s) =>
+      ['director', 'admin'].includes(s.admin?.role ?? ''),
+    adjustPointsTypes: (s): Array<'system' | 'park'> => {
+      if (s.admin?.role === 'director') return ['system', 'park']
+      if (s.admin?.role === 'admin') return ['park']
+      return []
+    },
     creatableRoles: (s): StaffAssignableRole[] => {
       if (s.admin?.role === 'director') return ['admin', 'manager']
       if (s.admin?.role === 'admin') return ['manager']

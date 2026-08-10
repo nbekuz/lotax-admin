@@ -32,10 +32,12 @@ const balanceOpen = ref(false)
 const statusOpen = ref(false)
 const pdnLoading = ref(false)
 const pdnError = ref<string | null>(null)
+const adjustSaving = ref(false)
 
-const balanceForm = reactive({
-  balance_system_points: undefined as number | undefined,
-  balance_park_points: undefined as number | undefined,
+const adjustForm = reactive({
+  points_type: 'park' as 'system' | 'park',
+  amount: 0,
+  description: '',
 })
 
 const statusForm = reactive<{ status: DriverStatus }>({
@@ -78,9 +80,8 @@ async function load() {
   try {
     await drivers.fetchById(driverId.value)
     if (drivers.current) {
-      balanceForm.balance_system_points = drivers.current.balance_system_points
-      balanceForm.balance_park_points = drivers.current.balance_park_points
       statusForm.status = drivers.current.status
+      adjustForm.points_type = auth.adjustPointsTypes[0] ?? 'park'
     }
 
     if (auth.canViewPdn) {
@@ -100,22 +101,29 @@ async function load() {
 }
 
 async function saveBalance() {
-  if (
-    balanceForm.balance_system_points == null &&
-    balanceForm.balance_park_points == null
-  ) {
-    message.warning('Укажите хотя бы одно поле баланса')
+  if (!adjustForm.description.trim()) {
+    message.warning('Укажите причину корректировки')
     return
   }
+  if (!adjustForm.amount) {
+    message.warning('Укажите сумму (может быть отрицательной)')
+    return
+  }
+  adjustSaving.value = true
   try {
-    await drivers.updateBalance(driverId.value, {
-      balance_system_points: balanceForm.balance_system_points ?? null,
-      balance_park_points: balanceForm.balance_park_points ?? null,
+    await drivers.adjustPoints(driverId.value, {
+      points_type: adjustForm.points_type,
+      amount: adjustForm.amount,
+      description: adjustForm.description.trim(),
     })
-    message.success('Баланс обновлён')
+    message.success('Баллы скорректированы')
     balanceOpen.value = false
+    adjustForm.amount = 0
+    adjustForm.description = ''
   } catch (e) {
     message.error(extractErrorMessage(e))
+  } finally {
+    adjustSaving.value = false
   }
 }
 
@@ -172,11 +180,11 @@ watch(driverId, () => {
       </div>
 
       <div
-        v-if="auth.canEditBalance || auth.canEditStatus"
+        v-if="auth.canAdjustPoints || auth.canEditStatus"
         class="driver-actions"
       >
         <a-button
-          v-if="auth.canEditBalance"
+          v-if="auth.canAdjustPoints"
           type="primary"
           class="driver-btn driver-btn--primary"
           @click="balanceOpen = true"
@@ -335,29 +343,32 @@ watch(driverId, () => {
 
     <a-modal
       v-model:open="balanceOpen"
-      title="Изменить баланс"
-      ok-text="Сохранить"
+      title="Корректировка баллов"
+      ok-text="Применить"
       cancel-text="Отмена"
       centered
       :width="440"
+      :confirm-loading="adjustSaving"
       @ok="saveBalance"
     >
       <a-form layout="vertical" class="mt-2">
-        <a-form-item label="Системные баллы">
-          <a-input-number
-            v-model:value="balanceForm.balance_system_points"
-            class="!w-full"
+        <a-form-item label="Тип баллов">
+          <a-select
+            v-model:value="adjustForm.points_type"
             size="large"
-            :min="0"
+            :options="
+              auth.adjustPointsTypes.map((t) => ({
+                value: t,
+                label: t === 'system' ? 'Системные' : 'Парковые',
+              }))
+            "
           />
         </a-form-item>
-        <a-form-item label="Баллы парка">
-          <a-input-number
-            v-model:value="balanceForm.balance_park_points"
-            class="!w-full"
-            size="large"
-            :min="0"
-          />
+        <a-form-item label="Сумма (+/−)">
+          <a-input-number v-model:value="adjustForm.amount" class="!w-full" size="large" />
+        </a-form-item>
+        <a-form-item label="Причина" required>
+          <a-textarea v-model:value="adjustForm.description" :rows="3" />
         </a-form-item>
       </a-form>
     </a-modal>

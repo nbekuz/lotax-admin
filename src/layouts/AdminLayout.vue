@@ -1,23 +1,32 @@
 <script setup lang="ts">
-import { computed, h, ref, watch } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  ApiOutlined,
+  AuditOutlined,
   BankOutlined,
   CarOutlined,
   CloudSyncOutlined,
+  FileTextOutlined,
+  FlagOutlined,
+  GiftOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
+  ShareAltOutlined,
   TeamOutlined,
+  TrophyOutlined,
   UserOutlined,
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import { useOrgStore } from '@/stores/org'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import BrandMark from '@/components/BrandMark.vue'
 
 const auth = useAuthStore()
+const org = useOrgStore()
 const route = useRoute()
 const router = useRouter()
 const { isMobile, isLgUp } = useBreakpoint()
@@ -27,9 +36,17 @@ const drawerOpen = ref(false)
 
 const selectedKeys = computed(() => {
   if (route.path.startsWith('/organizations')) return ['organizations']
+  if (route.path.startsWith('/system-rewards')) return ['system-rewards']
+  if (route.path.startsWith('/organization/yandex')) return ['organization-yandex']
   if (route.path === '/organization' || route.path.startsWith('/organization/')) {
     return ['organization']
   }
+  if (route.path.startsWith('/rewards')) return ['rewards']
+  if (route.path.startsWith('/orders')) return ['orders']
+  if (route.path.startsWith('/rules')) return ['rules']
+  if (route.path.startsWith('/tasks')) return ['tasks']
+  if (route.path.startsWith('/competitions')) return ['competitions']
+  if (route.path.startsWith('/referral')) return ['referral']
   if (route.path.startsWith('/settings')) return ['settings']
   if (route.path.startsWith('/sync')) return ['sync']
   if (route.path.startsWith('/staff')) return ['staff']
@@ -45,6 +62,12 @@ const menuItems = computed(() => {
         icon: () => h(BankOutlined),
         label: 'Организации',
         title: 'Организации',
+      },
+      {
+        key: 'system-rewards',
+        icon: () => h(GiftOutlined),
+        label: 'Каталог LOTAX',
+        title: 'Каталог LOTAX',
       },
       {
         key: 'settings',
@@ -74,7 +97,59 @@ const menuItems = computed(() => {
       label: 'Водители',
       title: 'Водители',
     },
+    {
+      key: 'rewards',
+      icon: () => h(GiftOutlined),
+      label: 'Награды',
+      title: 'Награды',
+    },
+    {
+      key: 'orders',
+      icon: () => h(AuditOutlined),
+      label: 'Заявки',
+      title: 'Заявки',
+    },
   ]
+  if (auth.canManageRules) {
+    items.push({
+      key: 'rules',
+      icon: () => h(FileTextOutlined),
+      label: 'Правила',
+      title: 'Правила',
+    })
+  }
+  if (auth.canViewTasks) {
+    items.push({
+      key: 'tasks',
+      icon: () => h(FlagOutlined),
+      label: 'Задания',
+      title: 'Задания',
+    })
+  }
+  if (auth.canViewCompetitions) {
+    items.push({
+      key: 'competitions',
+      icon: () => h(TrophyOutlined),
+      label: 'Соревнования',
+      title: 'Соревнования',
+    })
+  }
+  if (auth.canManageReferral) {
+    items.push({
+      key: 'referral',
+      icon: () => h(ShareAltOutlined),
+      label: 'Рефералы',
+      title: 'Рефералы',
+    })
+  }
+  if (auth.canManageYandex) {
+    items.push({
+      key: 'organization-yandex',
+      icon: () => h(ApiOutlined),
+      label: 'Yandex',
+      title: 'Yandex Fleet',
+    })
+  }
   if (auth.canSync) {
     items.push({
       key: 'sync',
@@ -100,9 +175,23 @@ const menuItems = computed(() => {
   return items
 })
 
+const parkSelectOptions = computed(() =>
+  org.parks.map((p) => ({ value: p.id, label: p.name })),
+)
+
 const userInitial = computed(() =>
   (auth.admin?.first_name?.[0] || auth.admin?.email?.[0] || 'A').toUpperCase(),
 )
+
+onMounted(async () => {
+  if (auth.isParkAdmin) {
+    try {
+      await org.fetchParks()
+    } catch {
+      /* ignore */
+    }
+  }
+})
 
 watch(isLgUp, (lg) => {
   if (lg) {
@@ -121,10 +210,14 @@ watch(isMobile, (mobile) => {
 
 function onMenuClick(info: { key: string | number }) {
   const key = String(info.key)
-  router.push(`/${key}`)
+  router.push({ name: key })
   if (isMobile.value) {
     drawerOpen.value = false
   }
+}
+
+function onParkChange(id: string) {
+  org.selectPark(id)
 }
 
 function logout() {
@@ -238,6 +331,17 @@ function toggleNav() {
         </div>
 
         <div class="flex shrink-0 items-center gap-2 md:gap-3">
+          <a-select
+            v-if="auth.isParkAdmin && parkSelectOptions.length"
+            :value="org.selectedParkId ?? undefined"
+            class="!w-36 md:!w-48"
+            size="large"
+            :options="parkSelectOptions"
+            placeholder="Парк"
+            @change="(v) => onParkChange(String(v))"
+          />
+
+
           <div class="hidden text-[15px] font-medium text-ink lg:block">
             {{ auth.fullName || auth.admin?.email }}
           </div>

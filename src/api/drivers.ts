@@ -1,10 +1,12 @@
 import { http } from './http'
 import type {
+  AdjustPointsPayload,
   BalanceUpdatePayload,
   DriverListItem,
   DriverListResponse,
   DriverPersonalData,
   DriverStatus,
+  ManualDriverCreatePayload,
   StatusUpdatePayload,
   SyncTaskResponse,
 } from '@/types/api'
@@ -36,6 +38,15 @@ export const driversApi = {
   },
   updateStatus(driverId: string, payload: StatusUpdatePayload) {
     return http.patch<DriverListItem>(`/drivers/${driverId}/status`, payload)
+  },
+  createManual(payload: ManualDriverCreatePayload) {
+    return http.post<DriverListItem>('/admin/drivers', payload)
+  },
+  adjustPoints(driverId: string, payload: AdjustPointsPayload) {
+    return http.post<DriverListItem>(
+      `/admin/drivers/${driverId}/adjust-points`,
+      payload,
+    )
   },
 }
 

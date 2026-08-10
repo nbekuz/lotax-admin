@@ -46,6 +46,10 @@ async function refreshAccessToken(): Promise<string | null> {
 }
 
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  if (config.data instanceof FormData) {
+    // Let the browser set multipart boundary.
+    delete config.headers['Content-Type']
+  }
   if (!isPublic(config.url)) {
     const token = tokenStorage.getAccess()
     if (token) {

@@ -1,4 +1,5 @@
 import { http } from './http'
+import { toFormData } from '@/utils/formData'
 import type {
   AdminListItem,
   AdminListResponse,
@@ -14,6 +15,10 @@ import type {
   ParkUpdatePayload,
   PlatformSettingsResponse,
   PlatformSettingsUpdatePayload,
+  RewardAdminCreatePayload,
+  RewardAdminItem,
+  RewardAdminListResponse,
+  RewardAdminUpdatePayload,
 } from '@/types/api'
 
 export interface OrganizationsQuery {
@@ -121,5 +126,68 @@ export const superAdminApi = {
 
   updateSettings(payload: PlatformSettingsUpdatePayload) {
     return http.put<PlatformSettingsResponse>('/super-admin/settings', payload)
+  },
+
+  listRewards(params: { page?: number; page_size?: number } = {}) {
+    return http.get<RewardAdminListResponse>('/super-admin/rewards', {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? 50,
+      },
+    })
+  },
+
+  createReward(
+    payload: RewardAdminCreatePayload & { image?: File | null },
+  ) {
+    const { image, ...rest } = payload
+    return http.post<RewardAdminItem>(
+      '/super-admin/rewards',
+      toFormData({
+        title: rest.title,
+        type: rest.type,
+        points_type: rest.points_type ?? 'system',
+        points_cost: rest.points_cost,
+        description: rest.description,
+        stock_total: rest.stock_total,
+        min_tier: rest.min_tier,
+        sort_order: rest.sort_order,
+        is_active: rest.is_active,
+        image: image ?? undefined,
+      }),
+    )
+  },
+
+  updateReward(
+    rewardId: string,
+    payload: RewardAdminUpdatePayload & {
+      image?: File | null
+      clear_image?: boolean
+    },
+  ) {
+    const { image, clear_image, ...rest } = payload
+    return http.patch<RewardAdminItem>(
+      `/super-admin/rewards/${rewardId}`,
+      toFormData({
+        title: rest.title,
+        description: rest.description,
+        points_cost: rest.points_cost,
+        stock_total: rest.stock_total,
+        min_tier: rest.min_tier,
+        sort_order: rest.sort_order,
+        is_active: rest.is_active,
+        clear_image,
+        image: image ?? undefined,
+      }),
+    )
+  },
+
+  listDirectors(params: { page?: number; page_size?: number } = {}) {
+    return http.get<AdminListResponse>('/super-admin/directors', {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? 20,
+      },
+    })
   },
 }

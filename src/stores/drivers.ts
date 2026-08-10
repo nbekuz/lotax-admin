@@ -2,10 +2,12 @@ import { defineStore } from 'pinia'
 import { driversApi, syncApi, type DriversQuery } from '@/api/drivers'
 import { extractErrorMessage } from '@/utils/labels'
 import type {
+  AdjustPointsPayload,
   BalanceUpdatePayload,
   DriverListItem,
   DriverPersonalData,
   DriverStatus,
+  ManualDriverCreatePayload,
   StatusUpdatePayload,
 } from '@/types/api'
 
@@ -93,6 +95,20 @@ export const useDriversStore = defineStore('drivers', {
       this.current = data
       const idx = this.items.findIndex((d) => d.id === id)
       if (idx >= 0) this.items[idx] = data
+      return data
+    },
+
+    async adjustPoints(id: string, payload: AdjustPointsPayload) {
+      const { data } = await driversApi.adjustPoints(id, payload)
+      this.current = data
+      const idx = this.items.findIndex((d) => d.id === id)
+      if (idx >= 0) this.items[idx] = data
+      return data
+    },
+
+    async createManual(payload: ManualDriverCreatePayload) {
+      const { data } = await driversApi.createManual(payload)
+      await this.fetchList()
       return data
     },
 
