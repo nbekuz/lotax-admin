@@ -422,7 +422,14 @@ export type TaskType =
   | 'fare_total'
   | 'streak_days'
   | 'custom'
-export type TaskStatus = 'draft' | 'scheduled' | 'active' | 'completed'
+  | 'claim'
+  | 'days_active'
+export type TaskStatus =
+  | 'draft'
+  | 'scheduled'
+  | 'active'
+  | 'completed'
+  | 'cancelled'
 
 export interface TaskAdminItem {
   id: string
@@ -430,14 +437,19 @@ export interface TaskAdminItem {
   title: string
   description?: string | null
   image_url?: string | null
-  task_type: TaskType
+  task_type: TaskType | string
   target_value: number
   reward_points_type: PointsType
   reward_points: number
   start_date: string
   end_date: string
   auto_join: boolean
-  status: TaskStatus
+  status: TaskStatus | string
+  notify_on_create?: boolean
+  template_key?: string | null
+  period_days?: number | null
+  is_claimable?: boolean
+  renew_on_complete?: boolean
   participants_count?: number | null
   completed_count?: number | null
   created_at: string
@@ -646,4 +658,41 @@ export interface PushNotifyResponse {
   devices_targeted: number
   detail?: string | null
   errors?: string[]
+}
+
+/* ── Task templates (park catalog) ── */
+
+export type TaskTemplateKey =
+  | 'welcome_bonus'
+  | 'first_order'
+  | 'rides_100_7d'
+  | 'rides_160_14d'
+  | 'rides_500_30d'
+  | 'rides_5000_365d'
+  | 'days_120_park'
+  | string
+
+export interface TaskTemplateItem {
+  key: TaskTemplateKey
+  title: string
+  description: string
+  task_type: string
+  target_value: number
+  default_reward_points: number
+  period_days?: number | null
+  is_claimable: boolean
+  renew_on_complete: boolean
+  enabled?: boolean
+  task_id?: string | null
+  task_status?: string | null
+}
+
+export interface TaskTemplateListResponse {
+  items: TaskTemplateItem[]
+}
+
+export interface TaskTemplateEnablePayload {
+  park_id: string
+  reward_points?: number | null
+  reward_points_type?: PointsType
 }

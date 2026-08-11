@@ -91,6 +91,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'task-templates',
+        name: 'task-templates',
+        component: () => import('@/views/TaskTemplatesView.vue'),
+        meta: {
+          title: 'Шаблоны заданий',
+          roles: ['director', 'admin', 'manager'],
+        },
+      },
+      {
         path: 'tasks/:id/progress',
         name: 'task-progress',
         component: () => import('@/views/TaskProgressView.vue'),

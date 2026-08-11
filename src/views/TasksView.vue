@@ -94,13 +94,13 @@ function openEdit(item: TaskAdminItem) {
   editing.value = item
   form.title = item.title
   form.description = item.description || ''
-  form.task_type = item.task_type
+  form.task_type = item.task_type as TaskType
   form.target_value = item.target_value
   form.reward_points_type = item.reward_points_type
   form.reward_points = item.reward_points
   dateRange.value = [dayjs(item.start_date), dayjs(item.end_date)]
   form.auto_join = item.auto_join
-  form.status = item.status
+  form.status = item.status as TaskStatus
   form.notify_on_create = false
   imageFile.value = null
   imagePreview.value = item.image_url || null
@@ -239,14 +239,15 @@ onMounted(async () => {
             <span class="font-semibold text-ink">{{ item.title }}</span>
             <span
               class="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-medium ring-1 ring-inset"
-              :class="taskStatusTone[item.status]"
+              :class="taskStatusTone[item.status as TaskStatus] ?? taskStatusTone.draft"
             >
-              {{ taskStatusLabel[item.status] }}
+              {{ taskStatusLabel[item.status as TaskStatus] ?? item.status }}
             </span>
           </div>
           <div class="mt-1 text-[13px] text-ink-muted">
-            {{ taskTypeLabel[item.task_type] }} · цель {{ item.target_value }} ·
+            {{ taskTypeLabel[item.task_type as TaskType] ?? item.task_type }} · цель {{ item.target_value }} ·
             +{{ item.reward_points }} б. ({{ item.reward_points_type }})
+            <span v-if="item.template_key"> · {{ item.template_key }}</span>
           </div>
           <div class="mt-1 text-[12px] text-ink-muted">
             {{ dayjs(item.start_date).format('DD.MM.YYYY') }} —

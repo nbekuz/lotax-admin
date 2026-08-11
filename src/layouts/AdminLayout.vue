@@ -48,6 +48,7 @@ const selectedKeys = computed(() => {
   if (route.path.startsWith('/rewards')) return ['rewards']
   if (route.path.startsWith('/orders')) return ['orders']
   if (route.path.startsWith('/rules')) return ['rules']
+  if (route.path.startsWith('/task-templates')) return ['task-templates']
   if (route.path.startsWith('/tasks')) return ['tasks']
   if (route.path.startsWith('/competitions')) return ['competitions']
   if (route.path.startsWith('/referral')) return ['referral']
@@ -135,6 +136,12 @@ const menuItems = computed(() => {
       icon: () => h(FlagOutlined),
       label: 'Задания',
       title: 'Задания',
+    })
+    items.push({
+      key: 'task-templates',
+      icon: () => h(FileTextOutlined),
+      label: 'Шаблоны',
+      title: 'Шаблоны заданий',
     })
   }
   if (auth.canViewCompetitions) {

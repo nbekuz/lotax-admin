@@ -80,6 +80,8 @@ export const taskTypeLabel: Record<TaskType, string> = {
   fare_total: 'Сумма поездок, ₽',
   streak_days: 'Дни подряд',
   custom: 'Ручной трекинг',
+  claim: 'Получить бонус',
+  days_active: 'Дни в парке',
 }
 
 export const taskStatusLabel: Record<TaskStatus, string> = {
@@ -87,6 +89,7 @@ export const taskStatusLabel: Record<TaskStatus, string> = {
   scheduled: 'Запланировано',
   active: 'Активно',
   completed: 'Завершено',
+  cancelled: 'Отменено',
 }
 
 export const taskStatusTone: Record<TaskStatus, string> = {
@@ -94,6 +97,7 @@ export const taskStatusTone: Record<TaskStatus, string> = {
   scheduled: 'bg-blue-50 text-blue-700 ring-blue-200',
   active: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
   completed: 'bg-slate-100 text-slate-600 ring-slate-300',
+  cancelled: 'bg-red-50 text-red-700 ring-red-200',
 }
 
 export const competitionCriteriaLabel: Record<CompetitionCriteria, string> = {
