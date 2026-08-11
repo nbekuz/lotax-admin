@@ -48,6 +48,8 @@ const form = reactive({
   status: 'draft' as CompetitionStatus,
 })
 const dateRange = ref<[Dayjs, Dayjs]>()
+const imageFile = ref<File | null>(null)
+const imagePreview = ref<string | null>(null)
 
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageCompetitions)
@@ -103,6 +105,8 @@ function openCreate() {
   form.prize_places = 3
   form.prize_points_type = 'park'
   form.status = 'draft'
+  imageFile.value = null
+  imagePreview.value = null
   syncPrizePlaces()
   modalOpen.value = true
 }
@@ -118,7 +122,15 @@ function openEdit(item: CompetitionAdminItem) {
   form.prizes = item.prizes.map((p) => ({ ...p }))
   form.prize_points_type = item.prize_points_type
   form.status = item.status
+  imageFile.value = null
+  imagePreview.value = item.image_url || null
   modalOpen.value = true
+}
+
+function onImageSelect(file: File) {
+  imageFile.value = file
+  imagePreview.value = URL.createObjectURL(file)
+  return false
 }
 
 async function save() {
@@ -144,6 +156,7 @@ async function save() {
         prizes: form.prizes,
         prize_points_type: form.prize_points_type,
         status: form.status,
+        image: imageFile.value,
       })
       message.success('Соревнование обновлено')
     } else {
@@ -159,6 +172,7 @@ async function save() {
         prizes: form.prizes,
         prize_points_type: form.prize_points_type,
         status: form.status,
+        image: imageFile.value,
       })
       message.success('Соревнование создано')
     }
@@ -295,7 +309,7 @@ onMounted(async () => {
             @click="finalize(item)"
           >
             <template #icon><TrophyOutlined /></template>
-            Finalize
+            Завершить
           </a-button>
           <template v-if="canEdit">
             <a-button class="lotax-btn-secondary" @click="openEdit(item)">Изменить</a-button>
@@ -321,6 +335,21 @@ onMounted(async () => {
         </a-form-item>
         <a-form-item label="Описание">
           <a-textarea v-model:value="form.description" :rows="2" />
+        </a-form-item>
+        <a-form-item label="Изображение">
+          <a-upload
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            :show-upload-list="false"
+            :before-upload="onImageSelect"
+          >
+            <a-button class="lotax-btn-secondary">Выбрать файл</a-button>
+          </a-upload>
+          <img
+            v-if="imagePreview"
+            :src="imagePreview"
+            alt=""
+            class="mt-2 h-20 w-20 rounded-lg object-cover ring-1 ring-line"
+          />
         </a-form-item>
         <div class="grid grid-cols-2 gap-3">
           <a-form-item label="Критерий">

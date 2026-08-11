@@ -429,6 +429,7 @@ export interface TaskAdminItem {
   park_id: string
   title: string
   description?: string | null
+  image_url?: string | null
   task_type: TaskType
   target_value: number
   reward_points_type: PointsType
@@ -517,6 +518,7 @@ export interface CompetitionAdminItem {
   park_id: string
   title: string
   description?: string | null
+  image_url?: string | null
   criteria: CompetitionCriteria
   count_points_type?: PointsType | null
   start_date: string

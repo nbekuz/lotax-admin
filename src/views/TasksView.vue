@@ -36,6 +36,8 @@ const form = reactive({
   notify_on_create: false,
 })
 const dateRange = ref<[Dayjs, Dayjs]>()
+const imageFile = ref<File | null>(null)
+const imagePreview = ref<string | null>(null)
 
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageTasks)
@@ -83,6 +85,8 @@ function openCreate() {
   form.auto_join = true
   form.status = 'draft'
   form.notify_on_create = false
+  imageFile.value = null
+  imagePreview.value = null
   modalOpen.value = true
 }
 
@@ -97,7 +101,16 @@ function openEdit(item: TaskAdminItem) {
   dateRange.value = [dayjs(item.start_date), dayjs(item.end_date)]
   form.auto_join = item.auto_join
   form.status = item.status
+  form.notify_on_create = false
+  imageFile.value = null
+  imagePreview.value = item.image_url || null
   modalOpen.value = true
+}
+
+function onImageSelect(file: File) {
+  imageFile.value = file
+  imagePreview.value = URL.createObjectURL(file)
+  return false
 }
 
 async function save() {
@@ -118,12 +131,13 @@ async function save() {
         title: form.title.trim(),
         description: form.description.trim() || null,
         target_value: form.target_value,
-        reward_points_type: form.reward_points_type,
         reward_points: form.reward_points,
         start_date,
         end_date,
         auto_join: form.auto_join,
         status: form.status,
+        notify_on_create: form.notify_on_create,
+        image: imageFile.value,
       })
       message.success('Задание обновлено')
     } else {
@@ -140,6 +154,7 @@ async function save() {
         auto_join: form.auto_join,
         status: form.status,
         notify_on_create: form.notify_on_create,
+        image: imageFile.value,
       })
       message.success('Задание создано')
     }
@@ -277,6 +292,21 @@ onMounted(async () => {
             placeholder="Кратко опишите условие"
           />
         </a-form-item>
+        <a-form-item label="Изображение">
+          <a-upload
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            :show-upload-list="false"
+            :before-upload="onImageSelect"
+          >
+            <a-button class="lotax-btn-secondary">Выбрать файл</a-button>
+          </a-upload>
+          <img
+            v-if="imagePreview"
+            :src="imagePreview"
+            alt=""
+            class="mt-2 h-20 w-20 rounded-lg object-cover ring-1 ring-line"
+          />
+        </a-form-item>
         <a-form-item label="Тип задания">
           <a-select
             v-model:value="form.task_type"
@@ -322,10 +352,7 @@ onMounted(async () => {
             <a-switch v-model:checked="form.auto_join" size="small" />
             Автоучастие
           </label>
-          <label
-            v-if="!editing"
-            class="inline-flex items-center gap-2 text-[13px] text-ink"
-          >
+          <label class="inline-flex items-center gap-2 text-[13px] text-ink">
             <a-switch v-model:checked="form.notify_on_create" size="small" />
             Уведомить водителей
           </label>
