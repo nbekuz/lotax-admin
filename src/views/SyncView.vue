@@ -1,21 +1,52 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { CarOutlined, CloudSyncOutlined, RocketOutlined } from '@ant-design/icons-vue'
+import {
+  CarOutlined,
+  CloudSyncOutlined,
+  RocketOutlined,
+} from '@ant-design/icons-vue'
 import { useDriversStore } from '@/stores/drivers'
+import { useOrgStore } from '@/stores/org'
 import { extractErrorMessage } from '@/utils/labels'
 import CopyableId from '@/components/CopyableId.vue'
 
 const drivers = useDriversStore()
+const org = useOrgStore()
+const router = useRouter()
+
 const loadingDrivers = ref(false)
 const loadingRides = ref(false)
 const lastTask = ref<{ message: string; task_id: string } | null>(null)
 
+const parkId = computed(() => org.selectedParkId)
+const park = computed(() => org.selectedPark)
+
+const yandexReady = computed(() => {
+  const p = park.value
+  if (!p) return false
+  return Boolean(
+    p.yandex_park_id && p.yandex_client_id && p.has_yandex_api_key,
+  )
+})
+
+async function refreshDriversSoon() {
+  // Celery queue — list may fill after a short delay
+  window.setTimeout(() => {
+    void drivers.fetchList({
+      page: 1,
+      park_id: parkId.value,
+    })
+  }, 4000)
+}
+
 async function syncDrivers() {
   loadingDrivers.value = true
   try {
-    lastTask.value = await drivers.syncDrivers()
+    lastTask.value = await drivers.syncDrivers(parkId.value)
     message.success(lastTask.value.message)
+    await refreshDriversSoon()
   } catch (e) {
     message.error(extractErrorMessage(e, 'Celery/Redis недоступен'))
   } finally {
@@ -26,7 +57,7 @@ async function syncDrivers() {
 async function syncRides() {
   loadingRides.value = true
   try {
-    lastTask.value = await drivers.syncRides()
+    lastTask.value = await drivers.syncRides(parkId.value)
     message.success(lastTask.value.message)
   } catch (e) {
     message.error(extractErrorMessage(e, 'Celery/Redis недоступен'))
@@ -34,6 +65,16 @@ async function syncRides() {
     loadingRides.value = false
   }
 }
+
+onMounted(async () => {
+  if (!org.parks.length) {
+    try {
+      await org.fetchParks()
+    } catch {
+      /* ignore */
+    }
+  }
+})
 </script>
 
 <template>
@@ -43,6 +84,39 @@ async function syncRides() {
       <p class="lotax-caption mt-1 max-w-2xl">
         Эндпоинты только ставят задачу в Celery. Синхронизация с Яндекс.Таксопарк выполняется в фоне.
       </p>
+    </div>
+
+    <div class="lotax-card p-4 md:p-5">
+      <p class="text-[13px] text-ink-muted">Парк</p>
+      <p class="mt-1 text-[15px] font-semibold text-ink">
+        {{ park?.name || 'Не выбран — синхронизация по всем паркам org' }}
+      </p>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <span
+          class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset"
+          :class="
+            yandexReady
+              ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+              : 'bg-amber-50 text-amber-800 ring-amber-200'
+          "
+        >
+          {{
+            !parkId
+              ? 'Парк не выбран'
+              : yandexReady
+                ? 'Yandex ключи заданы'
+                : 'Yandex ключи неполные'
+          }}
+        </span>
+        <a-button
+          v-if="parkId && !yandexReady"
+          type="link"
+          class="!px-0"
+          @click="router.push('/organization/yandex')"
+        >
+          Настроить Yandex
+        </a-button>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -56,7 +130,7 @@ async function syncRides() {
           <div class="min-w-0">
             <h2 class="lotax-section-title">Водители</h2>
             <p class="lotax-caption mt-1 break-all">
-              POST /api/v1/sync/drivers · расписание ~6 ч
+              POST /sync/drivers · расписание ~6 ч
             </p>
           </div>
         </div>
@@ -68,7 +142,7 @@ async function syncRides() {
           @click="syncDrivers"
         >
           <template #icon><CloudSyncOutlined /></template>
-          Запустить синхронизацию водителей
+          Синхронизировать водителей
         </a-button>
       </div>
 
@@ -82,7 +156,7 @@ async function syncRides() {
           <div class="min-w-0">
             <h2 class="lotax-section-title">Поездки</h2>
             <p class="lotax-caption mt-1 break-all">
-              POST /api/v1/sync/rides · расписание ~15 мин
+              POST /sync/rides · расписание ~15 мин
             </p>
           </div>
         </div>
@@ -94,7 +168,7 @@ async function syncRides() {
           @click="syncRides"
         >
           <template #icon><CloudSyncOutlined /></template>
-          Запустить синхронизацию поездок
+          Синхронизировать поездки
         </a-button>
       </div>
     </div>
@@ -106,6 +180,12 @@ async function syncRides() {
       <div class="mt-4">
         <CopyableId label="ID задачи" :value="lastTask.task_id" />
       </div>
+      <p class="lotax-caption mt-3">
+        Список водителей обновится через несколько секунд.
+        <a-button type="link" class="!px-1" @click="router.push('/drivers')">
+          Открыть водителей
+        </a-button>
+      </p>
     </div>
   </div>
 </template>

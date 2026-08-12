@@ -223,6 +223,25 @@ export interface SyncTaskResponse {
   task_id: string
 }
 
+/** Admin: `GET /drivers/{id}/rides` */
+export interface DriverRideItem {
+  id: string
+  ride_date: string
+  pickup_address?: string | null
+  dropoff_address?: string | null
+  fare_amount?: number | null
+  currency: string
+  points_system_earned: number
+  points_park_earned: number
+}
+
+export interface DriverRideListResponse {
+  items: DriverRideItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export interface AdminLoginPayload {
   email: string
   password: string

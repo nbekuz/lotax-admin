@@ -9,8 +9,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import { extractErrorMessage, formatPhone } from '@/utils/labels'
-import type { DriverListItem, DriverStatus } from '@/types/api'
+import { extractErrorMessage, formatPhone, driverTierLabel } from '@/utils/labels'
+import type { DriverListItem, DriverStatus, DriverTier } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
 
@@ -20,7 +20,10 @@ const org = useOrgStore()
 const router = useRouter()
 const { isMobile, isLgUp, width } = useBreakpoint()
 
+const searchQ = ref('')
 const statusFilter = ref<DriverStatus | 'all'>('all')
+const tierFilter = ref<DriverTier | 'all'>('all')
+const parkFilter = ref<string | 'all'>('all')
 const createOpen = ref(false)
 const creating = ref(false)
 const createForm = reactive({
@@ -114,17 +117,38 @@ const statusOptions = [
   { value: 'pending', label: 'Ожидание' },
 ]
 
+const tierOptions = [
+  { value: 'all', label: 'Все уровни' },
+  { value: 'bronze', label: driverTierLabel.bronze },
+  { value: 'silver', label: driverTierLabel.silver },
+  { value: 'gold', label: driverTierLabel.gold },
+  { value: 'platinum', label: driverTierLabel.platinum },
+]
+
+const parkOptions = computed(() => [
+  { value: 'all', label: 'Все парки' },
+  ...org.parks.map((p) => ({ value: p.id, label: p.name })),
+])
+
 async function load() {
   try {
     await drivers.fetchList({
       page: pagination.current,
       page_size: pagination.pageSize,
+      q: searchQ.value.trim() || null,
       status: statusFilter.value === 'all' ? null : statusFilter.value,
+      tier: tierFilter.value === 'all' ? null : tierFilter.value,
+      park_id: parkFilter.value === 'all' ? null : parkFilter.value,
     })
     pagination.total = drivers.total
   } catch (e) {
     message.error(extractErrorMessage(e))
   }
+}
+
+function resetPageAndLoad() {
+  pagination.current = 1
+  void load()
 }
 
 function onTableChange(pag: { current?: number; pageSize?: number }) {
@@ -176,10 +200,22 @@ async function submitCreate() {
   }
 }
 
-watch(statusFilter, () => {
-  pagination.current = 1
-  load()
+watch([statusFilter, tierFilter, parkFilter], resetPageAndLoad)
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+watch(searchQ, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(resetPageAndLoad, 350)
 })
+
+watch(
+  () => org.selectedParkId,
+  (id) => {
+    if (id && parkFilter.value === 'all') {
+      parkFilter.value = id
+    }
+  },
+)
 
 onMounted(async () => {
   if (auth.isParkAdmin && !org.parks.length) {
@@ -188,6 +224,9 @@ onMounted(async () => {
     } catch {
       /* ignore */
     }
+  }
+  if (org.selectedParkId) {
+    parkFilter.value = org.selectedParkId
   }
   await load()
 })
@@ -206,11 +245,31 @@ onMounted(async () => {
       <div
         class="lotax-filter-stack md:flex md:flex-wrap md:items-center md:gap-2"
       >
+        <a-input
+          v-model:value="searchQ"
+          allow-clear
+          class="md:!w-56"
+          size="large"
+          placeholder="Поиск: имя, телефон, ID…"
+        />
         <a-select
           v-model:value="statusFilter"
-          class="md:!w-44"
+          class="md:!w-40"
           size="large"
           :options="statusOptions"
+        />
+        <a-select
+          v-model:value="tierFilter"
+          class="md:!w-40"
+          size="large"
+          :options="tierOptions"
+        />
+        <a-select
+          v-if="org.parks.length > 1"
+          v-model:value="parkFilter"
+          class="md:!w-48"
+          size="large"
+          :options="parkOptions"
         />
         <a-button class="lotax-btn-secondary" @click="load">
           <template #icon><ReloadOutlined /></template>
@@ -300,10 +359,21 @@ onMounted(async () => {
 
       <div
         v-else
-        class="lotax-card flex flex-col items-center justify-center gap-2 px-4 py-16 text-center"
+        class="lotax-card flex flex-col items-center justify-center gap-3 px-4 py-16 text-center"
       >
         <p class="text-[15px] font-medium text-ink">Водители не найдены</p>
-        <p class="lotax-caption">Измените фильтр или обновите список</p>
+        <p class="lotax-caption max-w-sm">
+          Сначала нажмите «Синхронизировать водителей» или измените фильтр
+        </p>
+        <a-button
+          v-if="auth.canSync"
+          type="primary"
+          class="lotax-btn-primary"
+          @click="router.push('/sync')"
+        >
+          <template #icon><CloudSyncOutlined /></template>
+          Синхронизация
+        </a-button>
       </div>
     </div>
 

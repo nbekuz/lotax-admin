@@ -6,7 +6,9 @@ import type {
   BalanceUpdatePayload,
   DriverListItem,
   DriverPersonalData,
+  DriverRideItem,
   DriverStatus,
+  DriverTier,
   ManualDriverCreatePayload,
   StatusUpdatePayload,
 } from '@/types/api'
@@ -16,10 +18,18 @@ interface DriversState {
   total: number
   page: number
   pageSize: number
+  q: string | null
   status: DriverStatus | null
+  tier: DriverTier | null
+  parkId: string | null
   loading: boolean
   current: DriverListItem | null
   personalData: DriverPersonalData | null
+  rides: DriverRideItem[]
+  ridesTotal: number
+  ridesPage: number
+  ridesPageSize: number
+  ridesLoading: boolean
   error: string | null
 }
 
@@ -29,10 +39,18 @@ export const useDriversStore = defineStore('drivers', {
     total: 0,
     page: 1,
     pageSize: 20,
+    q: null,
     status: null,
+    tier: null,
+    parkId: null,
     loading: false,
     current: null,
     personalData: null,
+    rides: [],
+    ridesTotal: 0,
+    ridesPage: 1,
+    ridesPageSize: 20,
+    ridesLoading: false,
     error: null,
   }),
 
@@ -42,13 +60,19 @@ export const useDriversStore = defineStore('drivers', {
       this.error = null
       if (query.page != null) this.page = query.page
       if (query.page_size != null) this.pageSize = query.page_size
+      if (query.q !== undefined) this.q = query.q?.trim() || null
       if (query.status !== undefined) this.status = query.status ?? null
+      if (query.tier !== undefined) this.tier = query.tier ?? null
+      if (query.park_id !== undefined) this.parkId = query.park_id ?? null
 
       try {
         const { data } = await driversApi.list({
           page: this.page,
           page_size: this.pageSize,
+          q: this.q,
           status: this.status,
+          tier: this.tier,
+          park_id: this.parkId,
         })
         this.items = data.items
         this.total = data.total
@@ -66,6 +90,8 @@ export const useDriversStore = defineStore('drivers', {
       this.loading = true
       this.error = null
       this.personalData = null
+      this.rides = []
+      this.ridesTotal = 0
       try {
         const { data } = await driversApi.getById(id)
         this.current = data
@@ -87,6 +113,32 @@ export const useDriversStore = defineStore('drivers', {
       } catch (e) {
         this.error = extractErrorMessage(e, 'Нет доступа к ПДн')
         throw e
+      }
+    },
+
+    async fetchRides(
+      id: string,
+      query: { page?: number; page_size?: number } = {},
+    ) {
+      this.ridesLoading = true
+      this.error = null
+      if (query.page != null) this.ridesPage = query.page
+      if (query.page_size != null) this.ridesPageSize = query.page_size
+      try {
+        const { data } = await driversApi.rides(id, {
+          page: this.ridesPage,
+          page_size: this.ridesPageSize,
+        })
+        this.rides = data.items
+        this.ridesTotal = data.total
+        this.ridesPage = data.page
+        this.ridesPageSize = data.page_size
+        return data
+      } catch (e) {
+        this.error = extractErrorMessage(e, 'Не удалось загрузить поездки')
+        throw e
+      } finally {
+        this.ridesLoading = false
       }
     },
 
@@ -120,13 +172,13 @@ export const useDriversStore = defineStore('drivers', {
       return data
     },
 
-    async syncDrivers() {
-      const { data } = await syncApi.drivers()
+    async syncDrivers(parkId?: string | null) {
+      const { data } = await syncApi.drivers(parkId)
       return data
     },
 
-    async syncRides() {
-      const { data } = await syncApi.rides()
+    async syncRides(parkId?: string | null) {
+      const { data } = await syncApi.rides(parkId)
       return data
     },
   },

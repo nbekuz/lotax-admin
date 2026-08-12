@@ -5,6 +5,7 @@ import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
   CalendarOutlined,
+  CloudSyncOutlined,
   EditOutlined,
   GiftOutlined,
   LeftOutlined,
@@ -15,8 +16,9 @@ import {
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
+import { useOrgStore } from '@/stores/org'
 import { extractErrorMessage, formatPhone } from '@/utils/labels'
-import type { DriverStatus } from '@/types/api'
+import type { DriverRideItem, DriverStatus } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
 import CopyableId from '@/components/CopyableId.vue'
@@ -26,13 +28,34 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const drivers = useDriversStore()
+const org = useOrgStore()
 
 const driverId = computed(() => route.params.id as string)
+const activeTab = ref('profile')
 const balanceOpen = ref(false)
 const statusOpen = ref(false)
 const pdnLoading = ref(false)
 const pdnError = ref<string | null>(null)
 const adjustSaving = ref(false)
+const syncingRides = ref(false)
+
+const ridesPagination = reactive({
+  current: 1,
+  pageSize: 20,
+  total: 0,
+  showSizeChanger: true,
+  pageSizeOptions: ['10', '20', '50'],
+  showTotal: (total: number) => `Всего: ${total}`,
+})
+
+const rideColumns = [
+  { title: 'Дата', key: 'ride_date', dataIndex: 'ride_date', width: 150 },
+  { title: 'Откуда', key: 'pickup_address', dataIndex: 'pickup_address', ellipsis: true },
+  { title: 'Куда', key: 'dropoff_address', dataIndex: 'dropoff_address', ellipsis: true },
+  { title: 'Сумма', key: 'fare_amount', dataIndex: 'fare_amount', width: 110, align: 'right' as const },
+  { title: 'Сист.', key: 'points_system_earned', dataIndex: 'points_system_earned', width: 80, align: 'right' as const },
+  { title: 'Парк', key: 'points_park_earned', dataIndex: 'points_park_earned', width: 80, align: 'right' as const },
+]
 
 const adjustForm = reactive({
   points_type: 'park' as 'system' | 'park',
@@ -77,6 +100,7 @@ const initials = computed(() => {
 
 async function load() {
   pdnError.value = null
+  activeTab.value = 'profile'
   try {
     await drivers.fetchById(driverId.value)
     if (drivers.current) {
@@ -97,6 +121,46 @@ async function load() {
     }
   } catch (e) {
     message.error(extractErrorMessage(e))
+  }
+}
+
+async function loadRides() {
+  try {
+    await drivers.fetchRides(driverId.value, {
+      page: ridesPagination.current,
+      page_size: ridesPagination.pageSize,
+    })
+    ridesPagination.total = drivers.ridesTotal
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  }
+}
+
+function onTabChange(key: string | number) {
+  if (key === 'rides' && !drivers.rides.length && !drivers.ridesLoading) {
+    ridesPagination.current = 1
+    void loadRides()
+  }
+}
+
+function onRidesTableChange(pag: { current?: number; pageSize?: number }) {
+  ridesPagination.current = pag.current ?? 1
+  ridesPagination.pageSize = pag.pageSize ?? 20
+  void loadRides()
+}
+
+async function syncRidesFromDetail() {
+  syncingRides.value = true
+  try {
+    const result = await drivers.syncRides(org.selectedParkId)
+    message.success(result.message)
+    window.setTimeout(() => {
+      void loadRides()
+    }, 4000)
+  } catch (e) {
+    message.error(extractErrorMessage(e, 'Не удалось запустить синхронизацию'))
+  } finally {
+    syncingRides.value = false
   }
 }
 
@@ -283,63 +347,149 @@ watch(driverId, () => {
       </div>
     </section>
 
-    <!-- Information -->
-    <section class="driver-detail__section info-grid">
-      <div class="detail-card">
-        <div class="mb-6 flex flex-col gap-1">
-          <h2 class="lotax-section-title">Профиль</h2>
-          <p v-if="auth.canViewPdn" class="lotax-caption">
-            Полные ПДн · доступ аудируется
-          </p>
-          <p v-else class="lotax-caption">
-            Персональные данные показаны в маскированном виде
-          </p>
-        </div>
+    <!-- Tabs: profile / rides -->
+    <a-tabs v-model:activeKey="activeTab" class="driver-tabs" @change="onTabChange">
+      <a-tab-pane key="profile" tab="Профиль">
+        <section class="driver-detail__section info-grid">
+          <div class="detail-card">
+            <div class="mb-6 flex flex-col gap-1">
+              <h2 class="lotax-section-title">Профиль</h2>
+              <p v-if="auth.canViewPdn" class="lotax-caption">
+                Полные ПДн · доступ аудируется
+              </p>
+              <p v-else class="lotax-caption">
+                Персональные данные показаны в маскированном виде
+              </p>
+            </div>
 
-        <div v-if="auth.canViewPdn && pdnLoading" class="flex justify-center py-10">
-          <a-spin />
-        </div>
+            <div v-if="auth.canViewPdn && pdnLoading" class="flex justify-center py-10">
+              <a-spin />
+            </div>
 
-        <div
-          v-else-if="auth.canViewPdn && pdnError"
-          class="rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
-        >
-          {{ pdnError }}
-        </div>
+            <div
+              v-else-if="auth.canViewPdn && pdnError"
+              class="rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
+            >
+              {{ pdnError }}
+            </div>
 
-        <div v-else-if="auth.canViewPdn && drivers.personalData" class="profile-fields">
-          <InfoField label="Имя" :value="drivers.personalData.first_name" />
-          <InfoField label="Фамилия" :value="drivers.personalData.last_name" />
-          <InfoField label="Отчество" :value="drivers.personalData.middle_name" />
-          <InfoField label="Телефон" :value="formatPhone(drivers.personalData.phone)" />
-          <InfoField label="Отображаемое имя" :value="drivers.personalData.display_name" />
-          <InfoField label="Реферал" :value="drivers.current.referral_code" />
-          <InfoField
-            label="Создан"
-            :value="dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm')"
-          />
-        </div>
+            <div v-else-if="auth.canViewPdn && drivers.personalData" class="profile-fields">
+              <InfoField label="Имя" :value="drivers.personalData.first_name" />
+              <InfoField label="Фамилия" :value="drivers.personalData.last_name" />
+              <InfoField label="Отчество" :value="drivers.personalData.middle_name" />
+              <InfoField label="Телефон" :value="formatPhone(drivers.personalData.phone)" />
+              <InfoField label="Отображаемое имя" :value="drivers.personalData.display_name" />
+              <InfoField label="Реферал" :value="drivers.current.referral_code" />
+              <InfoField
+                label="Создан"
+                :value="dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm')"
+              />
+            </div>
 
-        <div v-else class="profile-fields">
-          <InfoField label="Имя (маска)" :value="drivers.current.first_name_masked" />
-          <InfoField label="Фамилия (маска)" :value="drivers.current.last_name_masked" />
-          <InfoField label="Телефон (маска)" :value="formatPhone(drivers.current.phone_masked)" />
-          <InfoField label="Реферал" :value="drivers.current.referral_code" />
-          <InfoField
-            label="Создан"
-            :value="dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm')"
-          />
-        </div>
-      </div>
+            <div v-else class="profile-fields">
+              <InfoField label="Имя (маска)" :value="drivers.current.first_name_masked" />
+              <InfoField label="Фамилия (маска)" :value="drivers.current.last_name_masked" />
+              <InfoField label="Телефон (маска)" :value="formatPhone(drivers.current.phone_masked)" />
+              <InfoField label="Реферал" :value="drivers.current.referral_code" />
+              <InfoField
+                label="Создан"
+                :value="dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm')"
+              />
+            </div>
+          </div>
 
-      <div class="detail-card">
-        <h2 class="lotax-section-title mb-6">ID Яндекс</h2>
-        <div class="flex flex-col gap-6">
-          <CopyableId label="ID водителя" :value="drivers.current.yandex_driver_id" />
-          <CopyableId label="ID парка" :value="drivers.current.yandex_park_id" />
-        </div>
-      </div>
-    </section>
+          <div class="detail-card">
+            <h2 class="lotax-section-title mb-6">ID Яндекс</h2>
+            <div class="flex flex-col gap-6">
+              <CopyableId label="ID водителя" :value="drivers.current.yandex_driver_id" />
+              <CopyableId label="ID парка" :value="drivers.current.yandex_park_id" />
+            </div>
+          </div>
+        </section>
+      </a-tab-pane>
+
+      <a-tab-pane key="rides" tab="Поездки">
+        <section class="detail-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="lotax-section-title">Поездки</h2>
+              <p class="lotax-caption mt-1">Данные из Yandex после синхронизации</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <a-button class="lotax-btn-secondary" :loading="drivers.ridesLoading" @click="loadRides">
+                Обновить
+              </a-button>
+              <a-button
+                v-if="auth.canSync"
+                type="primary"
+                class="lotax-btn-primary"
+                :loading="syncingRides"
+                @click="syncRidesFromDetail"
+              >
+                <template #icon><CloudSyncOutlined /></template>
+                Синхронизировать поездки
+              </a-button>
+            </div>
+          </div>
+
+          <a-table
+            row-key="id"
+            :columns="rideColumns"
+            :data-source="drivers.rides"
+            :loading="drivers.ridesLoading"
+            :pagination="ridesPagination"
+            :scroll="{ x: 720 }"
+            :locale="{ emptyText: ' ' }"
+            @change="onRidesTableChange"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-3 py-10">
+                <p class="text-[15px] font-medium text-ink">Поездок пока нет</p>
+                <p class="lotax-caption max-w-sm text-center">
+                  Сначала нажмите «Синхронизировать поездки»
+                </p>
+                <a-button
+                  v-if="auth.canSync"
+                  type="primary"
+                  class="lotax-btn-primary"
+                  :loading="syncingRides"
+                  @click="syncRidesFromDetail"
+                >
+                  <template #icon><CloudSyncOutlined /></template>
+                  Синхронизировать поездки
+                </a-button>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'ride_date'">
+                {{ dayjs((record as DriverRideItem).ride_date).format('DD.MM.YYYY HH:mm') }}
+              </template>
+              <template v-else-if="column.key === 'pickup_address'">
+                {{ (record as DriverRideItem).pickup_address || '—' }}
+              </template>
+              <template v-else-if="column.key === 'dropoff_address'">
+                {{ (record as DriverRideItem).dropoff_address || '—' }}
+              </template>
+              <template v-else-if="column.key === 'fare_amount'">
+                <span class="tabular-nums">
+                  {{
+                    (record as DriverRideItem).fare_amount != null
+                      ? `${(record as DriverRideItem).fare_amount} ${(record as DriverRideItem).currency}`
+                      : '—'
+                  }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'points_system_earned'">
+                <span class="tabular-nums">{{ (record as DriverRideItem).points_system_earned }}</span>
+              </template>
+              <template v-else-if="column.key === 'points_park_earned'">
+                <span class="tabular-nums">{{ (record as DriverRideItem).points_park_earned }}</span>
+              </template>
+            </template>
+          </a-table>
+        </section>
+      </a-tab-pane>
+    </a-tabs>
 
     <a-modal
       v-model:open="balanceOpen"
