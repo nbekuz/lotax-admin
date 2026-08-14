@@ -13,6 +13,7 @@ import type {
   ParkListResponse,
   ParkResponse,
   ParkUpdatePayload,
+  PlatformAdminCreatePayload,
   PlatformSettingsResponse,
   PlatformSettingsUpdatePayload,
   RewardAdminCreatePayload,
@@ -188,6 +189,22 @@ export const superAdminApi = {
         page: params.page ?? 1,
         page_size: params.page_size ?? 20,
       },
+    })
+  },
+
+  listPlatformAdmins(params: { page?: number; page_size?: number } = {}) {
+    return http.get<AdminListResponse>('/super-admin/platform-admins', {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? 20,
+      },
+    })
+  },
+
+  createPlatformAdmin(payload: PlatformAdminCreatePayload) {
+    return http.post<AdminListItem>('/super-admin/platform-admins', {
+      ...payload,
+      role: 'admin',
     })
   },
 }

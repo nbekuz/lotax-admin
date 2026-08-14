@@ -41,8 +41,20 @@ async function onSubmit() {
   }
 
   message.success('Добро пожаловать')
-  const fallback = auth.isSuperAdmin ? '/organizations' : '/organization'
-  const redirect = (route.query.redirect as string) || fallback
+  const fallback = auth.homePath
+  let redirect = (route.query.redirect as string) || fallback
+  if (auth.isPlatformOperator) {
+    const parkOnly =
+      redirect.startsWith('/drivers') ||
+      redirect.startsWith('/sync') ||
+      redirect === '/organization' ||
+      redirect.startsWith('/organization/') ||
+      redirect.startsWith('/staff') ||
+      redirect.startsWith('/rewards') ||
+      redirect.startsWith('/orders') ||
+      redirect.startsWith('/tasks')
+    if (parkOnly) redirect = fallback
+  }
   router.replace(redirect)
 }
 </script>

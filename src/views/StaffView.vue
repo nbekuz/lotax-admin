@@ -32,7 +32,7 @@ const stickyConfig = computed(() => ({
   offsetHeader: width.value >= 1280 ? 72 : width.value >= 768 ? 64 : 56,
 }))
 
-const roleFilter = ref<StaffAssignableRole | 'all'>('all')
+const roleFilter = ref<'manager' | 'all'>('manager')
 const createOpen = ref(false)
 const editOpen = ref(false)
 const saving = ref(false)
@@ -53,16 +53,7 @@ const editForm = reactive({
   password: '',
 })
 
-const roleFilterOptions = computed(() => {
-  const opts: { value: StaffAssignableRole | 'all'; label: string }[] = [
-    { value: 'all', label: 'Все роли' },
-    { value: 'manager', label: 'Менеджер' },
-  ]
-  if (auth.isDirector) {
-    opts.splice(1, 0, { value: 'admin', label: 'Админ' })
-  }
-  return opts
-})
+const roleFilterOptions = [{ value: 'manager', label: 'Менеджер' }]
 
 const createRoleOptions = computed(() =>
   auth.creatableRoles.map((role) => ({
@@ -107,7 +98,7 @@ async function load() {
     await admins.fetchList({
       page: pagination.current,
       page_size: pagination.pageSize,
-      role: roleFilter.value === 'all' ? null : roleFilter.value,
+      role: roleFilter.value === 'all' ? 'manager' : roleFilter.value,
     })
     pagination.total = admins.total
   } catch (e) {
@@ -207,7 +198,7 @@ onMounted(load)
       <div class="min-w-0">
         <h1 class="lotax-page-title">Сотрудники</h1>
         <p class="lotax-caption mt-1">
-          Управление админами и менеджерами парка
+          Менеджеры парка. Роль admin в парке не создаётся.
         </p>
       </div>
 

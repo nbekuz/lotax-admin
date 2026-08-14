@@ -17,7 +17,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
-import { extractErrorMessage, formatPhone } from '@/utils/labels'
+import { extractErrorMessage, formatPhone, isForbiddenError } from '@/utils/labels'
 import type { DriverRideItem, DriverStatus } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
@@ -120,6 +120,11 @@ async function load() {
       }
     }
   } catch (e) {
+    if (isForbiddenError(e)) {
+      message.error('Нет доступа к данным водителей')
+      router.replace(auth.homePath)
+      return
+    }
     message.error(extractErrorMessage(e))
   }
 }

@@ -29,47 +29,50 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: (s) => Boolean(s.admin),
     role: (s): AdminRole | null => s.admin?.role ?? null,
     isSuperAdmin: (s) => s.admin?.role === 'super_admin',
+    /** Platform operator: org/park CRUD, no driver PDN. */
+    isPlatformAdmin: (s) => s.admin?.role === 'admin',
+    isPlatformOperator: (s) =>
+      ['super_admin', 'admin'].includes(s.admin?.role ?? ''),
     isDirector: (s) => s.admin?.role === 'director',
-    isAdmin: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
-    /** Org ЛК roles (not global super admin panel). */
+    isManager: (s) => s.admin?.role === 'manager',
+    /** Park ЛК: director + manager. Platform `admin` is not park staff. */
     isParkAdmin: (s) =>
-      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
+      ['director', 'manager'].includes(s.admin?.role ?? ''),
+    homePath: (s) =>
+      ['super_admin', 'admin'].includes(s.admin?.role ?? '')
+        ? '/organizations'
+        : '/organization',
     organizationId: (s) => s.admin?.organization_id ?? null,
-    canEditBalance: (s) =>
-      ['director', 'admin'].includes(s.admin?.role ?? ''),
-    canEditStatus: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
-    canSync: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
-    canViewPdn: (s) =>
-      ['director', 'super_admin'].includes(s.admin?.role ?? ''),
-    canManageStaff: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+    canEditBalance: (s) => s.admin?.role === 'director',
+    canEditStatus: (s) => s.admin?.role === 'director',
+    canSync: (s) => s.admin?.role === 'director',
+    canViewPdn: (s) => s.admin?.role === 'director',
+    canManageStaff: (s) => s.admin?.role === 'director',
     canManageYandex: (s) => s.admin?.role === 'director',
-    canCreateDriver: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
-    canManageRewards: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+    canCreateDriver: (s) => s.admin?.role === 'director',
+    canManageRewards: (s) => s.admin?.role === 'director',
     canViewRewards: (s) =>
-      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
+      ['director', 'manager'].includes(s.admin?.role ?? ''),
     canModerateOrders: (s) =>
-      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
-    canManageRules: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
-    canAdjustPoints: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
-    canManageTasks: (s) => ['director', 'admin'].includes(s.admin?.role ?? ''),
+      ['director', 'manager'].includes(s.admin?.role ?? ''),
+    canManageRules: (s) => s.admin?.role === 'director',
+    canAdjustPoints: (s) => s.admin?.role === 'director',
+    canManageTasks: (s) => s.admin?.role === 'director',
     canViewTasks: (s) =>
-      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
-    canManageCompetitions: (s) =>
-      ['director', 'admin'].includes(s.admin?.role ?? ''),
+      ['director', 'manager'].includes(s.admin?.role ?? ''),
+    canManageCompetitions: (s) => s.admin?.role === 'director',
     canViewCompetitions: (s) =>
-      ['director', 'admin', 'manager'].includes(s.admin?.role ?? ''),
-    canManageReferral: (s) =>
-      ['director', 'admin'].includes(s.admin?.role ?? ''),
-    canFinalizeCompetition: (s) =>
-      ['director', 'admin'].includes(s.admin?.role ?? ''),
+      ['director', 'manager'].includes(s.admin?.role ?? ''),
+    canManageReferral: (s) => s.admin?.role === 'director',
+    canFinalizeCompetition: (s) => s.admin?.role === 'director',
+    canManagePlatformAdmins: (s) => s.admin?.role === 'super_admin',
+    canManagePlatformSettings: (s) => s.admin?.role === 'super_admin',
     adjustPointsTypes: (s): Array<'system' | 'park'> => {
       if (s.admin?.role === 'director') return ['system', 'park']
-      if (s.admin?.role === 'admin') return ['park']
       return []
     },
     creatableRoles: (s): StaffAssignableRole[] => {
-      if (s.admin?.role === 'director') return ['admin', 'manager']
-      if (s.admin?.role === 'admin') return ['manager']
+      if (s.admin?.role === 'director') return ['manager']
       return []
     },
     fullName: (s) => {

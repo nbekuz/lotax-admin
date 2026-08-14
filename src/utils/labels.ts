@@ -121,6 +121,11 @@ export const competitionStatusTone: Record<CompetitionStatus, string> = {
   completed: 'bg-slate-100 text-slate-600 ring-slate-300',
 }
 
+export function isForbiddenError(error: unknown): boolean {
+  const err = error as { response?: { status?: number } }
+  return err?.response?.status === 403
+}
+
 export function extractErrorMessage(error: unknown, fallback = 'Ошибка запроса'): string {
   const err = error as {
     response?: { data?: { detail?: unknown }; status?: number }

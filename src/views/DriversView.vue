@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import { extractErrorMessage, formatPhone, driverTierLabel } from '@/utils/labels'
+import { extractErrorMessage, formatPhone, driverTierLabel, isForbiddenError } from '@/utils/labels'
 import type { DriverListItem, DriverStatus, DriverTier } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
@@ -142,6 +142,11 @@ async function load() {
     })
     pagination.total = drivers.total
   } catch (e) {
+    if (isForbiddenError(e)) {
+      message.error('Нет доступа к данным водителей')
+      router.replace(auth.homePath)
+      return
+    }
     message.error(extractErrorMessage(e))
   }
 }

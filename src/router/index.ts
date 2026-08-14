@@ -21,7 +21,7 @@ const routes: RouteRecordRaw[] = [
         path: '',
         redirect: () => {
           const auth = useAuthStore()
-          return auth.isSuperAdmin ? '/organizations' : '/organization'
+          return auth.homePath
         },
       },
       {
@@ -30,7 +30,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/OrgOverviewView.vue'),
         meta: {
           title: 'Организация',
-          roles: ['director', 'admin', 'manager'],
+          roles: ['director', 'manager'],
         },
       },
       {
@@ -45,7 +45,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/DriversView.vue'),
         meta: {
           title: 'Водители',
-          roles: ['director', 'admin', 'manager'],
+          roles: ['director', 'manager'],
         },
       },
       {
@@ -54,7 +54,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/DriverDetailView.vue'),
         meta: {
           title: 'Карточка водителя',
-          roles: ['director', 'admin', 'manager'],
+          roles: ['director', 'manager'],
         },
       },
       {
@@ -63,7 +63,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/RewardsView.vue'),
         meta: {
           title: 'Награды',
-          roles: ['director', 'admin', 'manager'],
+          roles: ['director', 'manager'],
         },
       },
       {
@@ -72,14 +72,14 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/OrdersView.vue'),
         meta: {
           title: 'Заявки',
-          roles: ['director', 'admin', 'manager'],
+          roles: ['director', 'manager'],
         },
       },
       {
         path: 'rules',
         name: 'rules',
         component: () => import('@/views/RulesView.vue'),
-        meta: { title: 'Правила', roles: ['director', 'admin'] },
+        meta: { title: 'Правила', roles: ['director'] },
       },
       {
         path: 'tasks',
@@ -87,7 +87,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/TasksView.vue'),
         meta: {
           title: 'Задания',
-          roles: ['director', 'admin', 'manager'],
+          roles: ['director', 'manager'],
         },
       },
       {
@@ -96,7 +96,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/TaskTemplatesView.vue'),
         meta: {
           title: 'Шаблоны заданий',
-          roles: ['director', 'admin', 'manager'],
+          roles: ['director', 'manager'],
         },
       },
       {
@@ -105,7 +105,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/TaskProgressView.vue'),
         meta: {
           title: 'Прогресс задания',
-          roles: ['director', 'admin', 'manager'],
+          roles: ['director', 'manager'],
         },
       },
       {
@@ -114,7 +114,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/CompetitionsView.vue'),
         meta: {
           title: 'Соревнования',
-          roles: ['director', 'admin', 'manager'],
+          roles: ['director', 'manager'],
         },
       },
       {
@@ -123,50 +123,56 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/CompetitionLeaderboardView.vue'),
         meta: {
           title: 'Лидерборд соревнования',
-          roles: ['director', 'admin', 'manager'],
+          roles: ['director', 'manager'],
         },
       },
       {
         path: 'referral',
         name: 'referral',
         component: () => import('@/views/ReferralProgramView.vue'),
-        meta: { title: 'Рефералы', roles: ['director', 'admin'] },
+        meta: { title: 'Рефералы', roles: ['director'] },
       },
       {
         path: 'push',
         name: 'push',
         component: () => import('@/views/PushNotifyView.vue'),
-        meta: { title: 'Push', roles: ['director', 'admin'] },
+        meta: { title: 'Push', roles: ['director'] },
       },
       {
         path: 'sync',
         name: 'sync',
         component: () => import('@/views/SyncView.vue'),
-        meta: { title: 'Синхронизация', roles: ['director', 'admin'] },
+        meta: { title: 'Синхронизация', roles: ['director'] },
       },
       {
         path: 'staff',
         name: 'staff',
         component: () => import('@/views/StaffView.vue'),
-        meta: { title: 'Сотрудники', roles: ['director', 'admin'] },
+        meta: { title: 'Сотрудники', roles: ['director'] },
       },
       {
         path: 'organizations',
         name: 'organizations',
         component: () => import('@/views/OrganizationsView.vue'),
-        meta: { title: 'Организации', roles: ['super_admin'] },
+        meta: { title: 'Организации', roles: ['super_admin', 'admin'] },
       },
       {
         path: 'organizations/:id',
         name: 'organization-detail',
         component: () => import('@/views/OrganizationDetailView.vue'),
-        meta: { title: 'Организация', roles: ['super_admin'] },
+        meta: { title: 'Организация', roles: ['super_admin', 'admin'] },
       },
       {
         path: 'directors',
         name: 'directors',
         component: () => import('@/views/DirectorsView.vue'),
-        meta: { title: 'Директоры', roles: ['super_admin'] },
+        meta: { title: 'Директоры', roles: ['super_admin', 'admin'] },
+      },
+      {
+        path: 'platform-admins',
+        name: 'platform-admins',
+        component: () => import('@/views/PlatformAdminsView.vue'),
+        meta: { title: 'Админы платформы', roles: ['super_admin'] },
       },
       { path: 'parks', redirect: '/organizations' },
       { path: 'parks/:id', redirect: '/organizations' },
@@ -202,9 +208,7 @@ export const router = createRouter({
 })
 
 function homeForRole(auth: ReturnType<typeof useAuthStore>) {
-  return auth.isSuperAdmin
-    ? { name: 'organizations' as const }
-    : { name: 'organization' as const }
+  return { path: auth.homePath }
 }
 
 router.beforeEach(async (to) => {

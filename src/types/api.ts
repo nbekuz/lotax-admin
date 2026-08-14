@@ -2,8 +2,8 @@ export type AdminRole = 'director' | 'admin' | 'manager' | 'super_admin'
 export type AdminStatus = 'active' | 'blocked' | 'inactive'
 export type DriverStatus = 'active' | 'blocked' | 'pending'
 export type DriverTier = 'bronze' | 'silver' | 'gold' | 'platinum'
-/** Roles that can be assigned via Staff CRUD (never director via HTTP). */
-export type StaffAssignableRole = 'admin' | 'manager'
+/** Park staff that a director may create (`POST /admins`, role=manager only). */
+export type StaffAssignableRole = 'manager'
 
 export interface TokenResponse {
   access_token: string
@@ -46,6 +46,14 @@ export interface AdminCreatePayload {
   first_name: string
   last_name: string
   role: StaffAssignableRole
+}
+
+export interface PlatformAdminCreatePayload {
+  email: string
+  password: string
+  first_name: string
+  last_name: string
+  role?: 'admin'
 }
 
 export interface AdminUpdatePayload {

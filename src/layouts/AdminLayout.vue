@@ -40,6 +40,7 @@ const drawerOpen = ref(false)
 const selectedKeys = computed(() => {
   if (route.path.startsWith('/organizations')) return ['organizations']
   if (route.path.startsWith('/directors')) return ['directors']
+  if (route.path.startsWith('/platform-admins')) return ['platform-admins']
   if (route.path.startsWith('/system-rewards')) return ['system-rewards']
   if (route.path.startsWith('/organization/yandex')) return ['organization-yandex']
   if (route.path === '/organization' || route.path.startsWith('/organization/')) {
@@ -57,12 +58,13 @@ const selectedKeys = computed(() => {
   if (route.path.startsWith('/sync')) return ['sync']
   if (route.path.startsWith('/staff')) return ['staff']
   if (route.path.startsWith('/profile')) return ['profile']
-  return ['drivers']
+  if (route.path.startsWith('/drivers')) return ['drivers']
+  return auth.isPlatformOperator ? ['organizations'] : ['organization']
 })
 
 const menuItems = computed(() => {
-  if (auth.isSuperAdmin) {
-    return [
+  if (auth.isPlatformOperator) {
+    const items = [
       {
         key: 'organizations',
         icon: () => h(BankOutlined),
@@ -75,25 +77,34 @@ const menuItems = computed(() => {
         label: 'Директоры',
         title: 'Директоры',
       },
-      {
+    ]
+    if (auth.isSuperAdmin) {
+      items.push({
+        key: 'platform-admins',
+        icon: () => h(UserOutlined),
+        label: 'Админы',
+        title: 'Админы платформы',
+      })
+      items.push({
         key: 'system-rewards',
         icon: () => h(GiftOutlined),
         label: 'Каталог LOTAX',
         title: 'Каталог LOTAX',
-      },
-      {
+      })
+      items.push({
         key: 'settings',
         icon: () => h(SettingOutlined),
         label: 'Настройки',
         title: 'Настройки',
-      },
-      {
-        key: 'profile',
-        icon: () => h(UserOutlined),
-        label: 'Профиль',
-        title: 'Профиль',
-      },
-    ]
+      })
+    }
+    items.push({
+      key: 'profile',
+      icon: () => h(UserOutlined),
+      label: 'Профиль',
+      title: 'Профиль',
+    })
+    return items
   }
 
   const items = [

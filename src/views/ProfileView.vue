@@ -49,6 +49,17 @@ const permissions = computed(() => {
       label: 'Глобальные настройки платформы',
       icon: () => h(SettingOutlined),
     })
+  } else if (auth.isPlatformAdmin) {
+    items.push({
+      key: 'orgs',
+      label: 'Организации, парки и ключи Yandex',
+      icon: () => h(BankOutlined),
+    })
+    items.push({
+      key: 'directors',
+      label: 'Выдача доступа директору',
+      icon: () => h(TeamOutlined),
+    })
   }
   if (auth.isParkAdmin) {
     items.push({
