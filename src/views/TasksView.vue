@@ -33,7 +33,7 @@ const form = reactive({
   reward_points: 100,
   auto_join: true,
   status: 'draft' as TaskStatus,
-  notify_on_create: false,
+  notify_on_create: true,
 })
 const dateRange = ref<[Dayjs, Dayjs]>()
 const imageFile = ref<File | null>(null)
@@ -84,7 +84,7 @@ function openCreate() {
   dateRange.value = [dayjs(), dayjs().add(7, 'day')]
   form.auto_join = true
   form.status = 'draft'
-  form.notify_on_create = false
+  form.notify_on_create = true
   imageFile.value = null
   imagePreview.value = null
   modalOpen.value = true
@@ -101,7 +101,7 @@ function openEdit(item: TaskAdminItem) {
   dateRange.value = [dayjs(item.start_date), dayjs(item.end_date)]
   form.auto_join = item.auto_join
   form.status = item.status as TaskStatus
-  form.notify_on_create = false
+  form.notify_on_create = true
   imageFile.value = null
   imagePreview.value = item.image_url || null
   modalOpen.value = true
