@@ -7,12 +7,13 @@ import BrandMark from '@/components/BrandMark.vue'
   <div class="min-h-screen bg-surface text-ink">
     <header class="border-b border-line bg-white">
       <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 md:px-6">
-        <RouterLink to="/login" class="inline-flex items-center gap-2">
+        <div class="inline-flex items-center gap-2">
           <BrandMark :size="36" layout="inline" />
-        </RouterLink>
+        </div>
         <nav class="flex gap-4 text-[13px] font-medium text-ink-muted">
           <RouterLink class="hover:text-brand" to="/privacy">Конфиденциальность</RouterLink>
           <RouterLink class="hover:text-brand" to="/termofuse">Условия</RouterLink>
+          <RouterLink class="hover:text-brand" to="/delete-account">Удаление</RouterLink>
         </nav>
       </div>
     </header>

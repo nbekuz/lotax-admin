@@ -25,6 +25,12 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true, title: 'Условия использования' },
   },
   {
+    path: '/delete-account',
+    name: 'delete-account',
+    component: () => import('@/views/DeleteAccountView.vue'),
+    meta: { public: true, title: 'Удаление аккаунта' },
+  },
+  {
     path: '/',
     component: () => import('@/layouts/AdminLayout.vue'),
     meta: { requiresAuth: true },
@@ -250,14 +256,41 @@ function homeForRole(auth: ReturnType<typeof useAuthStore>) {
   return { path: auth.homePath }
 }
 
+const PUBLIC_PATHS = new Set([
+  '/login',
+  '/privacy',
+  '/termofuse',
+  '/delete-account',
+])
+
+function normalizePath(path: string) {
+  const trimmed = path.replace(/\/+$/, '')
+  return trimmed || '/'
+}
+
+function isPublicRoute(to: {
+  path: string
+  name?: string | symbol | null
+  matched: { meta: Record<string, unknown> }[]
+}) {
+  if (PUBLIC_PATHS.has(normalizePath(to.path))) return true
+  return to.matched.some((record) => record.meta.public === true)
+}
+
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  const publicRoute = isPublicRoute(to)
+
+  // Legal pages: skip auth bootstrap so stale tokens never bounce to /login.
+  if (publicRoute && to.name !== 'login') {
+    return true
+  }
 
   if (!auth.bootstrapped) {
     await auth.bootstrap()
   }
 
-  if (to.meta.public) {
+  if (publicRoute) {
     if (auth.isAuthenticated && to.name === 'login') {
       return homeForRole(auth)
     }
