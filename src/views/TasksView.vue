@@ -9,9 +9,11 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons-vue'
 import { adminTasksApi } from '@/api/adminTasks'
+import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
 import { extractErrorMessage, taskStatusLabel, taskStatusTone, taskTypeLabel } from '@/utils/labels'
+import { scopeLabel } from '@/utils/scope'
 import type { PointsType, TaskAdminItem, TaskStatus, TaskType } from '@/types/api'
 
 const auth = useAuthStore()
@@ -38,6 +40,11 @@ const form = reactive({
 const dateRange = ref<[Dayjs, Dayjs]>()
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
+const scope = ref<ScopeFieldsValue>({
+  scope_type: 'all',
+  park_group_id: null,
+  park_ids: [],
+})
 
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageTasks)
@@ -87,6 +94,11 @@ function openCreate() {
   form.notify_on_create = true
   imageFile.value = null
   imagePreview.value = null
+  scope.value = {
+    scope_type: 'all',
+    park_group_id: null,
+    park_ids: parkId.value ? [parkId.value] : [],
+  }
   modalOpen.value = true
 }
 
@@ -154,6 +166,9 @@ async function save() {
         auto_join: form.auto_join,
         status: form.status,
         notify_on_create: form.notify_on_create,
+        scope_type: scope.value.scope_type,
+        park_group_id: scope.value.park_group_id,
+        park_ids: scope.value.park_ids,
         image: imageFile.value,
       })
       message.success('Задание создано')
@@ -248,6 +263,7 @@ onMounted(async () => {
             {{ taskTypeLabel[item.task_type as TaskType] ?? item.task_type }} · цель {{ item.target_value }} ·
             +{{ item.reward_points }} б. ({{ item.reward_points_type }})
             <span v-if="item.template_key"> · {{ item.template_key }}</span>
+            <span v-if="item.scope"> · {{ scopeLabel(item.scope) }}</span>
           </div>
           <div class="mt-1 text-[12px] text-ink-muted">
             {{ dayjs(item.start_date).format('DD.MM.YYYY') }} —
@@ -358,6 +374,7 @@ onMounted(async () => {
             Уведомить водителей
           </label>
         </div>
+        <ScopeFields v-if="!editing" v-model="scope" />
       </a-form>
     </a-modal>
   </div>

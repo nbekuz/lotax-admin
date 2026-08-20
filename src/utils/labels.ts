@@ -50,7 +50,8 @@ export const rewardTypeLabel: Record<
   | 'fuel_card'
   | 'car_wash'
   | 'merchandise'
-  | 'other',
+  | 'other'
+  | 'raffle_coupon',
   string
 > = {
   free_shift: 'Свободная смена',
@@ -59,6 +60,7 @@ export const rewardTypeLabel: Record<
   car_wash: 'Мойка',
   merchandise: 'Мерч',
   other: 'Другое',
+  raffle_coupon: 'Купон на розыгрыш',
 }
 
 export const driverStatusColor: Record<DriverStatus, string> = {

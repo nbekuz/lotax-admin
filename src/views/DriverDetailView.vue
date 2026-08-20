@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import {
   CalendarOutlined,
   CloudSyncOutlined,
@@ -17,8 +17,8 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
-import { extractErrorMessage, formatPhone, isForbiddenError } from '@/utils/labels'
-import type { DriverRideItem, DriverStatus } from '@/types/api'
+import { extractErrorMessage, formatPhone, isForbiddenError, tierLabel } from '@/utils/labels'
+import type { DriverRideItem, DriverStatus, DriverTier } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
 import CopyableId from '@/components/CopyableId.vue'
@@ -34,9 +34,11 @@ const driverId = computed(() => route.params.id as string)
 const activeTab = ref('profile')
 const balanceOpen = ref(false)
 const statusOpen = ref(false)
+const tierOpen = ref(false)
 const pdnLoading = ref(false)
 const pdnError = ref<string | null>(null)
 const adjustSaving = ref(false)
+const tierSaving = ref(false)
 const syncingRides = ref(false)
 
 const ridesPagination = reactive({
@@ -66,6 +68,19 @@ const adjustForm = reactive({
 const statusForm = reactive<{ status: DriverStatus }>({
   status: 'active',
 })
+
+const tierForm = reactive({
+  tier: 'bronze' as DriverTier,
+  reason: '',
+})
+const tierExpiresAt = ref<Dayjs | undefined>(undefined)
+
+const tierOptions = [
+  { value: 'bronze', label: tierLabel.bronze },
+  { value: 'silver', label: tierLabel.silver },
+  { value: 'gold', label: tierLabel.gold },
+  { value: 'platinum', label: tierLabel.platinum },
+]
 
 const displayTitle = computed(() => {
   return (
@@ -206,6 +221,36 @@ async function saveStatus() {
   }
 }
 
+function openTierModal() {
+  tierForm.tier = drivers.current?.tier ?? 'bronze'
+  tierForm.reason = ''
+  tierExpiresAt.value = undefined
+  tierOpen.value = true
+}
+
+async function saveTier() {
+  if (!tierForm.reason.trim()) {
+    message.warning('Укажите причину')
+    return
+  }
+  tierSaving.value = true
+  try {
+    await drivers.adjustTier(driverId.value, {
+      tier: tierForm.tier,
+      reason: tierForm.reason.trim(),
+      expires_at: tierExpiresAt.value
+        ? tierExpiresAt.value.toISOString()
+        : null,
+    })
+    message.success('Уровень изменён')
+    tierOpen.value = false
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  } finally {
+    tierSaving.value = false
+  }
+}
+
 function confirmBlock() {
   Modal.confirm({
     title: 'Заблокировать водителя?',
@@ -249,7 +294,7 @@ watch(driverId, () => {
       </div>
 
       <div
-        v-if="auth.canAdjustPoints || auth.canEditStatus"
+        v-if="auth.canAdjustPoints || auth.canEditStatus || auth.canAdjustTier"
         class="driver-actions"
       >
         <a-button
@@ -260,6 +305,14 @@ watch(driverId, () => {
         >
           <template #icon><WalletOutlined /></template>
           Изменить баланс
+        </a-button>
+        <a-button
+          v-if="auth.canAdjustTier"
+          class="driver-btn driver-btn--secondary"
+          @click="openTierModal"
+        >
+          <template #icon><TrophyOutlined /></template>
+          Изменить уровень
         </a-button>
         <a-button
           v-if="auth.canEditStatus"
@@ -548,6 +601,40 @@ watch(driverId, () => {
               { value: 'blocked', label: 'Заблокирован' },
               { value: 'pending', label: 'Ожидание' },
             ]"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:open="tierOpen"
+      title="Изменить уровень"
+      ok-text="Применить"
+      cancel-text="Отмена"
+      centered
+      :width="440"
+      :confirm-loading="tierSaving"
+      @ok="saveTier"
+    >
+      <a-form layout="vertical" class="mt-2">
+        <a-form-item label="Уровень" required>
+          <a-select
+            v-model:value="tierForm.tier"
+            size="large"
+            :options="tierOptions"
+          />
+        </a-form-item>
+        <a-form-item label="Причина" required>
+          <a-textarea v-model:value="tierForm.reason" :rows="3" />
+        </a-form-item>
+        <a-form-item label="Срок действия (необязательно)">
+          <a-date-picker
+            v-model:value="tierExpiresAt"
+            class="!w-full"
+            size="large"
+            show-time
+            format="DD.MM.YYYY HH:mm"
+            placeholder="Без срока"
           />
         </a-form-item>
       </a-form>

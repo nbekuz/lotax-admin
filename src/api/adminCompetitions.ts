@@ -1,5 +1,6 @@
 import { http } from './http'
 import { toFormData } from '@/utils/formData'
+import { scopeToFormFields } from '@/utils/scope'
 import type {
   CompetitionAdminCreatePayload,
   CompetitionAdminItem,
@@ -21,7 +22,7 @@ export const adminCompetitionsApi = {
   },
 
   create(payload: CompetitionAdminCreatePayload & { image?: File | null }) {
-    const { image, prizes, ...rest } = payload
+    const { image, prizes, park_ids, ...rest } = payload
     return http.post<CompetitionAdminItem>(
       '/admin/competitions',
       toFormData({
@@ -36,6 +37,11 @@ export const adminCompetitionsApi = {
         description: rest.description,
         status: rest.status,
         prizes: prizes ? JSON.stringify(prizes) : undefined,
+        ...scopeToFormFields({
+          scope_type: rest.scope_type,
+          park_group_id: rest.park_group_id,
+          park_ids,
+        }),
         image: image ?? undefined,
       }),
     )

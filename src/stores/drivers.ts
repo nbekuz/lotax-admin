@@ -158,6 +158,14 @@ export const useDriversStore = defineStore('drivers', {
       return data
     },
 
+    async adjustTier(id: string, payload: import('@/types/api').AdjustTierPayload) {
+      const { data } = await driversApi.adjustTier(id, payload)
+      this.current = data
+      const idx = this.items.findIndex((d) => d.id === id)
+      if (idx >= 0) this.items[idx] = data
+      return data
+    },
+
     async createManual(payload: ManualDriverCreatePayload) {
       const { data } = await driversApi.createManual(payload)
       await this.fetchList()

@@ -133,6 +133,33 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Рефералы', roles: ['director'] },
       },
       {
+        path: 'park-groups',
+        name: 'park-groups',
+        component: () => import('@/views/ParkGroupsView.vue'),
+        meta: {
+          title: 'Группы парков',
+          roles: ['director', 'manager'],
+        },
+      },
+      {
+        path: 'leaderboard-settings',
+        name: 'leaderboard-settings',
+        component: () => import('@/views/LeaderboardSettingsView.vue'),
+        meta: {
+          title: 'ТОП-5',
+          roles: ['director', 'manager'],
+        },
+      },
+      {
+        path: 'tier-settings',
+        name: 'tier-settings',
+        component: () => import('@/views/ParkTierSettingsView.vue'),
+        meta: {
+          title: 'Уровни',
+          roles: ['director', 'manager'],
+        },
+      },
+      {
         path: 'push',
         name: 'push',
         component: () => import('@/views/PushNotifyView.vue'),

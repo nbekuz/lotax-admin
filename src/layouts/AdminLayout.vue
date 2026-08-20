@@ -8,6 +8,8 @@ import {
   BankOutlined,
   CarOutlined,
   CloudSyncOutlined,
+  ClusterOutlined,
+  CrownOutlined,
   FileTextOutlined,
   FlagOutlined,
   GiftOutlined,
@@ -16,6 +18,7 @@ import {
   MenuOutlined,
   MenuUnfoldOutlined,
   NotificationOutlined,
+  OrderedListOutlined,
   SettingOutlined,
   ShareAltOutlined,
   TeamOutlined,
@@ -53,6 +56,9 @@ const selectedKeys = computed(() => {
   if (route.path.startsWith('/tasks')) return ['tasks']
   if (route.path.startsWith('/competitions')) return ['competitions']
   if (route.path.startsWith('/referral')) return ['referral']
+  if (route.path.startsWith('/park-groups')) return ['park-groups']
+  if (route.path.startsWith('/leaderboard-settings')) return ['leaderboard-settings']
+  if (route.path.startsWith('/tier-settings')) return ['tier-settings']
   if (route.path.startsWith('/push')) return ['push']
   if (route.path.startsWith('/settings')) return ['settings']
   if (route.path.startsWith('/sync')) return ['sync']
@@ -169,6 +175,30 @@ const menuItems = computed(() => {
       icon: () => h(ShareAltOutlined),
       label: 'Рефералы',
       title: 'Рефералы',
+    })
+  }
+  if (auth.canViewParkGroups) {
+    items.push({
+      key: 'park-groups',
+      icon: () => h(ClusterOutlined),
+      label: 'Группы парков',
+      title: 'Группы парков',
+    })
+  }
+  if (auth.canViewLeaderboardSettings) {
+    items.push({
+      key: 'leaderboard-settings',
+      icon: () => h(OrderedListOutlined),
+      label: 'ТОП-5',
+      title: 'ТОП-5',
+    })
+  }
+  if (auth.canViewTierSettings) {
+    items.push({
+      key: 'tier-settings',
+      icon: () => h(CrownOutlined),
+      label: 'Уровни',
+      title: 'Уровни',
     })
   }
   if (auth.canManageRewards) {

@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AButton: typeof import('ant-design-vue/es')['Button']
+    ADatePicker: typeof import('ant-design-vue/es/date-picker/dayjs')['default']
     ADrawer: typeof import('ant-design-vue/es')['Drawer']
     AForm: typeof import('ant-design-vue/es')['Form']
     AFormItem: typeof import('ant-design-vue/es')['FormItem']
@@ -41,6 +42,7 @@ declare module 'vue' {
     KpiCard: typeof import('./components/KpiCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    ScopeFields: typeof import('./components/ScopeFields.vue')['default']
     StatusBadge: typeof import('./components/StatusBadge.vue')['default']
     TierBadge: typeof import('./components/TierBadge.vue')['default']
   }

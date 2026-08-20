@@ -1,5 +1,6 @@
 import { http } from './http'
 import { toFormData } from '@/utils/formData'
+import { scopeToFormFields } from '@/utils/scope'
 import type {
   TaskAdminCreatePayload,
   TaskAdminItem,
@@ -20,7 +21,7 @@ export const adminTasksApi = {
   },
 
   create(payload: TaskAdminCreatePayload & { image?: File | null }) {
-    const { image, ...rest } = payload
+    const { image, park_ids, ...rest } = payload
     return http.post<TaskAdminItem>(
       '/admin/tasks',
       toFormData({
@@ -36,6 +37,11 @@ export const adminTasksApi = {
         auto_join: rest.auto_join,
         status: rest.status,
         notify_on_create: rest.notify_on_create,
+        ...scopeToFormFields({
+          scope_type: rest.scope_type,
+          park_group_id: rest.park_group_id,
+          park_ids,
+        }),
         image: image ?? undefined,
       }),
     )

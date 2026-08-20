@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
+import dayjs, { type Dayjs } from 'dayjs'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { adminRewardsApi } from '@/api/adminRewards'
+import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
 import { extractErrorMessage, rewardTypeLabel, tierLabel } from '@/utils/labels'
+import { scopeLabel } from '@/utils/scope'
 import type {
   DriverTier,
   PointsType,
@@ -31,7 +34,15 @@ const form = reactive({
   min_tier: 'bronze' as DriverTier,
   sort_order: 0,
   is_active: true,
+  one_per_driver: false,
 })
+
+const scope = ref<ScopeFieldsValue>({
+  scope_type: 'all',
+  park_group_id: null,
+  park_ids: [],
+})
+const raffleDate = ref<Dayjs | undefined>(undefined)
 
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
@@ -42,6 +53,7 @@ const typeOptions = [
   { value: 'fuel_card', label: rewardTypeLabel.fuel_card },
   { value: 'car_wash', label: rewardTypeLabel.car_wash },
   { value: 'merchandise', label: rewardTypeLabel.merchandise },
+  { value: 'raffle_coupon', label: rewardTypeLabel.raffle_coupon },
   { value: 'other', label: rewardTypeLabel.other },
 ]
 
@@ -59,6 +71,7 @@ const pointsTypeOptions = [
 
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageRewards)
+const isRaffle = computed(() => form.type === 'raffle_coupon')
 
 function typeLabel(type: string) {
   return rewardTypeLabel[type as RewardType] ?? type
@@ -91,6 +104,13 @@ function openCreate() {
   form.min_tier = 'bronze'
   form.sort_order = 0
   form.is_active = true
+  form.one_per_driver = false
+  raffleDate.value = undefined
+  scope.value = {
+    scope_type: 'all',
+    park_group_id: null,
+    park_ids: parkId.value ? [parkId.value] : [],
+  }
   imageFile.value = null
   imagePreview.value = null
   modalOpen.value = true
@@ -107,6 +127,8 @@ function openEdit(item: RewardAdminItem) {
   form.min_tier = item.min_tier
   form.sort_order = item.sort_order
   form.is_active = item.is_active
+  form.one_per_driver = Boolean(item.one_per_driver)
+  raffleDate.value = item.raffle_date ? dayjs(item.raffle_date) : undefined
   imageFile.value = null
   imagePreview.value = item.image_url || null
   modalOpen.value = true
@@ -125,6 +147,10 @@ async function save() {
   }
   saving.value = true
   try {
+    const raffle_date =
+      form.type === 'raffle_coupon' && raffleDate.value
+        ? raffleDate.value.toISOString()
+        : null
     if (editing.value) {
       await adminRewardsApi.update(editing.value.id, {
         title: form.title.trim(),
@@ -134,6 +160,8 @@ async function save() {
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
+        one_per_driver: form.one_per_driver,
+        raffle_date,
         image: imageFile.value,
       })
       message.success('Награда обновлена')
@@ -149,6 +177,11 @@ async function save() {
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
+        one_per_driver: form.one_per_driver,
+        raffle_date,
+        scope_type: scope.value.scope_type,
+        park_group_id: scope.value.park_group_id,
+        park_ids: scope.value.park_ids,
         image: imageFile.value,
       })
       message.success('Награда создана')
@@ -228,6 +261,7 @@ onMounted(async () => {
               {{ item.points_cost }} б. · {{ typeLabel(item.type) }} ·
               от {{ tierLabel[item.min_tier] }} ·
               {{ item.is_active ? 'активна' : 'неактивна' }}
+              · {{ scopeLabel(item.scope) }}
             </div>
           </div>
         </div>
@@ -278,7 +312,11 @@ onMounted(async () => {
         </a-form-item>
         <div class="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
           <a-form-item label="Тип">
-            <a-select v-model:value="form.type" :options="typeOptions" />
+            <a-select
+              v-model:value="form.type"
+              :options="typeOptions"
+              :disabled="Boolean(editing)"
+            />
           </a-form-item>
           <a-form-item label="Тип баллов">
             <a-select
@@ -310,6 +348,23 @@ onMounted(async () => {
             <a-input-number v-model:value="form.sort_order" class="!w-full" :min="0" />
           </a-form-item>
         </div>
+        <a-form-item v-if="isRaffle" label="Один на водителя">
+          <div class="flex items-center gap-2">
+            <a-switch v-model:checked="form.one_per_driver" />
+            <span class="text-[13px] text-ink-muted">
+              {{ form.one_per_driver ? 'Да' : 'Нет' }}
+            </span>
+          </div>
+        </a-form-item>
+        <a-form-item v-if="isRaffle" label="Дата розыгрыша">
+          <a-date-picker
+            v-model:value="raffleDate"
+            class="!w-full"
+            show-time
+            format="DD.MM.YYYY HH:mm"
+          />
+        </a-form-item>
+        <ScopeFields v-if="!editing" v-model="scope" />
         <a-form-item label="Статус">
           <div class="flex items-center gap-2">
             <a-switch v-model:checked="form.is_active" />

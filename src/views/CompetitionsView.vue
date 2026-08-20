@@ -10,6 +10,7 @@ import {
   UnorderedListOutlined,
 } from '@ant-design/icons-vue'
 import { adminCompetitionsApi } from '@/api/adminCompetitions'
+import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
 import {
@@ -18,6 +19,7 @@ import {
   competitionStatusTone,
   extractErrorMessage,
 } from '@/utils/labels'
+import { scopeLabel } from '@/utils/scope'
 import type {
   CompetitionAdminItem,
   CompetitionCriteria,
@@ -50,6 +52,11 @@ const form = reactive({
 const dateRange = ref<[Dayjs, Dayjs]>()
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
+const scope = ref<ScopeFieldsValue>({
+  scope_type: 'all',
+  park_group_id: null,
+  park_ids: [],
+})
 
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageCompetitions)
@@ -107,6 +114,11 @@ function openCreate() {
   form.status = 'draft'
   imageFile.value = null
   imagePreview.value = null
+  scope.value = {
+    scope_type: 'all',
+    park_group_id: null,
+    park_ids: parkId.value ? [parkId.value] : [],
+  }
   syncPrizePlaces()
   modalOpen.value = true
 }
@@ -172,6 +184,9 @@ async function save() {
         prizes: form.prizes,
         prize_points_type: form.prize_points_type,
         status: form.status,
+        scope_type: scope.value.scope_type,
+        park_group_id: scope.value.park_group_id,
+        park_ids: scope.value.park_ids,
         image: imageFile.value,
       })
       message.success('Соревнование создано')
@@ -287,6 +302,7 @@ onMounted(async () => {
           <div class="mt-1 text-[13px] text-ink-muted">
             {{ competitionCriteriaLabel[item.criteria] }} · призовых мест: {{ item.prize_places }} ·
             фонд {{ item.prizes.reduce((sum, p) => sum + p.points, 0) }} б. ({{ item.prize_points_type }})
+            <span v-if="item.scope"> · {{ scopeLabel(item.scope) }}</span>
           </div>
           <div class="mt-1 text-[12px] text-ink-muted">
             {{ dayjs(item.start_date).format('DD.MM.YYYY') }} —
@@ -408,6 +424,7 @@ onMounted(async () => {
             </div>
           </div>
         </a-form-item>
+        <ScopeFields v-if="!editing" v-model="scope" />
       </a-form>
     </a-modal>
   </div>

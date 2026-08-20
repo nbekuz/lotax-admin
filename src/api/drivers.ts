@@ -1,6 +1,7 @@
 import { http } from './http'
 import type {
   AdjustPointsPayload,
+  AdjustTierPayload,
   BalanceUpdatePayload,
   DriverListItem,
   DriverListResponse,
@@ -61,6 +62,12 @@ export const driversApi = {
   adjustPoints(driverId: string, payload: AdjustPointsPayload) {
     return http.post<DriverListItem>(
       `/admin/drivers/${driverId}/adjust-points`,
+      payload,
+    )
+  },
+  adjustTier(driverId: string, payload: AdjustTierPayload) {
+    return http.post<DriverListItem>(
+      `/admin/drivers/${driverId}/adjust-tier`,
       payload,
     )
   },

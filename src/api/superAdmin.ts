@@ -154,6 +154,8 @@ export const superAdminApi = {
         min_tier: rest.min_tier,
         sort_order: rest.sort_order,
         is_active: rest.is_active,
+        one_per_driver: rest.one_per_driver,
+        raffle_date: rest.raffle_date,
         image: image ?? undefined,
       }),
     )
@@ -177,6 +179,8 @@ export const superAdminApi = {
         min_tier: rest.min_tier,
         sort_order: rest.sort_order,
         is_active: rest.is_active,
+        one_per_driver: rest.one_per_driver,
+        raffle_date: rest.raffle_date,
         clear_image,
         image: image ?? undefined,
       }),

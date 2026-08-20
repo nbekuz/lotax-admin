@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
+import dayjs, { type Dayjs } from 'dayjs'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { superAdminApi } from '@/api/superAdmin'
 import { extractErrorMessage, rewardTypeLabel, tierLabel } from '@/utils/labels'
@@ -22,8 +23,10 @@ const form = reactive({
   min_tier: 'bronze' as DriverTier,
   sort_order: 0,
   is_active: true,
+  one_per_driver: false,
 })
 
+const raffleDate = ref<Dayjs | undefined>(undefined)
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
 
@@ -33,6 +36,7 @@ const typeOptions = [
   { value: 'fuel_card', label: rewardTypeLabel.fuel_card },
   { value: 'car_wash', label: rewardTypeLabel.car_wash },
   { value: 'merchandise', label: rewardTypeLabel.merchandise },
+  { value: 'raffle_coupon', label: rewardTypeLabel.raffle_coupon },
   { value: 'other', label: rewardTypeLabel.other },
 ]
 
@@ -42,6 +46,8 @@ const tierOptions = [
   { value: 'gold', label: tierLabel.gold },
   { value: 'platinum', label: tierLabel.platinum },
 ]
+
+const isRaffle = computed(() => form.type === 'raffle_coupon')
 
 function typeLabel(type: string) {
   return rewardTypeLabel[type as RewardType] ?? type
@@ -69,6 +75,8 @@ function openCreate() {
   form.min_tier = 'bronze'
   form.sort_order = 0
   form.is_active = true
+  form.one_per_driver = false
+  raffleDate.value = undefined
   imageFile.value = null
   imagePreview.value = null
   modalOpen.value = true
@@ -84,6 +92,8 @@ function openEdit(item: RewardAdminItem) {
   form.min_tier = item.min_tier
   form.sort_order = item.sort_order
   form.is_active = item.is_active
+  form.one_per_driver = Boolean(item.one_per_driver)
+  raffleDate.value = item.raffle_date ? dayjs(item.raffle_date) : undefined
   imageFile.value = null
   imagePreview.value = item.image_url || null
   modalOpen.value = true
@@ -102,6 +112,10 @@ async function save() {
   }
   saving.value = true
   try {
+    const raffle_date =
+      form.type === 'raffle_coupon' && raffleDate.value
+        ? raffleDate.value.toISOString()
+        : null
     if (editing.value) {
       await superAdminApi.updateReward(editing.value.id, {
         title: form.title.trim(),
@@ -111,6 +125,8 @@ async function save() {
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
+        one_per_driver: form.one_per_driver,
+        raffle_date,
         image: imageFile.value,
       })
       message.success('Обновлено')
@@ -125,6 +141,8 @@ async function save() {
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
+        one_per_driver: form.one_per_driver,
+        raffle_date,
         image: imageFile.value,
       })
       message.success('Создано')
@@ -230,7 +248,11 @@ onMounted(load)
         </a-form-item>
         <div class="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
           <a-form-item label="Тип">
-            <a-select v-model:value="form.type" :options="typeOptions" />
+            <a-select
+              v-model:value="form.type"
+              :options="typeOptions"
+              :disabled="Boolean(editing)"
+            />
           </a-form-item>
           <a-form-item label="Тип баллов">
             <a-select
@@ -262,6 +284,22 @@ onMounted(load)
             <a-input-number v-model:value="form.sort_order" class="!w-full" :min="0" />
           </a-form-item>
         </div>
+        <a-form-item v-if="isRaffle" label="Один на водителя">
+          <div class="flex items-center gap-2">
+            <a-switch v-model:checked="form.one_per_driver" />
+            <span class="text-[13px] text-ink-muted">
+              {{ form.one_per_driver ? 'Да' : 'Нет' }}
+            </span>
+          </div>
+        </a-form-item>
+        <a-form-item v-if="isRaffle" label="Дата розыгрыша">
+          <a-date-picker
+            v-model:value="raffleDate"
+            class="!w-full"
+            show-time
+            format="DD.MM.YYYY HH:mm"
+          />
+        </a-form-item>
         <a-form-item label="Статус">
           <div class="flex items-center gap-2">
             <a-switch v-model:checked="form.is_active" />

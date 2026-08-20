@@ -1,5 +1,6 @@
 import { http } from './http'
 import { toFormData } from '@/utils/formData'
+import { scopeToFormFields } from '@/utils/scope'
 import type {
   RewardAdminCreatePayload,
   RewardAdminItem,
@@ -25,7 +26,7 @@ export const adminRewardsApi = {
   },
 
   create(payload: RewardAdminCreatePayload & { image?: File | null }) {
-    const { image, ...rest } = payload
+    const { image, park_ids, ...rest } = payload
     return http.post<RewardAdminItem>(
       '/admin/rewards',
       toFormData({
@@ -39,6 +40,13 @@ export const adminRewardsApi = {
         min_tier: rest.min_tier,
         sort_order: rest.sort_order,
         is_active: rest.is_active,
+        one_per_driver: rest.one_per_driver,
+        raffle_date: rest.raffle_date,
+        ...scopeToFormFields({
+          scope_type: rest.scope_type,
+          park_group_id: rest.park_group_id,
+          park_ids,
+        }),
         image: image ?? undefined,
       }),
     )
@@ -51,7 +59,7 @@ export const adminRewardsApi = {
       clear_image?: boolean
     },
   ) {
-    const { image, clear_image, ...rest } = payload
+    const { image, clear_image, park_ids, ...rest } = payload
     return http.patch<RewardAdminItem>(
       `/admin/rewards/${rewardId}`,
       toFormData({
@@ -62,6 +70,13 @@ export const adminRewardsApi = {
         min_tier: rest.min_tier,
         sort_order: rest.sort_order,
         is_active: rest.is_active,
+        one_per_driver: rest.one_per_driver,
+        raffle_date: rest.raffle_date,
+        ...scopeToFormFields({
+          scope_type: rest.scope_type,
+          park_group_id: rest.park_group_id,
+          park_ids,
+        }),
         clear_image,
         image: image ?? undefined,
       }),

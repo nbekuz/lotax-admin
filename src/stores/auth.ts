@@ -67,6 +67,16 @@ export const useAuthStore = defineStore('auth', {
     canFinalizeCompetition: (s) => s.admin?.role === 'director',
     canManagePlatformAdmins: (s) => s.admin?.role === 'super_admin',
     canManagePlatformSettings: (s) => s.admin?.role === 'super_admin',
+    canManageParkGroups: (s) => s.admin?.role === 'director',
+    canViewParkGroups: (s) =>
+      ['director', 'manager'].includes(s.admin?.role ?? ''),
+    canManageLeaderboardSettings: (s) => s.admin?.role === 'director',
+    canViewLeaderboardSettings: (s) =>
+      ['director', 'manager'].includes(s.admin?.role ?? ''),
+    canManageTierSettings: (s) => s.admin?.role === 'director',
+    canViewTierSettings: (s) =>
+      ['director', 'manager'].includes(s.admin?.role ?? ''),
+    canAdjustTier: (s) => s.admin?.role === 'director',
     adjustPointsTypes: (s): Array<'system' | 'park'> => {
       if (s.admin?.role === 'director') return ['system', 'park']
       return []

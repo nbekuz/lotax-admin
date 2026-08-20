@@ -274,6 +274,7 @@ export type RewardType =
   | 'car_wash'
   | 'merchandise'
   | 'other'
+  | 'raffle_coupon'
 export type OrderStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'fulfilled'
 export type RuleType = 'per_ride' | 'per_ruble' | 'time_multiplier' | 'tier_multiplier'
 
@@ -311,6 +312,112 @@ export interface AdjustPointsPayload {
   description: string
 }
 
+export interface AdjustTierPayload {
+  tier: DriverTier
+  reason: string
+  expires_at?: string | null
+}
+
+/* ── Multipark scope ── */
+
+export type ScopeType = 'all' | 'group' | 'specific'
+
+export interface ParkScopeInfo {
+  id: string
+  scope_type: ScopeType
+  park_group_id?: string | null
+  park_ids?: string[] | null
+  organization_id?: string | null
+}
+
+export interface ScopeFieldsPayload {
+  scope_type?: ScopeType
+  park_group_id?: string | null
+  park_ids?: string[] | null
+}
+
+/* ── Park groups ── */
+
+export interface ParkGroupItem {
+  id: string
+  organization_id: string
+  name: string
+  description?: string | null
+  color: string
+  is_active: boolean
+  park_ids: string[]
+  parks_count?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ParkGroupListResponse {
+  items: ParkGroupItem[]
+}
+
+export interface ParkGroupCreatePayload {
+  name: string
+  description?: string | null
+  color?: string | null
+  park_ids: string[]
+  is_active?: boolean
+}
+
+export interface ParkGroupUpdatePayload {
+  name?: string | null
+  description?: string | null
+  color?: string | null
+  park_ids?: string[] | null
+  is_active?: boolean | null
+}
+
+/* ── Org leaderboard settings (ТОП-5) ── */
+
+export interface LeaderboardSettingsResponse {
+  organization_id: string
+  scope: ParkScopeInfo
+  points_type: PointsType
+  show_park_name: boolean
+}
+
+export interface LeaderboardSettingsUpdatePayload {
+  scope_type: ScopeType
+  park_group_id?: string | null
+  park_ids?: string[]
+  points_type: PointsType
+  show_park_name: boolean
+}
+
+/* ── Park tier settings ── */
+
+export interface ParkTierLevelItem {
+  rides: number
+  coefficient: number
+  min_month: number
+}
+
+export interface ParkTierSettingsResponse {
+  park_id: string
+  apply_tiers: boolean
+  bronze: ParkTierLevelItem
+  silver: ParkTierLevelItem
+  gold: ParkTierLevelItem
+  platinum: ParkTierLevelItem
+}
+
+export interface ParkTierSettingsUpdatePayload {
+  apply_tiers: boolean
+  silver_rides?: number
+  gold_rides?: number
+  platinum_rides?: number
+  silver_coefficient?: number
+  gold_coefficient?: number
+  platinum_coefficient?: number
+  silver_min_month?: number
+  gold_min_month?: number
+  platinum_min_month?: number
+}
+
 /* ── Rewards (admin ЛК + super-admin) ── */
 
 export interface RewardAdminItem {
@@ -327,6 +434,10 @@ export interface RewardAdminItem {
   min_tier: DriverTier
   is_active: boolean
   sort_order: number
+  one_per_driver?: boolean
+  raffle_date?: string | null
+  scope_id?: string | null
+  scope?: ParkScopeInfo | null
   created_at: string
   updated_at: string
 }
@@ -349,6 +460,11 @@ export interface RewardAdminCreatePayload {
   min_tier?: DriverTier
   sort_order?: number
   is_active?: boolean
+  one_per_driver?: boolean
+  raffle_date?: string | null
+  scope_type?: ScopeType
+  park_group_id?: string | null
+  park_ids?: string[] | null
 }
 
 export interface RewardAdminUpdatePayload {
@@ -359,6 +475,11 @@ export interface RewardAdminUpdatePayload {
   min_tier?: DriverTier | null
   sort_order?: number | null
   is_active?: boolean | null
+  one_per_driver?: boolean | null
+  raffle_date?: string | null
+  scope_type?: ScopeType | null
+  park_group_id?: string | null
+  park_ids?: string[] | null
 }
 
 /* ── Orders (reward redemption requests) ── */
@@ -477,6 +598,8 @@ export interface TaskAdminItem {
   period_days?: number | null
   is_claimable?: boolean
   renew_on_complete?: boolean
+  scope_id?: string | null
+  scope?: ParkScopeInfo | null
   participants_count?: number | null
   completed_count?: number | null
   created_at: string
@@ -503,6 +626,9 @@ export interface TaskAdminCreatePayload {
   auto_join?: boolean
   status?: TaskStatus
   notify_on_create?: boolean
+  scope_type?: ScopeType
+  park_group_id?: string | null
+  park_ids?: string[] | null
 }
 
 export interface TaskAdminUpdatePayload {
@@ -567,6 +693,8 @@ export interface CompetitionAdminItem {
   prize_points_type: PointsType
   status: CompetitionStatus
   participants_count?: number | null
+  scope_id?: string | null
+  scope?: ParkScopeInfo | null
   created_at: string
   updated_at: string
 }
@@ -590,6 +718,9 @@ export interface CompetitionAdminCreatePayload {
   prizes: PrizePlaceItem[]
   prize_points_type: PointsType
   status?: CompetitionStatus
+  scope_type?: ScopeType
+  park_group_id?: string | null
+  park_ids?: string[] | null
 }
 
 export interface CompetitionAdminUpdatePayload {
