@@ -13,6 +13,18 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true, title: 'Вход' },
   },
   {
+    path: '/privacy',
+    name: 'privacy',
+    component: () => import('@/views/PrivacyView.vue'),
+    meta: { public: true, title: 'Политика конфиденциальности' },
+  },
+  {
+    path: '/termofuse',
+    name: 'termofuse',
+    component: () => import('@/views/TermsOfUseView.vue'),
+    meta: { public: true, title: 'Условия использования' },
+  },
+  {
     path: '/',
     component: () => import('@/layouts/AdminLayout.vue'),
     meta: { requiresAuth: true },
