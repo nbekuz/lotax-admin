@@ -40,10 +40,11 @@ import LegalLayout from '@/layouts/LegalLayout.vue'
 
         <h2 class="text-[18px] font-semibold">Нужна помощь?</h2>
         <p>
-          Если кнопка недоступна или возникла ошибка, напишите в поддержку:
+          Если кнопка недоступна или возникла ошибка, откройте
+          <a class="text-brand underline" href="/help">помощь</a>
+          или напишите:
           <a class="text-brand underline" href="mailto:support@lotax.ru">support@lotax.ru</a>
-          или обратитесь к директору своего парка. Тема письма:
-          «Удаление аккаунта Lotax» и укажите номер телефона из приложения.
+          . Тема письма: «Удаление аккаунта Lotax» и укажите номер телефона из приложения.
         </p>
 
         <p class="lotax-caption pt-2">

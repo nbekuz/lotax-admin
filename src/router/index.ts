@@ -31,6 +31,12 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true, title: 'Удаление аккаунта' },
   },
   {
+    path: '/help',
+    name: 'help',
+    component: () => import('@/views/HelpView.vue'),
+    meta: { public: true, title: 'Помощь' },
+  },
+  {
     path: '/',
     component: () => import('@/layouts/AdminLayout.vue'),
     meta: { requiresAuth: true },
@@ -261,6 +267,7 @@ const PUBLIC_PATHS = new Set([
   '/privacy',
   '/termofuse',
   '/delete-account',
+  '/help',
 ])
 
 function normalizePath(path: string) {
