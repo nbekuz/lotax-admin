@@ -31,7 +31,7 @@ const groupsLoading = ref(false)
 const scopeTypeOptions = [
   { value: 'all', label: 'Все парки' },
   { value: 'group', label: 'Группа' },
-  { value: 'specific', label: 'Выбранные парки' },
+  { value: 'specific', label: 'Парки' },
 ]
 
 const groupOptions = computed(() =>

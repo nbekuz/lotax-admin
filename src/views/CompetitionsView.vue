@@ -19,7 +19,12 @@ import {
   competitionStatusTone,
   extractErrorMessage,
 } from '@/utils/labels'
-import { scopeLabel } from '@/utils/scope'
+import {
+  defaultSpecificScope,
+  scopeFromApi,
+  scopeLabel,
+  validateScopeFields,
+} from '@/utils/scope'
 import type {
   CompetitionAdminItem,
   CompetitionCriteria,
@@ -52,11 +57,7 @@ const form = reactive({
 const dateRange = ref<[Dayjs, Dayjs]>()
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
-const scope = ref<ScopeFieldsValue>({
-  scope_type: 'all',
-  park_group_id: null,
-  park_ids: [],
-})
+const scope = ref<ScopeFieldsValue>(defaultSpecificScope())
 
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageCompetitions)
@@ -114,11 +115,7 @@ function openCreate() {
   form.status = 'draft'
   imageFile.value = null
   imagePreview.value = null
-  scope.value = {
-    scope_type: 'all',
-    park_group_id: null,
-    park_ids: parkId.value ? [parkId.value] : [],
-  }
+  scope.value = defaultSpecificScope(parkId.value)
   syncPrizePlaces()
   modalOpen.value = true
 }
@@ -136,6 +133,7 @@ function openEdit(item: CompetitionAdminItem) {
   form.status = item.status
   imageFile.value = null
   imagePreview.value = item.image_url || null
+  scope.value = scopeFromApi(item.scope, item.park_id)
   modalOpen.value = true
 }
 
@@ -153,6 +151,13 @@ async function save() {
   if (!dateRange.value) {
     message.warning('Укажите период проведения')
     return
+  }
+  if (!editing.value) {
+    const scopeError = validateScopeFields(scope.value)
+    if (scopeError) {
+      message.warning(scopeError)
+      return
+    }
   }
   saving.value = true
   try {
@@ -424,7 +429,7 @@ onMounted(async () => {
             </div>
           </div>
         </a-form-item>
-        <ScopeFields v-if="!editing" v-model="scope" />
+        <ScopeFields v-model="scope" :disabled="Boolean(editing)" />
       </a-form>
     </a-modal>
   </div>

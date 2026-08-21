@@ -625,7 +625,11 @@ watch(driverId, () => {
           />
         </a-form-item>
         <a-form-item label="Причина" required>
-          <a-textarea v-model:value="tierForm.reason" :rows="3" />
+          <a-textarea
+            v-model:value="tierForm.reason"
+            :rows="3"
+            placeholder="Обязательно — например, компенсация сбоя"
+          />
         </a-form-item>
         <a-form-item label="Срок действия (необязательно)">
           <a-date-picker
@@ -634,8 +638,11 @@ watch(driverId, () => {
             size="large"
             show-time
             format="DD.MM.YYYY HH:mm"
-            placeholder="Без срока"
+            placeholder="Без срока — пока не снимут вручную"
           />
+          <p class="lotax-caption mt-1">
+            После даты уровень снова считается автоматически
+          </p>
         </a-form-item>
       </a-form>
     </a-modal>

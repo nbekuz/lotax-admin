@@ -111,7 +111,9 @@ onMounted(async () => {
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 class="lotax-page-title">Уровни</h1>
-        <p class="lotax-caption mt-1">Пороги и коэффициенты уровней парка</p>
+        <p class="lotax-caption mt-1">
+          Статусы парка. Порог — поездки во всех парках организации
+        </p>
       </div>
       <a-button
         class="lotax-btn-secondary"
@@ -138,22 +140,44 @@ onMounted(async () => {
         Парк: {{ org.selectedPark?.name || parkId }}
       </p>
       <a-form layout="vertical">
-        <a-form-item label="Применять уровни">
+        <a-form-item label="Статусы парка">
           <div class="flex items-center gap-2">
             <a-switch
               v-model:checked="form.apply_tiers"
               :disabled="!canEdit"
             />
             <span class="text-[13px] text-ink-muted">
-              {{ form.apply_tiers ? 'Включено' : 'Выключено' }}
+              {{
+                form.apply_tiers
+                  ? 'Применять статусы'
+                  : 'Не применять статусы'
+              }}
             </span>
           </div>
+          <p class="lotax-caption mt-1">
+            Если выключено — в приложении скрывается блок уровня, коэффициент всегда ×1.0
+          </p>
         </a-form-item>
 
         <template v-if="form.apply_tiers">
           <p class="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-[13px] text-ink-muted">
-            Бронза — базовый уровень без порога (коэффициент 1.0).
+            Пороги считаются по поездкам во <strong class="font-medium text-ink">всех парках организации</strong>,
+            не по текущему парку. Коэффициент 1.0–2.0 (шаг 0.1) умножает только парковые баллы.
+            «Мин. месяц» — минимум поездок за календарный месяц для удержания уровня; 0 — не проверять.
           </p>
+
+          <div class="mb-1 text-[14px] font-semibold text-ink">Бронза</div>
+          <div class="grid grid-cols-1 gap-x-3 sm:grid-cols-3">
+            <a-form-item label="Поездки">
+              <a-input-number class="!w-full" :value="0" disabled />
+            </a-form-item>
+            <a-form-item label="Коэффициент">
+              <a-input class="!w-full" value="1.0" disabled />
+            </a-form-item>
+            <a-form-item label="Мин. месяц">
+              <a-input-number class="!w-full" :value="0" disabled />
+            </a-form-item>
+          </div>
 
           <div class="mb-1 text-[14px] font-semibold text-ink">Серебро</div>
           <div class="grid grid-cols-1 gap-x-3 sm:grid-cols-3">

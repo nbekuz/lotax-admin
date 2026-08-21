@@ -8,7 +8,12 @@ import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
 import { extractErrorMessage, rewardTypeLabel, tierLabel } from '@/utils/labels'
-import { scopeLabel } from '@/utils/scope'
+import {
+  defaultSpecificScope,
+  scopeFromApi,
+  scopeLabel,
+  validateScopeFields,
+} from '@/utils/scope'
 import type {
   DriverTier,
   PointsType,
@@ -37,11 +42,7 @@ const form = reactive({
   one_per_driver: false,
 })
 
-const scope = ref<ScopeFieldsValue>({
-  scope_type: 'all',
-  park_group_id: null,
-  park_ids: [],
-})
+const scope = ref<ScopeFieldsValue>(defaultSpecificScope())
 const raffleDate = ref<Dayjs | undefined>(undefined)
 
 const imageFile = ref<File | null>(null)
@@ -106,11 +107,7 @@ function openCreate() {
   form.is_active = true
   form.one_per_driver = false
   raffleDate.value = undefined
-  scope.value = {
-    scope_type: 'all',
-    park_group_id: null,
-    park_ids: parkId.value ? [parkId.value] : [],
-  }
+  scope.value = defaultSpecificScope(parkId.value)
   imageFile.value = null
   imagePreview.value = null
   modalOpen.value = true
@@ -129,6 +126,7 @@ function openEdit(item: RewardAdminItem) {
   form.is_active = item.is_active
   form.one_per_driver = Boolean(item.one_per_driver)
   raffleDate.value = item.raffle_date ? dayjs(item.raffle_date) : undefined
+  scope.value = scopeFromApi(item.scope, item.park_id)
   imageFile.value = null
   imagePreview.value = item.image_url || null
   modalOpen.value = true
@@ -143,6 +141,15 @@ function onImageSelect(file: File) {
 async function save() {
   if (!parkId.value || !form.title.trim()) {
     message.warning('Укажите название')
+    return
+  }
+  if (form.type === 'raffle_coupon' && !raffleDate.value) {
+    message.warning('Укажите дату розыгрыша')
+    return
+  }
+  const scopeError = validateScopeFields(scope.value)
+  if (scopeError) {
+    message.warning(scopeError)
     return
   }
   saving.value = true
@@ -162,6 +169,9 @@ async function save() {
         is_active: form.is_active,
         one_per_driver: form.one_per_driver,
         raffle_date,
+        scope_type: scope.value.scope_type,
+        park_group_id: scope.value.park_group_id,
+        park_ids: scope.value.park_ids,
         image: imageFile.value,
       })
       message.success('Награда обновлена')
@@ -262,6 +272,10 @@ onMounted(async () => {
               от {{ tierLabel[item.min_tier] }} ·
               {{ item.is_active ? 'активна' : 'неактивна' }}
               · {{ scopeLabel(item.scope) }}
+              <template v-if="item.one_per_driver"> · 1 на водителя</template>
+              <template v-if="item.raffle_date">
+                · розыгрыш {{ dayjs(item.raffle_date).format('DD.MM.YYYY') }}
+              </template>
             </div>
           </div>
         </div>
@@ -364,7 +378,7 @@ onMounted(async () => {
             format="DD.MM.YYYY HH:mm"
           />
         </a-form-item>
-        <ScopeFields v-if="!editing" v-model="scope" />
+        <ScopeFields v-model="scope" />
         <a-form-item label="Статус">
           <div class="flex items-center gap-2">
             <a-switch v-model:checked="form.is_active" />

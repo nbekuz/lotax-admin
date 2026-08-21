@@ -110,6 +110,10 @@ async function save() {
     message.warning('Укажите название')
     return
   }
+  if (form.type === 'raffle_coupon' && !raffleDate.value) {
+    message.warning('Укажите дату розыгрыша')
+    return
+  }
   saving.value = true
   try {
     const raffle_date =

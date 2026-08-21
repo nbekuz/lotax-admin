@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { adminLeaderboardSettingsApi } from '@/api/adminMultiparkSettings'
 import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
 import { useAuthStore } from '@/stores/auth'
 import { extractErrorMessage } from '@/utils/labels'
-import type { PointsType } from '@/types/api'
+import { validateScopeFields } from '@/utils/scope'
 
 const auth = useAuthStore()
 const loading = ref(false)
@@ -18,17 +18,7 @@ const scope = ref<ScopeFieldsValue>({
   park_ids: [],
 })
 
-const form = reactive({
-  points_type: 'park' as PointsType,
-  show_park_name: true,
-})
-
 const canEdit = computed(() => auth.canManageLeaderboardSettings)
-
-const pointsTypeOptions = [
-  { value: 'park', label: 'Парковые' },
-  { value: 'system', label: 'Системные' },
-]
 
 async function load() {
   loading.value = true
@@ -39,8 +29,6 @@ async function load() {
       park_group_id: data.scope.park_group_id ?? null,
       park_ids: data.scope.park_ids ?? [],
     }
-    form.points_type = data.points_type
-    form.show_park_name = data.show_park_name
   } catch (e) {
     message.error(extractErrorMessage(e))
   } finally {
@@ -49,15 +37,9 @@ async function load() {
 }
 
 async function save() {
-  if (scope.value.scope_type === 'group' && !scope.value.park_group_id) {
-    message.warning('Выберите группу парков')
-    return
-  }
-  if (
-    scope.value.scope_type === 'specific' &&
-    !scope.value.park_ids?.length
-  ) {
-    message.warning('Выберите хотя бы один парк')
+  const error = validateScopeFields(scope.value, { requireSpecificParks: true })
+  if (error) {
+    message.warning(error)
     return
   }
   saving.value = true
@@ -70,8 +52,7 @@ async function save() {
         scope.value.scope_type === 'specific'
           ? scope.value.park_ids ?? []
           : undefined,
-      points_type: form.points_type,
-      show_park_name: form.show_park_name,
+      show_park_name: false,
     })
     message.success('Настройки ТОП-5 сохранены')
     await load()
@@ -90,7 +71,7 @@ onMounted(load)
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 class="lotax-page-title">ТОП-5</h1>
-        <p class="lotax-caption mt-1">Настройки лидерборда организации</p>
+        <p class="lotax-caption mt-1">Охват рейтинга организации</p>
       </div>
       <a-button class="lotax-btn-secondary" :loading="loading" @click="load">
         <template #icon><ReloadOutlined /></template>
@@ -100,26 +81,13 @@ onMounted(load)
 
     <div v-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>
     <section v-else class="lotax-card p-5 md:p-7">
+      <p class="mb-5 rounded-lg bg-slate-50 px-3 py-2 text-[13px] text-ink-muted">
+        Метрика всегда <strong class="font-medium text-ink">поездки</strong>
+        за день / неделю / месяц. В приложении один список, без названий парков
+        и без переключателя «мой парк / все».
+      </p>
       <a-form layout="vertical">
         <ScopeFields v-model="scope" :disabled="!canEdit" />
-        <a-form-item label="Тип баллов">
-          <a-select
-            v-model:value="form.points_type"
-            :options="pointsTypeOptions"
-            :disabled="!canEdit"
-          />
-        </a-form-item>
-        <a-form-item label="Показывать название парка">
-          <div class="flex items-center gap-2">
-            <a-switch
-              v-model:checked="form.show_park_name"
-              :disabled="!canEdit"
-            />
-            <span class="text-[13px] text-ink-muted">
-              {{ form.show_park_name ? 'Да' : 'Нет' }}
-            </span>
-          </div>
-        </a-form-item>
         <a-button
           v-if="canEdit"
           type="primary"

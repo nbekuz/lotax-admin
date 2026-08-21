@@ -376,16 +376,18 @@ export interface ParkGroupUpdatePayload {
 export interface LeaderboardSettingsResponse {
   organization_id: string
   scope: ParkScopeInfo
-  points_type: PointsType
-  show_park_name: boolean
+  /** Ignored by API; ranking metric is always rides. */
+  points_type?: PointsType
+  show_park_name?: boolean
 }
 
 export interface LeaderboardSettingsUpdatePayload {
   scope_type: ScopeType
   park_group_id?: string | null
   park_ids?: string[]
-  points_type: PointsType
-  show_park_name: boolean
+  /** Deprecated — backend ignores this. Sent as `park` for older servers. */
+  points_type?: PointsType
+  show_park_name?: boolean
 }
 
 /* ── Park tier settings ── */

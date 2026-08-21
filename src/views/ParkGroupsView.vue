@@ -77,6 +77,10 @@ async function save() {
     message.warning('Выберите хотя бы один парк')
     return
   }
+  if (!/^#[0-9A-Fa-f]{6}$/.test(form.color.trim())) {
+    message.warning('Цвет должен быть HEX, например #FF9800')
+    return
+  }
   saving.value = true
   try {
     const payload = {
