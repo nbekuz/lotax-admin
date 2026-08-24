@@ -7,7 +7,7 @@ import dayjs from 'dayjs'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { useOrganizationsStore } from '@/stores/organizations'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import { extractErrorMessage } from '@/utils/labels'
+import { extractErrorMessage, formatPhone } from '@/utils/labels'
 import type { OrganizationResponse } from '@/types/api'
 
 const orgs = useOrganizationsStore()
@@ -25,16 +25,21 @@ const saving = ref(false)
 const createForm = reactive({
   name: '',
   legal_name: '',
+  phone: '',
+  contact_person: '',
   subscription_active: true,
   notes: '',
 })
 
 const columns: TableColumnsType<OrganizationResponse> = [
   { title: 'Организация', dataIndex: 'name', key: 'name', ellipsis: true },
-  { title: 'Парки', key: 'parks_count', width: 100 },
-  { title: 'Подписка', key: 'subscription', width: 140 },
-  { title: 'Статус', key: 'is_active', width: 140 },
-  { title: 'Создана', dataIndex: 'created_at', key: 'created_at', width: 170 },
+  { title: 'Контакт', key: 'contact', width: 180 },
+  { title: 'Парки', key: 'parks_count', width: 90 },
+  { title: 'Водители', key: 'drivers_count', width: 100 },
+  { title: 'Поездки', key: 'completed_orders_count', width: 100 },
+  { title: 'Подписка', key: 'subscription', width: 130 },
+  { title: 'Статус', key: 'is_active', width: 130 },
+  { title: 'Создана', dataIndex: 'created_at', key: 'created_at', width: 160 },
 ]
 
 const pagination = reactive({
@@ -75,6 +80,8 @@ function onTableChange(pag: { current?: number; pageSize?: number }) {
 function resetCreate() {
   createForm.name = ''
   createForm.legal_name = ''
+  createForm.phone = ''
+  createForm.contact_person = ''
   createForm.subscription_active = true
   createForm.notes = ''
 }
@@ -89,6 +96,8 @@ async function submitCreate() {
     const org = await orgs.create({
       name: createForm.name.trim(),
       legal_name: createForm.legal_name.trim() || null,
+      phone: createForm.phone.trim() || null,
+      contact_person: createForm.contact_person.trim() || null,
       subscription_active: createForm.subscription_active,
       notes: createForm.notes.trim() || null,
     })
@@ -181,7 +190,24 @@ onMounted(load)
             >
               Парков: {{ org.parks_count ?? '—' }}
             </span>
+            <span
+              class="inline-flex items-center rounded-full bg-surface px-2.5 py-1 text-[13px] font-medium text-ink-muted ring-1 ring-inset ring-line"
+            >
+              Водителей: {{ org.drivers_count ?? '—' }}
+            </span>
+            <span
+              class="inline-flex items-center rounded-full bg-surface px-2.5 py-1 text-[13px] font-medium text-ink-muted ring-1 ring-inset ring-line"
+            >
+              Поездок: {{ org.completed_orders_count ?? '—' }}
+            </span>
           </div>
+          <p
+            v-if="org.phone || org.contact_person"
+            class="mb-3 truncate text-[13px] text-ink-muted"
+          >
+            {{ org.contact_person || 'Контакт' }}
+            <span v-if="org.phone"> · {{ formatPhone(org.phone) }}</span>
+          </p>
           <div class="border-t border-line pt-3 text-[12px] text-ink-muted">
             {{ dayjs(org.created_at).format('DD.MM.YYYY · HH:mm') }}
           </div>
@@ -234,9 +260,29 @@ onMounted(load)
               </div>
             </div>
           </template>
+          <template v-else-if="column.key === 'contact'">
+            <div class="min-w-0 text-[13px]">
+              <div class="truncate text-ink">
+                {{ (record as OrganizationResponse).contact_person || '—' }}
+              </div>
+              <div class="truncate text-ink-muted">
+                {{ formatPhone((record as OrganizationResponse).phone) }}
+              </div>
+            </div>
+          </template>
           <template v-else-if="column.key === 'parks_count'">
             <span class="tabular-nums text-ink-muted">
               {{ (record as OrganizationResponse).parks_count ?? '—' }}
+            </span>
+          </template>
+          <template v-else-if="column.key === 'drivers_count'">
+            <span class="tabular-nums text-ink-muted">
+              {{ (record as OrganizationResponse).drivers_count ?? '—' }}
+            </span>
+          </template>
+          <template v-else-if="column.key === 'completed_orders_count'">
+            <span class="tabular-nums text-ink-muted">
+              {{ (record as OrganizationResponse).completed_orders_count ?? '—' }}
             </span>
           </template>
           <template v-else-if="column.key === 'subscription'">
@@ -296,6 +342,20 @@ onMounted(load)
         </a-form-item>
         <a-form-item label="Юридическое название">
           <a-input v-model:value="createForm.legal_name" size="large" />
+        </a-form-item>
+        <a-form-item label="Телефон">
+          <a-input
+            v-model:value="createForm.phone"
+            size="large"
+            placeholder="+79001234567"
+          />
+        </a-form-item>
+        <a-form-item label="Контактное лицо">
+          <a-input
+            v-model:value="createForm.contact_person"
+            size="large"
+            placeholder="Иван Петров"
+          />
         </a-form-item>
         <a-form-item label="Подписка">
           <a-switch v-model:checked="createForm.subscription_active" />

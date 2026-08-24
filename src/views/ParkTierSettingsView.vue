@@ -6,6 +6,7 @@ import { adminParkTierSettingsApi } from '@/api/adminMultiparkSettings'
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
 import { extractErrorMessage } from '@/utils/labels'
+import type { ParkTierLevelItem } from '@/types/api'
 
 const auth = useAuthStore()
 const org = useOrgStore()
@@ -34,21 +35,30 @@ const coefficientOptions = Array.from({ length: 11 }, (_, i) => {
   return { value, label: String(value) }
 })
 
+function ridesFromLevel(level: ParkTierLevelItem | undefined, flat?: number | null) {
+  return level?.rides_threshold ?? level?.rides ?? flat ?? 0
+}
+
+function minMonthFromLevel(level: ParkTierLevelItem | undefined, flat?: number | null) {
+  return level?.min_rides_per_month ?? level?.min_month ?? flat ?? 0
+}
+
 async function load() {
   if (!parkId.value) return
   loading.value = true
   try {
     const { data } = await adminParkTierSettingsApi.get(parkId.value)
     form.apply_tiers = data.apply_tiers
-    form.silver_rides = data.silver.rides
-    form.gold_rides = data.gold.rides
-    form.platinum_rides = data.platinum.rides
-    form.silver_coefficient = data.silver.coefficient
-    form.gold_coefficient = data.gold.coefficient
-    form.platinum_coefficient = data.platinum.coefficient
-    form.silver_min_month = data.silver.min_month
-    form.gold_min_month = data.gold.min_month
-    form.platinum_min_month = data.platinum.min_month
+    form.silver_rides = ridesFromLevel(data.silver, data.silver_rides)
+    form.gold_rides = ridesFromLevel(data.gold, data.gold_rides)
+    form.platinum_rides = ridesFromLevel(data.platinum, data.platinum_rides)
+    form.silver_coefficient = data.silver?.coefficient ?? data.silver_coefficient ?? 1.1
+    form.gold_coefficient = data.gold?.coefficient ?? data.gold_coefficient ?? 1.3
+    form.platinum_coefficient =
+      data.platinum?.coefficient ?? data.platinum_coefficient ?? 1.5
+    form.silver_min_month = minMonthFromLevel(data.silver, data.silver_min_month)
+    form.gold_min_month = minMonthFromLevel(data.gold, data.gold_min_month)
+    form.platinum_min_month = minMonthFromLevel(data.platinum, data.platinum_min_month)
   } catch (e) {
     message.error(extractErrorMessage(e))
   } finally {
@@ -78,6 +88,21 @@ async function save() {
       apply_tiers: form.apply_tiers,
       ...(form.apply_tiers
         ? {
+            silver: {
+              rides_threshold: form.silver_rides,
+              coefficient: form.silver_coefficient,
+              min_rides_per_month: form.silver_min_month,
+            },
+            gold: {
+              rides_threshold: form.gold_rides,
+              coefficient: form.gold_coefficient,
+              min_rides_per_month: form.gold_min_month,
+            },
+            platinum: {
+              rides_threshold: form.platinum_rides,
+              coefficient: form.platinum_coefficient,
+              min_rides_per_month: form.platinum_min_month,
+            },
             silver_rides: form.silver_rides,
             gold_rides: form.gold_rides,
             platinum_rides: form.platinum_rides,

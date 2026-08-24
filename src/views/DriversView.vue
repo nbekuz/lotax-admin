@@ -21,7 +21,7 @@ const router = useRouter()
 const { isMobile, isLgUp, width } = useBreakpoint()
 
 const searchQ = ref('')
-const statusFilter = ref<DriverStatus | 'all'>('all')
+const statusFilter = ref<DriverStatus | 'all'>('pending')
 const tierFilter = ref<DriverTier | 'all'>('all')
 const parkFilter = ref<string | 'all'>('all')
 const createOpen = ref(false)
@@ -111,10 +111,10 @@ const pagination = reactive({
 })
 
 const statusOptions = [
+  { value: 'pending', label: 'Ожидает активации' },
   { value: 'all', label: 'Все статусы' },
   { value: 'active', label: 'Активен' },
   { value: 'blocked', label: 'Заблокирован' },
-  { value: 'pending', label: 'Ожидание' },
 ]
 
 const tierOptions = [
@@ -243,7 +243,8 @@ onMounted(async () => {
       <div class="min-w-0">
         <h1 class="lotax-page-title">Водители</h1>
         <p class="lotax-caption mt-1">
-          Список с маскированными персональными данными
+          Новые водители после интеграции — в статусе «ожидает активации».
+          Активируйте вручную, чтобы открыть вход, поездки и баллы.
         </p>
       </div>
 
@@ -368,7 +369,11 @@ onMounted(async () => {
       >
         <p class="text-[15px] font-medium text-ink">Водители не найдены</p>
         <p class="lotax-caption max-w-sm">
-          Сначала нажмите «Синхронизировать водителей» или измените фильтр
+          {{
+            statusFilter === 'pending'
+              ? 'Нет водителей, ожидающих активации. Они появляются после синхронизации с Яндекс.'
+              : 'Сначала нажмите «Синхронизировать водителей» или измените фильтр'
+          }}
         </p>
         <a-button
           v-if="auth.canSync"
@@ -398,7 +403,10 @@ onMounted(async () => {
         :scroll="tableScroll"
         :sticky="stickyConfig"
         :locale="{
-          emptyText: 'Водители не найдены',
+          emptyText:
+            statusFilter === 'pending'
+              ? 'Нет водителей, ожидающих активации'
+              : 'Водители не найдены',
         }"
         :custom-row="(record: DriverListItem) => ({
           onClick: () => openDriver(record),

@@ -47,7 +47,7 @@ const editing = ref<CompetitionAdminItem | null>(null)
 const form = reactive({
   title: '',
   description: '',
-  criteria: 'max_points' as CompetitionCriteria,
+  criteria: 'max_rides' as CompetitionCriteria,
   count_points_type: 'park' as PointsType,
   prize_places: 3,
   prizes: [] as PrizePlaceItem[],
@@ -107,7 +107,7 @@ function openCreate() {
   editing.value = null
   form.title = ''
   form.description = ''
-  form.criteria = 'max_points'
+  form.criteria = 'max_rides'
   form.count_points_type = 'park'
   dateRange.value = [dayjs(), dayjs().add(30, 'day')]
   form.prize_places = 3
@@ -381,7 +381,7 @@ onMounted(async () => {
               :options="criteriaOptions"
             />
           </a-form-item>
-          <a-form-item label="Учитывать баллы">
+          <a-form-item v-if="form.criteria === 'max_points'" label="Учитывать баллы">
             <a-select
               v-model:value="form.count_points_type"
               size="large"

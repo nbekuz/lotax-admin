@@ -4,7 +4,7 @@ import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { useOrgStore } from '@/stores/org'
-import { extractErrorMessage } from '@/utils/labels'
+import { extractErrorMessage, formatPhone } from '@/utils/labels'
 import InfoField from '@/components/InfoField.vue'
 import CopyableId from '@/components/CopyableId.vue'
 
@@ -89,12 +89,30 @@ onMounted(load)
             :value="String(org.organization.parks_count ?? org.parksTotal)"
           />
           <InfoField
+            label="Водители"
+            :value="String(org.organization.drivers_count ?? 0)"
+          />
+          <InfoField
+            label="Поездки"
+            :value="String(org.organization.completed_orders_count ?? 0)"
+          />
+        </div>
+        <div class="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <InfoField
             label="Создана"
             :value="dayjs(org.organization.created_at).format('DD.MM.YYYY')"
           />
           <InfoField
             label="Статус"
             :value="org.organization.is_active ? 'Активна' : 'Неактивна'"
+          />
+          <InfoField
+            label="Телефон"
+            :value="formatPhone(org.organization.phone)"
+          />
+          <InfoField
+            label="Контактное лицо"
+            :value="org.organization.contact_person || '—'"
           />
         </div>
         <CopyableId label="UUID организации" :value="org.organization.id" />

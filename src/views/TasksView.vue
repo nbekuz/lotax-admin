@@ -19,7 +19,7 @@ import {
   scopeLabel,
   validateScopeFields,
 } from '@/utils/scope'
-import type { PointsType, TaskAdminItem, TaskStatus, TaskType } from '@/types/api'
+import type { TaskAdminItem, TaskStatus, TaskType } from '@/types/api'
 
 const auth = useAuthStore()
 const org = useOrgStore()
@@ -36,7 +36,6 @@ const form = reactive({
   description: '',
   task_type: 'ride_count' as TaskType,
   target_value: 10,
-  reward_points_type: 'park' as PointsType,
   reward_points: 100,
   auto_join: true,
   status: 'draft' as TaskStatus,
@@ -87,7 +86,6 @@ function openCreate() {
   form.description = ''
   form.task_type = 'ride_count'
   form.target_value = 10
-  form.reward_points_type = 'park'
   form.reward_points = 100
   dateRange.value = [dayjs(), dayjs().add(7, 'day')]
   form.auto_join = true
@@ -105,7 +103,6 @@ function openEdit(item: TaskAdminItem) {
   form.description = item.description || ''
   form.task_type = item.task_type as TaskType
   form.target_value = item.target_value
-  form.reward_points_type = item.reward_points_type
   form.reward_points = item.reward_points
   dateRange.value = [dayjs(item.start_date), dayjs(item.end_date)]
   form.auto_join = item.auto_join
@@ -164,7 +161,7 @@ async function save() {
         description: form.description.trim() || null,
         task_type: form.task_type,
         target_value: form.target_value,
-        reward_points_type: form.reward_points_type,
+        reward_points_type: 'park',
         reward_points: form.reward_points,
         start_date,
         end_date,
@@ -266,7 +263,7 @@ onMounted(async () => {
           </div>
           <div class="mt-1 text-[13px] text-ink-muted">
             {{ taskTypeLabel[item.task_type as TaskType] ?? item.task_type }} · цель {{ item.target_value }} ·
-            +{{ item.reward_points }} б. ({{ item.reward_points_type }})
+            +{{ item.reward_points }} парковых б.
             <span v-if="item.template_key"> · {{ item.template_key }}</span>
             <span v-if="item.scope"> · {{ scopeLabel(item.scope) }}</span>
           </div>
@@ -343,15 +340,6 @@ onMounted(async () => {
           <a-form-item label="Статус">
             <a-select v-model:value="form.status" :options="statusOptions" />
           </a-form-item>
-          <a-form-item label="Тип баллов">
-            <a-select
-              v-model:value="form.reward_points_type"
-              :options="[
-                { value: 'system', label: 'Системные' },
-                { value: 'park', label: 'Парковые' },
-              ]"
-            />
-          </a-form-item>
           <a-form-item label="Награда">
             <a-input-number
               v-model:value="form.reward_points"
@@ -359,6 +347,7 @@ onMounted(async () => {
               :min="0"
               addon-after="б."
             />
+            <p class="lotax-caption mt-1">Начисляются только парковые баллы</p>
           </a-form-item>
         </div>
         <a-form-item label="Период" required>

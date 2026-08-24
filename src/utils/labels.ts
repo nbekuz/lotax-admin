@@ -31,7 +31,18 @@ export const adminStatusTone: Record<AdminStatus, string> = {
 export const driverStatusLabel: Record<DriverStatus, string> = {
   active: 'Активен',
   blocked: 'Заблокирован',
-  pending: 'Ожидание',
+  pending: 'Ожидает активации',
+}
+
+/** Russian plural for ride counts shown in TOP / leaderboards. */
+export function ridesCountLabel(n: number): string {
+  const abs = Math.abs(Math.trunc(n))
+  const mod10 = abs % 10
+  const mod100 = abs % 100
+  if (mod100 >= 11 && mod100 <= 14) return `${n} поездок`
+  if (mod10 === 1) return `${n} поездка`
+  if (mod10 >= 2 && mod10 <= 4) return `${n} поездки`
+  return `${n} поездок`
 }
 
 export const driverTierLabel: Record<DriverTier, string> = {

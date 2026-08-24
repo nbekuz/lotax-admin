@@ -77,8 +77,11 @@ export const useAuthStore = defineStore('auth', {
     canViewTierSettings: (s) =>
       ['director', 'manager'].includes(s.admin?.role ?? ''),
     canAdjustTier: (s) => s.admin?.role === 'director',
-    adjustPointsTypes: (s): Array<'system' | 'park'> => {
-      if (s.admin?.role === 'director') return ['system', 'park']
+    /** Soft-delete org/park — super_admin only. Platform `admin` gets 403. */
+    canDeleteOrganizations: (s) => s.admin?.role === 'super_admin',
+    /** Director may adjust park points only; system points → 403. */
+    adjustPointsTypes: (s): Array<'park'> => {
+      if (s.admin?.role === 'director') return ['park']
       return []
     },
     creatableRoles: (s): StaffAssignableRole[] => {

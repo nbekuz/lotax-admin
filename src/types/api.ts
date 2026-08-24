@@ -79,10 +79,14 @@ export interface OrganizationResponse {
   id: string
   name: string
   legal_name?: string | null
+  phone?: string | null
+  contact_person?: string | null
   subscription_active: boolean
   is_active: boolean
   notes?: string | null
   parks_count?: number
+  drivers_count?: number
+  completed_orders_count?: number
   created_at: string
   updated_at: string
 }
@@ -97,6 +101,8 @@ export interface OrganizationListResponse {
 export interface OrganizationCreatePayload {
   name: string
   legal_name?: string | null
+  phone?: string | null
+  contact_person?: string | null
   subscription_active?: boolean
   notes?: string | null
 }
@@ -104,6 +110,8 @@ export interface OrganizationCreatePayload {
 export interface OrganizationUpdatePayload {
   name?: string | null
   legal_name?: string | null
+  phone?: string | null
+  contact_person?: string | null
   is_active?: boolean | null
   notes?: string | null
 }
@@ -393,9 +401,11 @@ export interface LeaderboardSettingsUpdatePayload {
 /* ── Park tier settings ── */
 
 export interface ParkTierLevelItem {
-  rides: number
+  rides?: number
+  rides_threshold?: number
   coefficient: number
-  min_month: number
+  min_month?: number
+  min_rides_per_month?: number
 }
 
 export interface ParkTierSettingsResponse {
@@ -405,10 +415,28 @@ export interface ParkTierSettingsResponse {
   silver: ParkTierLevelItem
   gold: ParkTierLevelItem
   platinum: ParkTierLevelItem
+  silver_rides?: number
+  gold_rides?: number
+  platinum_rides?: number
+  silver_coefficient?: number
+  gold_coefficient?: number
+  platinum_coefficient?: number
+  silver_min_month?: number
+  gold_min_month?: number
+  platinum_min_month?: number
+}
+
+export interface ParkTierLevelUpdate {
+  rides_threshold?: number
+  coefficient?: number
+  min_rides_per_month?: number
 }
 
 export interface ParkTierSettingsUpdatePayload {
   apply_tiers: boolean
+  silver?: ParkTierLevelUpdate
+  gold?: ParkTierLevelUpdate
+  platinum?: ParkTierLevelUpdate
   silver_rides?: number
   gold_rides?: number
   platinum_rides?: number
@@ -740,13 +768,16 @@ export interface CompetitionLeaderboardItem {
   rank: number
   driver_id: string
   display_name?: string | null
+  /** Ride count — ranking metric. */
   score: number
+  rides?: number
   is_me?: boolean
 }
 
 export interface CompetitionLeaderboardResponse {
   competition_id: string
   criteria: CompetitionCriteria
+  metric?: string
   items: CompetitionLeaderboardItem[]
 }
 

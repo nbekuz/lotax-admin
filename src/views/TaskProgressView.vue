@@ -54,6 +54,9 @@ onMounted(load)
             Цель: {{ progress.target_value }} · участников: {{ progress.participants_count }} ·
             выполнили: {{ progress.completed_count }}
           </p>
+          <p class="lotax-caption mt-1">
+            При автоучастии активные водители отображаются даже с прогрессом 0
+          </p>
         </div>
         <a-button class="lotax-btn-secondary" @click="load">
           <template #icon><ReloadOutlined /></template>
@@ -83,7 +86,7 @@ onMounted(load)
           <template v-else-if="column.key === 'progress'">
             <div class="flex items-center gap-2">
               <a-progress
-                :percent="Math.min(100, Math.round((record as TaskProgressParticipant).percent))"
+                :percent="Math.min(100, Math.round((record as TaskProgressParticipant).percent || 0))"
                 :status="(record as TaskProgressParticipant).is_completed ? 'success' : 'active'"
                 size="small"
                 class="!w-32"

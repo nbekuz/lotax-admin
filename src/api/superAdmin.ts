@@ -99,6 +99,14 @@ export const superAdminApi = {
     return http.patch<ParkResponse>(`/super-admin/parks/${parkId}`, payload)
   },
 
+  deleteOrganization(orgId: string) {
+    return http.delete(`/super-admin/organizations/${orgId}`)
+  },
+
+  deletePark(parkId: string) {
+    return http.delete(`/super-admin/parks/${parkId}`)
+  },
+
   createDirector(orgId: string, payload: OrgDirectorCreatePayload) {
     return http.post<AdminListItem>(
       `/super-admin/organizations/${orgId}/directors`,

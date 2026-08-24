@@ -1,27 +1,34 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
+  CarOutlined,
+  DeleteOutlined,
   LeftOutlined,
   PlusOutlined,
   ReloadOutlined,
+  TeamOutlined,
   UserAddOutlined,
 } from '@ant-design/icons-vue'
+import { useAuthStore } from '@/stores/auth'
 import { useOrganizationsStore } from '@/stores/organizations'
 import {
   extractErrorMessage,
+  formatPhone,
   roleLabel,
   adminStatusLabel,
   adminStatusTone,
 } from '@/utils/labels'
 import InfoField from '@/components/InfoField.vue'
 import CopyableId from '@/components/CopyableId.vue'
+import KpiCard from '@/components/KpiCard.vue'
 import type { ParkResponse } from '@/types/api'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const orgs = useOrganizationsStore()
 
 const orgId = computed(() => route.params.id as string)
@@ -35,6 +42,8 @@ const editingPark = ref<ParkResponse | null>(null)
 const editForm = reactive({
   name: '',
   legal_name: '',
+  phone: '',
+  contact_person: '',
   is_active: true,
   notes: '',
 })
@@ -63,6 +72,8 @@ async function load() {
     if (orgs.current) {
       editForm.name = orgs.current.name
       editForm.legal_name = orgs.current.legal_name || ''
+      editForm.phone = orgs.current.phone || ''
+      editForm.contact_person = orgs.current.contact_person || ''
       editForm.is_active = orgs.current.is_active
       editForm.notes = orgs.current.notes || ''
     }
@@ -81,6 +92,8 @@ async function saveOrg() {
     await orgs.update(orgId.value, {
       name: editForm.name.trim() || null,
       legal_name: editForm.legal_name.trim() || null,
+      phone: editForm.phone.trim() || null,
+      contact_person: editForm.contact_person.trim() || null,
       is_active: editForm.is_active,
       notes: editForm.notes.trim() || null,
     })
@@ -207,6 +220,50 @@ async function submitDirector() {
   }
 }
 
+function confirmDeleteOrg() {
+  if (!orgs.current) return
+  Modal.confirm({
+    title: 'Удалить организацию?',
+    content: `«${orgs.current.name}» будет деактивирована. Это действие доступно только супер-админу.`,
+    okText: 'Удалить',
+    cancelText: 'Отмена',
+    okButtonProps: { danger: true },
+    centered: true,
+    async onOk() {
+      try {
+        await orgs.deleteOrganization(orgId.value)
+        message.success('Организация удалена')
+        router.push('/organizations')
+      } catch (e) {
+        message.error(extractErrorMessage(e, 'Не удалось удалить организацию'))
+      }
+    },
+  })
+}
+
+function confirmDeletePark(park: ParkResponse) {
+  Modal.confirm({
+    title: 'Удалить парк?',
+    content: `«${park.name}» будет деактивирован.`,
+    okText: 'Удалить',
+    cancelText: 'Отмена',
+    okButtonProps: { danger: true },
+    centered: true,
+    async onOk() {
+      try {
+        await orgs.deletePark(orgId.value, park.id)
+        if (editingPark.value?.id === park.id) {
+          parkOpen.value = false
+          editingPark.value = null
+        }
+        message.success('Парк удалён')
+      } catch (e) {
+        message.error(extractErrorMessage(e, 'Не удалось удалить парк'))
+      }
+    },
+  })
+}
+
 watch(orgId, load)
 onMounted(load)
 </script>
@@ -267,8 +324,44 @@ onMounted(load)
           <template #icon><UserAddOutlined /></template>
           Назначить директора
         </a-button>
+        <a-button
+          v-if="auth.canDeleteOrganizations"
+          danger
+          class="lotax-btn-danger"
+          @click="confirmDeleteOrg"
+        >
+          <template #icon><DeleteOutlined /></template>
+          Удалить
+        </a-button>
       </div>
     </div>
+
+    <section class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <KpiCard
+        title="Парки"
+        :value="orgs.current.parks_count ?? orgs.parksTotal ?? 0"
+        hint="В организации"
+        tone="orange"
+      >
+        <template #icon><CarOutlined /></template>
+      </KpiCard>
+      <KpiCard
+        title="Водители"
+        :value="orgs.current.drivers_count ?? 0"
+        hint="Все парки"
+        tone="blue"
+      >
+        <template #icon><TeamOutlined /></template>
+      </KpiCard>
+      <KpiCard
+        title="Поездки"
+        :value="orgs.current.completed_orders_count ?? 0"
+        hint="Завершённые заказы"
+        tone="green"
+      >
+        <template #icon><CarOutlined /></template>
+      </KpiCard>
+    </section>
 
     <section class="lotax-card p-5 md:p-7">
       <h2 class="lotax-section-title mb-5">Данные организации</h2>
@@ -282,8 +375,12 @@ onMounted(load)
           :value="dayjs(orgs.current.updated_at).format('DD.MM.YYYY HH:mm')"
         />
         <InfoField
-          label="Парков"
-          :value="String(orgs.parksTotal || orgs.current.parks_count || 0)"
+          label="Телефон"
+          :value="formatPhone(orgs.current.phone)"
+        />
+        <InfoField
+          label="Контактное лицо"
+          :value="orgs.current.contact_person || '—'"
         />
       </div>
       <CopyableId label="UUID организации" :value="orgs.current.id" />
@@ -295,6 +392,20 @@ onMounted(load)
           </a-form-item>
           <a-form-item label="Юридическое название">
             <a-input v-model:value="editForm.legal_name" size="large" />
+          </a-form-item>
+          <a-form-item label="Телефон">
+            <a-input
+              v-model:value="editForm.phone"
+              size="large"
+              placeholder="+79001234567"
+            />
+          </a-form-item>
+          <a-form-item label="Контактное лицо">
+            <a-input
+              v-model:value="editForm.contact_person"
+              size="large"
+              placeholder="Иван Петров"
+            />
           </a-form-item>
           <a-form-item label="Организация активна">
             <a-switch v-model:checked="editForm.is_active" />
@@ -326,19 +437,21 @@ onMounted(load)
         Парков пока нет — добавьте первый
       </div>
       <div v-else class="flex flex-col gap-3">
-        <button
+        <div
           v-for="park in orgs.parks"
           :key="park.id"
-          type="button"
-          class="flex flex-col gap-1 rounded-xl border border-line bg-surface px-4 py-3 text-left transition-colors md:hover:border-orange-200 sm:flex-row sm:items-center sm:justify-between"
-          @click="openEditPark(park)"
+          class="flex flex-col gap-2 rounded-xl border border-line bg-surface px-4 py-3 md:flex-row md:items-center md:justify-between"
         >
-          <div>
+          <button
+            type="button"
+            class="min-w-0 flex-1 text-left"
+            @click="openEditPark(park)"
+          >
             <div class="font-medium text-ink">{{ park.name }}</div>
             <div class="font-mono text-[13px] text-ink-muted">
               {{ park.yandex_park_id || 'Без Yandex ID' }}
             </div>
-          </div>
+          </button>
           <div class="flex flex-wrap items-center gap-2">
             <span
               class="rounded-full px-2.5 py-1 text-[13px] font-medium ring-1 ring-inset"
@@ -353,8 +466,18 @@ onMounted(load)
             <span class="text-[13px] text-ink-muted">
               {{ park.has_yandex_api_key ? 'API-ключ задан' : 'Нет API-ключа' }}
             </span>
+            <a-button class="lotax-btn-secondary" @click="openEditPark(park)">
+              Изменить
+            </a-button>
+            <a-button
+              v-if="auth.canDeleteOrganizations"
+              danger
+              @click="confirmDeletePark(park)"
+            >
+              Удалить
+            </a-button>
           </div>
-        </button>
+        </div>
       </div>
     </section>
 

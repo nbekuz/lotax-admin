@@ -20,7 +20,6 @@ const enableSaving = ref(false)
 const enableTarget = ref<TaskTemplateItem | null>(null)
 const enableForm = reactive({
   reward_points: 50,
-  reward_points_type: 'park' as 'park' | 'system',
 })
 
 const parkId = computed(() => org.selectedParkId)
@@ -45,7 +44,6 @@ async function load() {
 function openEnable(item: TaskTemplateItem) {
   enableTarget.value = item
   enableForm.reward_points = item.default_reward_points
-  enableForm.reward_points_type = 'park'
   enableOpen.value = true
 }
 
@@ -57,7 +55,7 @@ async function confirmEnable() {
     await adminTaskTemplatesApi.enable(enableTarget.value.key, {
       park_id: parkId.value,
       reward_points: enableForm.reward_points,
-      reward_points_type: enableForm.reward_points_type,
+      reward_points_type: 'park',
     })
     message.success('Шаблон включён')
     enableOpen.value = false
@@ -207,16 +205,8 @@ onMounted(async () => {
           />
           <p class="lotax-caption mt-1">
             По умолчанию: {{ enableTarget?.default_reward_points ?? '—' }} б.
+            Начисляются только парковые баллы.
           </p>
-        </a-form-item>
-        <a-form-item label="Тип баллов">
-          <a-select
-            v-model:value="enableForm.reward_points_type"
-            :options="[
-              { value: 'park', label: 'Парковые' },
-              { value: 'system', label: 'Системные' },
-            ]"
-          />
         </a-form-item>
       </a-form>
     </a-modal>

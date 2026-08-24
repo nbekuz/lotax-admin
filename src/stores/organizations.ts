@@ -136,6 +136,20 @@ export const useOrganizationsStore = defineStore('organizations', {
       return data
     },
 
+    async deleteOrganization(id: string) {
+      await superAdminApi.deleteOrganization(id)
+      this.items = this.items.filter((o) => o.id !== id)
+      this.total = Math.max(0, this.total - 1)
+      if (this.current?.id === id) this.current = null
+    },
+
+    async deletePark(orgId: string, parkId: string) {
+      await superAdminApi.deletePark(parkId)
+      this.parks = this.parks.filter((p) => p.id !== parkId)
+      this.parksTotal = Math.max(0, this.parksTotal - 1)
+      await this.fetchById(orgId)
+    },
+
     async createDirector(orgId: string, payload: OrgDirectorCreatePayload) {
       return (await superAdminApi.createDirector(orgId, payload)).data
     },

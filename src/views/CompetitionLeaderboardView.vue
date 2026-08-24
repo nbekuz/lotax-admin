@@ -5,7 +5,7 @@ import { message } from 'ant-design-vue'
 import type { TableColumnsType } from 'ant-design-vue'
 import { LeftOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { adminCompetitionsApi } from '@/api/adminCompetitions'
-import { competitionCriteriaLabel, extractErrorMessage } from '@/utils/labels'
+import { competitionCriteriaLabel, extractErrorMessage, ridesCountLabel } from '@/utils/labels'
 import type { CompetitionLeaderboardItem, CompetitionLeaderboardResponse } from '@/types/api'
 
 const route = useRoute()
@@ -18,7 +18,7 @@ const board = ref<CompetitionLeaderboardResponse | null>(null)
 const columns: TableColumnsType<CompetitionLeaderboardItem> = [
   { title: 'Место', key: 'rank', width: 90 },
   { title: 'Водитель', key: 'driver', dataIndex: 'display_name' },
-  { title: 'Результат', key: 'score', width: 140, align: 'right' },
+  { title: 'Поездки', key: 'rides', width: 160, align: 'right' },
 ]
 
 async function load() {
@@ -53,6 +53,7 @@ onMounted(load)
           <h1 class="lotax-page-title">Лидерборд</h1>
           <p v-if="board" class="lotax-caption mt-1">
             Критерий: {{ competitionCriteriaLabel[board.criteria] }}
+            · метрика: поездки
           </p>
         </div>
         <a-button class="lotax-btn-secondary" @click="load">
@@ -89,9 +90,14 @@ onMounted(load)
               <span v-if="(record as CompetitionLeaderboardItem).is_me" class="ml-1 text-[12px] text-brand">(вы)</span>
             </span>
           </template>
-          <template v-else-if="column.key === 'score'">
+          <template v-else-if="column.key === 'rides'">
             <span class="font-semibold tabular-nums">
-              {{ (record as CompetitionLeaderboardItem).score }}
+              {{
+                ridesCountLabel(
+                  (record as CompetitionLeaderboardItem).rides ??
+                    (record as CompetitionLeaderboardItem).score,
+                )
+              }}
             </span>
           </template>
         </template>

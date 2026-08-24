@@ -5,6 +5,7 @@ import { message, Modal } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 import {
   CalendarOutlined,
+  CheckCircleOutlined,
   CloudSyncOutlined,
   EditOutlined,
   GiftOutlined,
@@ -60,7 +61,6 @@ const rideColumns = [
 ]
 
 const adjustForm = reactive({
-  points_type: 'park' as 'system' | 'park',
   amount: 0,
   description: '',
 })
@@ -120,7 +120,6 @@ async function load() {
     await drivers.fetchById(driverId.value)
     if (drivers.current) {
       statusForm.status = drivers.current.status
-      adjustForm.points_type = auth.adjustPointsTypes[0] ?? 'park'
     }
 
     if (auth.canViewPdn) {
@@ -196,7 +195,7 @@ async function saveBalance() {
   adjustSaving.value = true
   try {
     await drivers.adjustPoints(driverId.value, {
-      points_type: adjustForm.points_type,
+      points_type: 'park',
       amount: adjustForm.amount,
       description: adjustForm.description.trim(),
     })
@@ -249,6 +248,21 @@ async function saveTier() {
   } finally {
     tierSaving.value = false
   }
+}
+
+function confirmActivate() {
+  Modal.confirm({
+    title: 'Активировать водителя?',
+    content:
+      'После активации водитель сможет войти в приложение. Поездки и баллы учитываются только у активных.',
+    okText: 'Активировать',
+    cancelText: 'Отмена',
+    centered: true,
+    async onOk() {
+      statusForm.status = 'active'
+      await saveStatus()
+    },
+  })
 }
 
 function confirmBlock() {
@@ -315,6 +329,15 @@ watch(driverId, () => {
           Изменить уровень
         </a-button>
         <a-button
+          v-if="auth.canEditStatus && drivers.current.status === 'pending'"
+          type="primary"
+          class="driver-btn driver-btn--primary"
+          @click="confirmActivate"
+        >
+          <template #icon><CheckCircleOutlined /></template>
+          Активировать
+        </a-button>
+        <a-button
           v-if="auth.canEditStatus"
           class="driver-btn driver-btn--secondary"
           @click="statusOpen = true"
@@ -323,7 +346,7 @@ watch(driverId, () => {
           Изменить статус
         </a-button>
         <a-button
-          v-if="auth.canEditStatus && drivers.current.status !== 'blocked'"
+          v-if="auth.canEditStatus && drivers.current.status !== 'blocked' && drivers.current.status !== 'pending'"
           class="driver-btn driver-btn--danger"
           @click="confirmBlock"
         >
@@ -332,6 +355,14 @@ watch(driverId, () => {
         </a-button>
       </div>
     </header>
+
+    <div
+      v-if="drivers.current.status === 'pending'"
+      class="rounded-xl bg-amber-50 px-4 py-3 text-[14px] text-amber-800 ring-1 ring-inset ring-amber-200"
+    >
+      Водитель ожидает активации директором. Пока статус «ожидает», вход в приложение,
+      поездки и баллы недоступны.
+    </div>
 
     <!-- Summary -->
     <section class="summary-card">
@@ -561,16 +592,10 @@ watch(driverId, () => {
     >
       <a-form layout="vertical" class="mt-2">
         <a-form-item label="Тип баллов">
-          <a-select
-            v-model:value="adjustForm.points_type"
-            size="large"
-            :options="
-              auth.adjustPointsTypes.map((t) => ({
-                value: t,
-                label: t === 'system' ? 'Системные' : 'Парковые',
-              }))
-            "
-          />
+          <a-input value="Парковые" size="large" disabled />
+          <p class="mt-1 text-[13px] text-ink-muted">
+            Директор может корректировать только парковые баллы
+          </p>
         </a-form-item>
         <a-form-item label="Сумма (+/−)">
           <a-input-number v-model:value="adjustForm.amount" class="!w-full" size="large" />
@@ -599,7 +624,7 @@ watch(driverId, () => {
             :options="[
               { value: 'active', label: 'Активен' },
               { value: 'blocked', label: 'Заблокирован' },
-              { value: 'pending', label: 'Ожидание' },
+              { value: 'pending', label: 'Ожидает активации' },
             ]"
           />
         </a-form-item>
