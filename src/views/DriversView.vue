@@ -21,7 +21,7 @@ const router = useRouter()
 const { isMobile, isLgUp, width } = useBreakpoint()
 
 const searchQ = ref('')
-const statusFilter = ref<DriverStatus | 'all'>('pending')
+const statusFilter = ref<DriverStatus | 'all'>('all')
 const tierFilter = ref<DriverTier | 'all'>('all')
 const parkFilter = ref<string | 'all'>('all')
 const createOpen = ref(false)
