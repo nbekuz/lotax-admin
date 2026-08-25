@@ -139,18 +139,44 @@ export function isForbiddenError(error: unknown): boolean {
   return err?.response?.status === 403
 }
 
+export const bannerAudienceLabel: Record<
+  'all' | 'organization' | 'park',
+  string
+> = {
+  all: 'Все',
+  organization: 'Организация',
+  park: 'Парк',
+}
+
+export const reportActivityKindLabel: Record<'task' | 'competition', string> = {
+  task: 'Задание',
+  competition: 'Соревнование',
+}
+
 export function extractErrorMessage(error: unknown, fallback = 'Ошибка запроса'): string {
   const err = error as {
-    response?: { data?: { detail?: unknown }; status?: number }
+    response?: { data?: { detail?: unknown; message?: string }; status?: number }
     message?: string
   }
 
-  const detail = err?.response?.data?.detail
+  const data = err?.response?.data
+  const detail = data?.detail
   if (typeof detail === 'string' && detail) return detail
   if (Array.isArray(detail) && detail.length) {
-    const first = detail[0] as { msg?: string }
-    if (first?.msg) return first.msg
+    const msgs = detail
+      .map((item) => {
+        if (typeof item === 'string') return item
+        const rec = item as { msg?: string; loc?: unknown[] }
+        const loc = Array.isArray(rec.loc)
+          ? rec.loc.filter((part) => part !== 'body' && part !== 'query').join('.')
+          : ''
+        if (rec.msg && loc) return `${loc}: ${rec.msg}`
+        return rec.msg || ''
+      })
+      .filter(Boolean)
+    if (msgs.length) return msgs.join('; ')
   }
+  if (typeof data?.message === 'string' && data.message) return data.message
   if (err?.message) return err.message
   return fallback
 }

@@ -196,6 +196,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Синхронизация', roles: ['director'] },
       },
       {
+        path: 'reports',
+        name: 'reports',
+        component: () => import('@/views/ReportsView.vue'),
+        meta: { title: 'Отчёт', roles: ['director'] },
+      },
+      {
+        path: 'pdn',
+        name: 'pdn',
+        component: () => import('@/views/PdnAuditView.vue'),
+        meta: { title: 'Журнал ПДн', roles: ['director'] },
+      },
+      {
         path: 'staff',
         name: 'staff',
         component: () => import('@/views/StaffView.vue'),
@@ -232,6 +244,12 @@ const routes: RouteRecordRaw[] = [
         name: 'settings',
         component: () => import('@/views/PlatformSettingsView.vue'),
         meta: { title: 'Настройки', roles: ['super_admin'] },
+      },
+      {
+        path: 'banners',
+        name: 'banners',
+        component: () => import('@/views/BannersView.vue'),
+        meta: { title: 'Баннеры', roles: ['super_admin'] },
       },
       {
         path: 'system-rewards',

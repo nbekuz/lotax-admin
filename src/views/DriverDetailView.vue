@@ -8,6 +8,7 @@ import {
   CheckCircleOutlined,
   CloudSyncOutlined,
   EditOutlined,
+  EyeOutlined,
   GiftOutlined,
   LeftOutlined,
   StarOutlined,
@@ -121,18 +122,6 @@ async function load() {
     if (drivers.current) {
       statusForm.status = drivers.current.status
     }
-
-    if (auth.canViewPdn) {
-      pdnLoading.value = true
-      try {
-        await drivers.fetchPersonalData(driverId.value)
-      } catch (e) {
-        pdnError.value = extractErrorMessage(e, 'Не удалось загрузить ПДн')
-        message.error(pdnError.value)
-      } finally {
-        pdnLoading.value = false
-      }
-    }
   } catch (e) {
     if (isForbiddenError(e)) {
       message.error('Нет доступа к данным водителей')
@@ -141,6 +130,38 @@ async function load() {
     }
     message.error(extractErrorMessage(e))
   }
+}
+
+async function revealPdn() {
+  pdnError.value = null
+  pdnLoading.value = true
+  try {
+    await drivers.fetchPersonalData(driverId.value)
+  } catch (e) {
+    pdnError.value = extractErrorMessage(e, 'Не удалось загрузить ПДн')
+    message.error(pdnError.value)
+  } finally {
+    pdnLoading.value = false
+  }
+}
+
+function confirmRevealPdn() {
+  Modal.confirm({
+    title: 'Показать персональные данные?',
+    content:
+      'ФИО и телефон будут расшифрованы. Действие записывается в журнал аудита ПДн.',
+    okText: 'Показать',
+    cancelText: 'Отмена',
+    centered: true,
+    async onOk() {
+      await revealPdn()
+    },
+  })
+}
+
+function hidePdn() {
+  drivers.personalData = null
+  pdnError.value = null
 }
 
 async function loadRides() {
@@ -441,14 +462,35 @@ watch(driverId, () => {
       <a-tab-pane key="profile" tab="Профиль">
         <section class="driver-detail__section info-grid">
           <div class="detail-card">
-            <div class="mb-6 flex flex-col gap-1">
-              <h2 class="lotax-section-title">Профиль</h2>
-              <p v-if="auth.canViewPdn" class="lotax-caption">
-                Полные ПДн · доступ аудируется
-              </p>
-              <p v-else class="lotax-caption">
-                Персональные данные показаны в маскированном виде
-              </p>
+            <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div class="flex flex-col gap-1">
+                <h2 class="lotax-section-title">Профиль</h2>
+                <p v-if="auth.canViewPdn" class="lotax-caption">
+                  В списке и карточке — маска. Расшифровка ФИО и телефона аудируется
+                </p>
+                <p v-else class="lotax-caption">
+                  Персональные данные показаны в маскированном виде
+                </p>
+              </div>
+              <div v-if="auth.canViewPdn" class="flex flex-wrap gap-2">
+                <a-button
+                  v-if="!drivers.personalData"
+                  type="primary"
+                  class="lotax-btn-primary"
+                  :loading="pdnLoading"
+                  @click="confirmRevealPdn"
+                >
+                  <template #icon><EyeOutlined /></template>
+                  Показать ПДн
+                </a-button>
+                <a-button
+                  v-else
+                  class="lotax-btn-secondary"
+                  @click="hidePdn"
+                >
+                  Скрыть ПДн
+                </a-button>
+              </div>
             </div>
 
             <div v-if="auth.canViewPdn && pdnLoading" class="flex justify-center py-10">

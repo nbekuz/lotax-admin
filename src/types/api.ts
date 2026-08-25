@@ -887,3 +887,129 @@ export interface TaskTemplateEnablePayload {
   reward_points?: number | null
   reward_points_type?: PointsType
 }
+
+/* ── Stage 4: banners, reports, PDN audit ── */
+
+export type BannerTargetAudience = 'all' | 'organization' | 'park'
+
+export interface BannerItem {
+  id: string
+  title: string
+  image_url: string
+  link_url?: string | null
+  starts_at: string
+  ends_at: string
+  is_active: boolean
+  display_order: number
+  target_audience: BannerTargetAudience | string
+  organization_id?: string | null
+  park_id?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface BannerListResponse {
+  items: BannerItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface BannerCreatePayload {
+  title: string
+  image_url: string
+  link_url?: string | null
+  starts_at: string
+  ends_at: string
+  is_active?: boolean
+  display_order?: number
+  target_audience: BannerTargetAudience
+  organization_id?: string | null
+  park_id?: string | null
+}
+
+export interface BannerUpdatePayload {
+  title?: string | null
+  image_url?: string | null
+  link_url?: string | null
+  starts_at?: string | null
+  ends_at?: string | null
+  is_active?: boolean | null
+  display_order?: number | null
+  target_audience?: BannerTargetAudience | null
+  organization_id?: string | null
+  park_id?: string | null
+}
+
+export interface ReportQuery {
+  start_date: string
+  end_date: string
+  park_id?: string | null
+}
+
+export interface ReportDriverRow {
+  driver_id: string
+  display_name?: string | null
+  status?: DriverStatus | string | null
+  rides: number
+  system_points: number
+  park_points: number
+}
+
+export interface ReportRewardOrderRow {
+  order_id: string
+  driver_display_name?: string | null
+  status?: OrderStatus | string | null
+  points_type?: PointsType | string | null
+  points_spent: number
+  created_at: string
+}
+
+export type ReportActivityKind = 'task' | 'competition'
+
+export interface ReportActivityRow {
+  id: string
+  title: string
+  kind: ReportActivityKind | string
+  status: string
+  start_at?: string | null
+  end_at?: string | null
+}
+
+export interface ReportSummary {
+  start_date: string
+  end_date: string
+  park_ids: string[]
+  drivers_total: number
+  drivers_active: number
+  rides_count: number
+  fare_total: string
+  system_points_issued: number
+  park_points_issued: number
+  reward_orders_total: number
+  reward_orders_pending: number
+  tasks_count: number
+  competitions_count: number
+  drivers: ReportDriverRow[]
+  reward_orders: ReportRewardOrderRow[]
+  tasks_and_competitions: ReportActivityRow[]
+}
+
+export interface PdnAuditLogItem {
+  id: string
+  director_id: string
+  director_email?: string | null
+  driver_id: string
+  driver_display_name?: string | null
+  action: string
+  action_details?: string | null
+  ip_address?: string | null
+  created_at: string
+}
+
+export interface PdnAuditLogListResponse {
+  items: PdnAuditLogItem[]
+  total: number
+  page: number
+  page_size: number
+}

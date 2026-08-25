@@ -49,6 +49,11 @@ const permissions = computed(() => {
       label: 'Глобальные настройки платформы',
       icon: () => h(SettingOutlined),
     })
+    items.push({
+      key: 'banners',
+      label: 'Баннеры в приложении водителя',
+      icon: () => h(SettingOutlined),
+    })
   } else if (auth.isPlatformAdmin) {
     items.push({
       key: 'orgs',
@@ -71,8 +76,13 @@ const permissions = computed(() => {
   if (auth.canViewPdn) {
     items.push({
       key: 'pdn',
-      label: 'Просмотр расшифрованных ПДн',
+      label: 'Просмотр расшифрованных ПДн и журнал аудита',
       icon: () => h(EyeOutlined),
+    })
+    items.push({
+      key: 'reports',
+      label: 'Финансовый отчёт и выгрузка Excel/CSV',
+      icon: () => h(CarOutlined),
     })
   }
   if (auth.canEditBalance) {

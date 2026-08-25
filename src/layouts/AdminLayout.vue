@@ -6,10 +6,12 @@ import {
   ApiOutlined,
   AuditOutlined,
   BankOutlined,
+  BarChartOutlined,
   CarOutlined,
   CloudSyncOutlined,
   ClusterOutlined,
   CrownOutlined,
+  FileSearchOutlined,
   FileTextOutlined,
   FlagOutlined,
   GiftOutlined,
@@ -19,6 +21,7 @@ import {
   MenuUnfoldOutlined,
   NotificationOutlined,
   OrderedListOutlined,
+  PictureOutlined,
   SettingOutlined,
   ShareAltOutlined,
   TeamOutlined,
@@ -45,6 +48,7 @@ const selectedKeys = computed(() => {
   if (route.path.startsWith('/directors')) return ['directors']
   if (route.path.startsWith('/platform-admins')) return ['platform-admins']
   if (route.path.startsWith('/system-rewards')) return ['system-rewards']
+  if (route.path.startsWith('/banners')) return ['banners']
   if (route.path.startsWith('/organization/yandex')) return ['organization-yandex']
   if (route.path === '/organization' || route.path.startsWith('/organization/')) {
     return ['organization']
@@ -59,6 +63,8 @@ const selectedKeys = computed(() => {
   if (route.path.startsWith('/park-groups')) return ['park-groups']
   if (route.path.startsWith('/leaderboard-settings')) return ['leaderboard-settings']
   if (route.path.startsWith('/tier-settings')) return ['tier-settings']
+  if (route.path.startsWith('/reports')) return ['reports']
+  if (route.path.startsWith('/pdn')) return ['pdn']
   if (route.path.startsWith('/push')) return ['push']
   if (route.path.startsWith('/settings')) return ['settings']
   if (route.path.startsWith('/sync')) return ['sync']
@@ -96,6 +102,12 @@ const menuItems = computed(() => {
         icon: () => h(GiftOutlined),
         label: 'Каталог LOTAX',
         title: 'Каталог LOTAX',
+      })
+      items.push({
+        key: 'banners',
+        icon: () => h(PictureOutlined),
+        label: 'Баннеры',
+        title: 'Баннеры',
       })
       items.push({
         key: 'settings',
@@ -139,6 +151,22 @@ const menuItems = computed(() => {
       title: 'Заявки',
     },
   ]
+  if (auth.canViewReports) {
+    items.push({
+      key: 'reports',
+      icon: () => h(BarChartOutlined),
+      label: 'Отчёт',
+      title: 'Отчёт',
+    })
+  }
+  if (auth.canViewPdnAudit) {
+    items.push({
+      key: 'pdn',
+      icon: () => h(FileSearchOutlined),
+      label: 'ПДн',
+      title: 'Журнал ПДн',
+    })
+  }
   if (auth.canManageRules) {
     items.push({
       key: 'rules',
