@@ -16,6 +16,7 @@ import type {
   PlatformAdminCreatePayload,
   PlatformSettingsResponse,
   PlatformSettingsUpdatePayload,
+  OnlineHoursSettings,
   RewardAdminCreatePayload,
   RewardAdminItem,
   RewardAdminListResponse,
@@ -135,6 +136,17 @@ export const superAdminApi = {
 
   updateSettings(payload: PlatformSettingsUpdatePayload) {
     return http.put<PlatformSettingsResponse>('/super-admin/settings', payload)
+  },
+
+  getOnlineHoursSettings() {
+    return http.get<OnlineHoursSettings>('/super-admin/online-hours-settings')
+  },
+
+  updateOnlineHoursSettings(payload: OnlineHoursSettings) {
+    return http.put<OnlineHoursSettings>(
+      '/super-admin/online-hours-settings',
+      payload,
+    )
   },
 
   listRewards(params: { page?: number; page_size?: number } = {}) {

@@ -200,6 +200,12 @@ export interface PlatformSettingsUpdatePayload {
   items: PlatformSettingItem[]
 }
 
+/** `GET/PUT /super-admin/online-hours-settings` */
+export interface OnlineHoursSettings {
+  points_per_hour: number
+  daily_cap_hours: number
+}
+
 export interface DriverListItem {
   id: string
   yandex_driver_id?: string | null
