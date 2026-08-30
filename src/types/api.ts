@@ -149,6 +149,8 @@ export interface ParkResponse {
   notes?: string | null
   created_at: string
   updated_at: string
+  launch_reset_done?: boolean
+  launch_reset_at?: string | null
 }
 
 export interface ParkListResponse {
@@ -228,6 +230,40 @@ export interface DriverListResponse {
   page: number
   page_size: number
 }
+
+export interface DriverBulkStatusPayload {
+  status: DriverStatus
+  park_id?: string | null
+  driver_ids?: string[] | null
+  reset_system_points?: boolean
+  reset_park_points?: boolean
+  confirm: true
+}
+
+export interface DriverLaunchResetPayload {
+  park_id: string
+  reset_system_points?: boolean
+  reset_park_points?: boolean
+  confirm: true
+}
+
+export interface DeletedDriverItem {
+  id: string
+  display_name?: string | null
+  phone_masked?: string | null
+  park_id?: string | null
+  park_name?: string | null
+  deleted_at?: string | null
+  status?: DriverStatus
+}
+
+export interface DeletedDriverListResponse {
+  items: DeletedDriverItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
 
 export interface DriverPersonalData {
   id: string

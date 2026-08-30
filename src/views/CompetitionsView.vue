@@ -171,7 +171,7 @@ async function save() {
         end_date,
         prize_places: form.prize_places,
         prizes: form.prizes,
-        prize_points_type: form.prize_points_type,
+        prize_points_type: 'park',
         status: form.status,
         image: imageFile.value,
       })
@@ -182,12 +182,12 @@ async function save() {
         title: form.title.trim(),
         description: form.description.trim() || null,
         criteria: form.criteria,
-        count_points_type: form.count_points_type,
+        count_points_type: 'park',
         start_date,
         end_date,
         prize_places: form.prize_places,
         prizes: form.prizes,
-        prize_points_type: form.prize_points_type,
+        prize_points_type: 'park',
         status: form.status,
         scope_type: scope.value.scope_type,
         park_group_id: scope.value.park_group_id,
@@ -306,7 +306,7 @@ onMounted(async () => {
           </div>
           <div class="mt-1 text-[13px] text-ink-muted">
             {{ competitionCriteriaLabel[item.criteria] }} · призовых мест: {{ item.prize_places }} ·
-            фонд {{ item.prizes.reduce((sum, p) => sum + p.points, 0) }} б. ({{ item.prize_points_type }})
+            фонд {{ item.prizes.reduce((sum, p) => sum + p.points, 0) }} парковых б.
             <span v-if="item.scope"> · {{ scopeLabel(item.scope) }}</span>
           </div>
           <div class="mt-1 text-[12px] text-ink-muted">
@@ -381,17 +381,6 @@ onMounted(async () => {
               :options="criteriaOptions"
             />
           </a-form-item>
-          <a-form-item v-if="form.criteria === 'max_points'" label="Учитывать баллы">
-            <a-select
-              v-model:value="form.count_points_type"
-              size="large"
-              :disabled="Boolean(editing)"
-              :options="[
-                { value: 'system', label: 'Системные' },
-                { value: 'park', label: 'Парковые' },
-              ]"
-            />
-          </a-form-item>
         </div>
         <a-form-item label="Период проведения" required>
           <a-range-picker
@@ -408,16 +397,6 @@ onMounted(async () => {
         <div class="grid grid-cols-2 gap-3">
           <a-form-item label="Кол-во призовых мест">
             <a-input-number v-model:value="form.prize_places" class="!w-full" :min="1" :max="20" size="large" />
-          </a-form-item>
-          <a-form-item label="Тип баллов приза">
-            <a-select
-              v-model:value="form.prize_points_type"
-              size="large"
-              :options="[
-                { value: 'system', label: 'Системные' },
-                { value: 'park', label: 'Парковые' },
-              ]"
-            />
           </a-form-item>
         </div>
         <a-form-item label="Призы по местам">

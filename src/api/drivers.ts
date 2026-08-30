@@ -9,6 +9,8 @@ import type {
   DriverRideListResponse,
   DriverStatus,
   DriverTier,
+  DriverBulkStatusPayload,
+  DriverLaunchResetPayload,
   ManualDriverCreatePayload,
   StatusUpdatePayload,
   SyncTaskResponse,
@@ -70,6 +72,12 @@ export const driversApi = {
       `/admin/drivers/${driverId}/adjust-tier`,
       payload,
     )
+  },
+  bulkStatus(payload: DriverBulkStatusPayload) {
+    return http.post<SyncTaskResponse>('/drivers/bulk-status', payload)
+  },
+  launchReset(payload: DriverLaunchResetPayload) {
+    return http.post<SyncTaskResponse>('/drivers/launch-reset', payload)
   },
 }
 

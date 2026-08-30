@@ -252,6 +252,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Баннеры', roles: ['super_admin'] },
       },
       {
+        path: 'deleted-drivers',
+        name: 'deleted-drivers',
+        component: () => import('@/views/DeletedDriversView.vue'),
+        meta: { title: 'Архив водителей', roles: ['super_admin'] },
+      },
+      {
         path: 'system-rewards',
         name: 'system-rewards',
         component: () => import('@/views/SystemRewardsView.vue'),

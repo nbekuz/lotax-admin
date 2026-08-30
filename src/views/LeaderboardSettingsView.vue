@@ -17,7 +17,6 @@ const scope = ref<ScopeFieldsValue>({
   park_group_id: null,
   park_ids: [],
 })
-const showParkName = ref(false)
 
 const canEdit = computed(() => auth.canManageLeaderboardSettings)
 
@@ -30,7 +29,6 @@ async function load() {
       park_group_id: data.scope.park_group_id ?? null,
       park_ids: data.scope.park_ids ?? [],
     }
-    showParkName.value = Boolean(data.show_park_name)
   } catch (e) {
     message.error(extractErrorMessage(e))
   } finally {
@@ -55,7 +53,7 @@ async function save() {
           ? scope.value.park_ids ?? []
           : undefined,
       points_type: 'park',
-      show_park_name: showParkName.value,
+      show_park_name: false,
     })
     message.success('Настройки ТОП-5 сохранены')
     await load()
@@ -90,21 +88,6 @@ onMounted(load)
       </p>
       <a-form layout="vertical">
         <ScopeFields v-model="scope" :disabled="!canEdit" />
-        <a-form-item label="Показывать названия парков">
-          <div class="flex items-center gap-2">
-            <a-switch
-              v-model:checked="showParkName"
-              :disabled="!canEdit"
-            />
-            <span class="text-[13px] text-ink-muted">
-              {{
-                showParkName
-                  ? 'В ТОП-5 у водителя виден парк'
-                  : 'Названия парков скрыты'
-              }}
-            </span>
-          </div>
-        </a-form-item>
         <a-button
           v-if="canEdit"
           type="primary"

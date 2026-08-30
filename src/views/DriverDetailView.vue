@@ -381,8 +381,8 @@ watch(driverId, () => {
       v-if="drivers.current.status === 'pending'"
       class="rounded-xl bg-amber-50 px-4 py-3 text-[14px] text-amber-800 ring-1 ring-inset ring-amber-200"
     >
-      Водитель ожидает активации директором. Пока статус «ожидает», вход в приложение,
-      поездки и баллы недоступны.
+      Водитель в статусе «Ожидание». Первый вход по SMS переводит в «Активен».
+      Пока нет первого входа, поездки и баллы не начисляются.
     </div>
 
     <!-- Summary -->
@@ -666,7 +666,7 @@ watch(driverId, () => {
             :options="[
               { value: 'active', label: 'Активен' },
               { value: 'blocked', label: 'Заблокирован' },
-              { value: 'pending', label: 'Ожидает активации' },
+              { value: 'pending', label: 'Ожидание' },
             ]"
           />
         </a-form-item>

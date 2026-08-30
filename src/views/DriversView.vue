@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import type { TableColumnsType } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { CloudSyncOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons-vue'
@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import { extractErrorMessage, formatPhone, driverTierLabel, isForbiddenError } from '@/utils/labels'
+import { extractErrorMessage, formatPhone, driverTierLabel, isForbiddenError, isConflictError, driverStatusLabel } from '@/utils/labels'
 import type { DriverListItem, DriverStatus, DriverTier } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
@@ -26,6 +26,9 @@ const tierFilter = ref<DriverTier | 'all'>('all')
 const parkFilter = ref<string | 'all'>('all')
 const createOpen = ref(false)
 const creating = ref(false)
+const selectedRowKeys = ref<string[]>([])
+const bulkBusy = ref(false)
+const launchBusy = ref(false)
 const createForm = reactive({
   phone: '',
   first_name: '',
@@ -111,10 +114,10 @@ const pagination = reactive({
 })
 
 const statusOptions = [
-  { value: 'pending', label: 'Ожидает активации' },
-  { value: 'all', label: 'Все статусы' },
-  { value: 'active', label: 'Активен' },
-  { value: 'blocked', label: 'Заблокирован' },
+  { value: 'all', label: 'Все' },
+  { value: 'pending', label: driverStatusLabel.pending },
+  { value: 'active', label: driverStatusLabel.active },
+  { value: 'blocked', label: driverStatusLabel.blocked },
 ]
 
 const tierOptions = [
@@ -151,6 +154,128 @@ async function load() {
   }
 }
 
+const launchResetDone = computed(
+  () => Boolean(org.selectedPark?.launch_reset_done),
+)
+
+function bulkTarget() {
+  if (selectedRowKeys.value.length) {
+    return { driver_ids: selectedRowKeys.value, park_id: null as string | null }
+  }
+  return {
+    driver_ids: null as string[] | null,
+    park_id: org.selectedParkId,
+  }
+}
+
+function confirmResetPoints() {
+  let status: DriverStatus | null =
+    statusFilter.value === 'all' ? null : statusFilter.value
+  if (selectedRowKeys.value.length) {
+    const rows = drivers.items.filter((d) => selectedRowKeys.value.includes(d.id))
+    const statuses = new Set(rows.map((d) => d.status))
+    if (statuses.size !== 1) {
+      message.warning('Для сброса баллов выберите водителей с одним статусом')
+      return
+    }
+    status = rows[0]?.status ?? null
+  }
+  if (!status) {
+    message.warning('Выберите водителей или отфильтруйте список по статусу')
+    return
+  }
+  confirmBulk(status, 'Сбросить баллы', { reset: true })
+}
+
+function confirmBulk(
+  status: DriverStatus,
+  title: string,
+  extra?: { reset?: boolean },
+) {
+  const target = bulkTarget()
+  if (!target.driver_ids?.length && !target.park_id) {
+    message.warning('Выберите водителей или парк')
+    return
+  }
+  const reset = Boolean(extra?.reset)
+  const scope = target.driver_ids?.length
+    ? `${target.driver_ids.length} выбранных`
+    : 'весь текущий парк'
+  Modal.confirm({
+    title,
+    content: reset
+      ? `Сбросить системные и парковые баллы: ${scope}.`
+      : `Сменить статус на «${driverStatusLabel[status]}»: ${scope}.`,
+    okText: 'Подтвердить',
+    cancelText: 'Отмена',
+    centered: true,
+    async onOk() {
+      bulkBusy.value = true
+      try {
+        const result = await drivers.bulkStatus({
+          status,
+          park_id: target.park_id,
+          driver_ids: target.driver_ids,
+          reset_system_points: reset,
+          reset_park_points: reset,
+          confirm: true,
+        })
+        message.success(result.message || 'Готово')
+        selectedRowKeys.value = []
+        await load()
+      } catch (e) {
+        message.error(extractErrorMessage(e))
+        throw e
+      } finally {
+        bulkBusy.value = false
+      }
+    },
+  })
+}
+
+function confirmLaunchReset() {
+  if (!org.selectedParkId) {
+    message.warning('Выберите парк в шапке')
+    return
+  }
+  if (launchResetDone.value) {
+    message.warning('Старт парка уже выполнен')
+    return
+  }
+  Modal.confirm({
+    title: 'Старт парка (один раз)',
+    content:
+      'Водители текущего парка перейдут в «Ожидание», баллы обнулятся. Повторно выполнить нельзя.',
+    okText: 'Запустить',
+    cancelText: 'Отмена',
+    centered: true,
+    async onOk() {
+      launchBusy.value = true
+      try {
+        const result = await drivers.launchReset({
+          park_id: org.selectedParkId!,
+          reset_system_points: true,
+          reset_park_points: true,
+          confirm: true,
+        })
+        message.success(result.message || 'Старт парка выполнен')
+        await org.fetchParks()
+        await load()
+      } catch (e) {
+        if (isConflictError(e)) {
+          message.warning('Старт парка уже был выполнен')
+          await org.fetchParks()
+          return
+        }
+        message.error(extractErrorMessage(e))
+        throw e
+      } finally {
+        launchBusy.value = false
+      }
+    },
+  })
+}
+
 function resetPageAndLoad() {
   pagination.current = 1
   void load()
@@ -164,6 +289,10 @@ function onTableChange(pag: { current?: number; pageSize?: number }) {
 
 function openDriver(record: DriverListItem) {
   router.push({ name: 'driver-detail', params: { id: record.id } })
+}
+
+function onSelectChange(keys: (string | number)[]) {
+  selectedRowKeys.value = keys.map(String)
 }
 
 function onMobilePageChange(page: number) {
@@ -243,8 +372,8 @@ onMounted(async () => {
       <div class="min-w-0">
         <h1 class="lotax-page-title">Водители</h1>
         <p class="lotax-caption mt-1">
-          Новые водители после интеграции — в статусе «ожидает активации».
-          Активируйте вручную, чтобы открыть вход, поездки и баллы.
+          После синхронизации новые водители — в статусе «Ожидание».
+          Первый вход по SMS делает водителя активным. Массовые действия — только у директора.
         </p>
       </div>
 
@@ -300,6 +429,42 @@ onMounted(async () => {
           Синхронизация
         </a-button>
       </div>
+    </div>
+
+    <div
+      v-if="auth.canEditStatus"
+      class="flex flex-wrap items-center gap-2"
+    >
+      <a-button :loading="bulkBusy" @click="confirmBulk('pending', 'В ожидание')">
+        В ожидание
+      </a-button>
+      <a-button :loading="bulkBusy" @click="confirmBulk('active', 'Активировать')">
+        Активировать
+      </a-button>
+      <a-button :loading="bulkBusy" @click="confirmBulk('blocked', 'Заблокировать')">
+        Заблокировать
+      </a-button>
+      <a-button
+        :loading="bulkBusy"
+        @click="confirmResetPoints"
+      >
+        Сбросить баллы
+      </a-button>
+      <a-button
+        type="primary"
+        class="lotax-btn-primary"
+        :loading="launchBusy"
+        :disabled="launchResetDone || !org.selectedParkId"
+        @click="confirmLaunchReset"
+      >
+        Старт парка
+      </a-button>
+      <span v-if="selectedRowKeys.length" class="text-[13px] text-ink-muted">
+        Выбрано: {{ selectedRowKeys.length }}
+      </span>
+      <span v-else-if="launchResetDone" class="text-[13px] text-ink-muted">
+        Старт парка уже выполнен
+      </span>
     </div>
 
     <!-- Mobile: card list -->
@@ -371,7 +536,7 @@ onMounted(async () => {
         <p class="lotax-caption max-w-sm">
           {{
             statusFilter === 'pending'
-              ? 'Нет водителей, ожидающих активации. Они появляются после синхронизации с Яндекс.'
+              ? 'Нет водителей в статусе «Ожидание». Они появляются после синхронизации с Яндекс.'
               : 'Сначала нажмите «Синхронизировать водителей» или измените фильтр'
           }}
         </p>
@@ -402,10 +567,14 @@ onMounted(async () => {
         :pagination="pagination"
         :scroll="tableScroll"
         :sticky="stickyConfig"
+        :row-selection="auth.canEditStatus ? {
+          selectedRowKeys,
+          onChange: onSelectChange,
+        } : undefined"
         :locale="{
           emptyText:
             statusFilter === 'pending'
-              ? 'Нет водителей, ожидающих активации'
+              ? 'Нет водителей в статусе «Ожидание»'
               : 'Водители не найдены',
         }"
         :custom-row="(record: DriverListItem) => ({

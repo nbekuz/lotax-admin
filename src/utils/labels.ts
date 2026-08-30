@@ -31,7 +31,7 @@ export const adminStatusTone: Record<AdminStatus, string> = {
 export const driverStatusLabel: Record<DriverStatus, string> = {
   active: 'Активен',
   blocked: 'Заблокирован',
-  pending: 'Ожидает активации',
+  pending: 'Ожидание',
 }
 
 /** Russian plural for ride counts shown in TOP / leaderboards. */
@@ -137,6 +137,11 @@ export const competitionStatusTone: Record<CompetitionStatus, string> = {
 export function isForbiddenError(error: unknown): boolean {
   const err = error as { response?: { status?: number } }
   return err?.response?.status === 403
+}
+
+export function isConflictError(error: unknown): boolean {
+  const err = error as { response?: { status?: number } }
+  return err?.response?.status === 409
 }
 
 export const bannerAudienceLabel: Record<

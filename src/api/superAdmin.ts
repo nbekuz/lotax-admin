@@ -17,6 +17,7 @@ import type {
   PlatformSettingsResponse,
   PlatformSettingsUpdatePayload,
   OnlineHoursSettings,
+  DeletedDriverListResponse,
   RewardAdminCreatePayload,
   RewardAdminItem,
   RewardAdminListResponse,
@@ -147,6 +148,24 @@ export const superAdminApi = {
       '/super-admin/online-hours-settings',
       payload,
     )
+  },
+
+  listDeletedDrivers(params: {
+    park_id?: string | null
+    page?: number
+    page_size?: number
+  } = {}) {
+    return http.get<DeletedDriverListResponse>('/super-admin/drivers/deleted', {
+      params: {
+        park_id: params.park_id || undefined,
+        page: params.page ?? 1,
+        page_size: params.page_size ?? 20,
+      },
+    })
+  },
+
+  restoreDriver(driverId: string) {
+    return http.post(`/super-admin/drivers/${driverId}/restore`)
   },
 
   listRewards(params: { page?: number; page_size?: number } = {}) {

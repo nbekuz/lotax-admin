@@ -180,6 +180,14 @@ export const useDriversStore = defineStore('drivers', {
       return data
     },
 
+    async bulkStatus(payload: import('@/types/api').DriverBulkStatusPayload) {
+      return (await driversApi.bulkStatus(payload)).data
+    },
+
+    async launchReset(payload: import('@/types/api').DriverLaunchResetPayload) {
+      return (await driversApi.launchReset(payload)).data
+    },
+
     async syncDrivers(parkId?: string | null) {
       const { data } = await syncApi.drivers(parkId)
       return data

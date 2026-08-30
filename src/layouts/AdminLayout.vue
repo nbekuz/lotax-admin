@@ -13,6 +13,7 @@ import {
   CrownOutlined,
   FileSearchOutlined,
   FileTextOutlined,
+  InboxOutlined,
   FlagOutlined,
   GiftOutlined,
   LogoutOutlined,
@@ -49,6 +50,7 @@ const selectedKeys = computed(() => {
   if (route.path.startsWith('/platform-admins')) return ['platform-admins']
   if (route.path.startsWith('/system-rewards')) return ['system-rewards']
   if (route.path.startsWith('/banners')) return ['banners']
+  if (route.path.startsWith('/deleted-drivers')) return ['deleted-drivers']
   if (route.path.startsWith('/organization/yandex')) return ['organization-yandex']
   if (route.path === '/organization' || route.path.startsWith('/organization/')) {
     return ['organization']
@@ -108,6 +110,12 @@ const menuItems = computed(() => {
         icon: () => h(PictureOutlined),
         label: 'Баннеры',
         title: 'Баннеры',
+      })
+      items.push({
+        key: 'deleted-drivers',
+        icon: () => h(InboxOutlined),
+        label: 'Архив',
+        title: 'Архив водителей',
       })
       items.push({
         key: 'settings',
