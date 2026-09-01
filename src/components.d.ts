@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ABadge: typeof import('ant-design-vue/es')['Badge']
     AButton: typeof import('ant-design-vue/es')['Button']
     ADatePicker: typeof import('ant-design-vue/es/date-picker/dayjs')['default']
     ADrawer: typeof import('ant-design-vue/es')['Drawer']
@@ -38,7 +39,12 @@ declare module 'vue' {
     ATextarea: typeof import('ant-design-vue/es')['Textarea']
     AUpload: typeof import('ant-design-vue/es')['Upload']
     BrandMark: typeof import('./components/BrandMark.vue')['default']
+    ChatComposer: typeof import('./components/chat/ChatComposer.vue')['default']
+    ChatMessageBubble: typeof import('./components/chat/ChatMessageBubble.vue')['default']
+    ChatMessageList: typeof import('./components/chat/ChatMessageList.vue')['default']
+    ConversationSidebar: typeof import('./components/chat/ConversationSidebar.vue')['default']
     CopyableId: typeof import('./components/CopyableId.vue')['default']
+    HubNavCard: typeof import('./components/HubNavCard.vue')['default']
     InfoField: typeof import('./components/InfoField.vue')['default']
     KpiCard: typeof import('./components/KpiCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

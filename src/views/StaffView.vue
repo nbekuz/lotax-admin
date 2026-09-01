@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import type { TableColumnsType } from 'ant-design-vue'
@@ -11,6 +12,7 @@ import {
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAdminsStore } from '@/stores/admins'
+import { useChatStore } from '@/stores/chat'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import {
   adminStatusLabel,
@@ -26,6 +28,8 @@ import type {
 
 const auth = useAuthStore()
 const admins = useAdminsStore()
+const chat = useChatStore()
+const router = useRouter()
 const { isMobile, width } = useBreakpoint()
 
 const stickyConfig = computed(() => ({
@@ -82,7 +86,7 @@ const columns = computed<TableColumnsType<AdminListItem>>(() => [
   { title: 'Роль', dataIndex: 'role', key: 'role', width: 130 },
   { title: 'Статус', dataIndex: 'status', key: 'status', width: 150 },
   { title: 'Создан', dataIndex: 'created_at', key: 'created_at', width: 160 },
-  { title: '', key: 'actions', width: 110 },
+  { title: '', key: 'actions', width: 180 },
 ])
 
 const pagination = reactive({
@@ -115,6 +119,18 @@ function onTableChange(pag: { current?: number; pageSize?: number }) {
 function onMobilePageChange(page: number) {
   pagination.current = page
   load()
+}
+
+async function openChat(record: AdminListItem) {
+  try {
+    const conversation = await chat.openStaff(record.id)
+    await router.push({
+      name: 'chat-conversation',
+      params: { id: conversation.id },
+    })
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  }
 }
 
 function resetCreateForm() {
@@ -333,9 +349,18 @@ onMounted(load)
             </span>
           </template>
           <template v-else-if="column.key === 'actions'">
-            <a-button type="link" class="!px-0" @click="openEdit(record as AdminListItem)">
-              Изменить
-            </a-button>
+            <div class="flex flex-wrap items-center gap-2">
+              <a-button
+                type="link"
+                class="!px-0"
+                @click="openChat(record as AdminListItem)"
+              >
+                Чат
+              </a-button>
+              <a-button type="link" class="!px-0" @click="openEdit(record as AdminListItem)">
+                Изменить
+              </a-button>
+            </div>
           </template>
         </template>
       </a-table>

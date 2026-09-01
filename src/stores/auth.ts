@@ -80,6 +80,9 @@ export const useAuthStore = defineStore('auth', {
     canViewTierSettings: (s) =>
       ['director', 'manager'].includes(s.admin?.role ?? ''),
     canAdjustTier: (s) => s.admin?.role === 'director',
+    canViewChat: (s) =>
+      ['director', 'manager', 'super_admin'].includes(s.admin?.role ?? ''),
+    canUseSupportChat: (s) => s.admin?.role === 'director',
     /** Soft-delete org/park — super_admin only. Platform `admin` gets 403. */
     canDeleteOrganizations: (s) => s.admin?.role === 'super_admin',
     /** Director may adjust park points only; system points → 403. */

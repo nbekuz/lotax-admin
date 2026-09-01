@@ -1,0 +1,84 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import {
+  FlagOutlined,
+  FileTextOutlined,
+  ShareAltOutlined,
+  TrophyOutlined,
+} from '@ant-design/icons-vue'
+import HubNavCard from '@/components/HubNavCard.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+const router = useRouter()
+
+const links = computed(() => {
+  const items = []
+  if (auth.canViewTasks) {
+    items.push({
+      key: 'tasks',
+      title: 'Задания',
+      description: 'Задания для водителей и прогресс выполнения',
+      icon: FlagOutlined,
+      route: 'tasks',
+    })
+    items.push({
+      key: 'task-templates',
+      title: 'Шаблоны заданий',
+      description: 'Готовые шаблоны для быстрого запуска',
+      icon: FileTextOutlined,
+      route: 'task-templates',
+    })
+  }
+  if (auth.canViewCompetitions) {
+    items.push({
+      key: 'competitions',
+      title: 'Соревнования',
+      description: 'Соревнования, лидерборды и призы',
+      icon: TrophyOutlined,
+      route: 'competitions',
+    })
+  }
+  if (auth.canManageReferral) {
+    items.push({
+      key: 'referral',
+      title: 'Рефералы',
+      description: 'Реферальная программа и бонусы',
+      icon: ShareAltOutlined,
+      route: 'referral',
+    })
+  }
+  return items
+})
+
+function open(routeName: string) {
+  router.push({ name: routeName })
+}
+</script>
+
+<template>
+  <div class="flex flex-col gap-4 md:gap-6">
+    <div>
+      <h1 class="lotax-page-title">Активность</h1>
+      <p class="lotax-caption mt-1">
+        Задания, соревнования и программы вовлечения водителей
+      </p>
+    </div>
+
+    <div v-if="!links.length" class="lotax-card p-8 text-center lotax-caption">
+      Разделы недоступны для вашей роли
+    </div>
+
+    <div v-else class="grid gap-3 sm:grid-cols-2">
+      <HubNavCard
+        v-for="item in links"
+        :key="item.key"
+        :title="item.title"
+        :description="item.description"
+        :icon="item.icon"
+        @click="open(item.route)"
+      />
+    </div>
+  </div>
+</template>

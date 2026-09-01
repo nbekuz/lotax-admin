@@ -100,6 +100,36 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'analytics',
+        name: 'analytics-hub',
+        component: () => import('@/views/hubs/ParkAnalyticsHubView.vue'),
+        meta: { title: 'Аналитика', roles: ['director'] },
+      },
+      {
+        path: 'engagement',
+        name: 'engagement-hub',
+        component: () => import('@/views/hubs/ParkEngagementHubView.vue'),
+        meta: {
+          title: 'Активность',
+          roles: ['director', 'manager'],
+        },
+      },
+      {
+        path: 'park-settings',
+        name: 'park-settings-hub',
+        component: () => import('@/views/hubs/ParkSettingsHubView.vue'),
+        meta: {
+          title: 'Настройки парка',
+          roles: ['director', 'manager'],
+        },
+      },
+      {
+        path: 'team',
+        name: 'team-hub',
+        component: () => import('@/views/hubs/ParkTeamHubView.vue'),
+        meta: { title: 'Команда', roles: ['director'] },
+      },
+      {
         path: 'rules',
         name: 'rules',
         component: () => import('@/views/RulesView.vue'),
@@ -212,6 +242,24 @@ const routes: RouteRecordRaw[] = [
         name: 'staff',
         component: () => import('@/views/StaffView.vue'),
         meta: { title: 'Сотрудники', roles: ['director'] },
+      },
+      {
+        path: 'chat',
+        name: 'chat',
+        component: () => import('@/views/ChatView.vue'),
+        meta: {
+          title: 'Чаты',
+          roles: ['director', 'manager', 'super_admin'],
+        },
+      },
+      {
+        path: 'chat/:id',
+        name: 'chat-conversation',
+        component: () => import('@/views/ChatView.vue'),
+        meta: {
+          title: 'Чат',
+          roles: ['director', 'manager', 'super_admin'],
+        },
       },
       {
         path: 'organizations',
