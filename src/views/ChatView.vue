@@ -6,6 +6,7 @@ import {
   CustomerServiceOutlined,
   PlusOutlined,
   ReloadOutlined,
+  UserOutlined,
 } from '@ant-design/icons-vue'
 import { adminsApi } from '@/api/admins'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
@@ -184,8 +185,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex h-[calc(100vh-7rem)] min-h-[560px] flex-col gap-4">
-    <div class="flex flex-wrap items-center justify-between gap-3">
+  <div class="flex h-[calc(100vh-7rem)] min-h-[560px] flex-col gap-3 md:gap-4">
+    <div
+      v-if="isMobile || auth.isSuperAdmin"
+      class="flex flex-wrap items-center justify-between gap-3"
+    >
       <div>
         <h1 class="text-[24px] font-semibold tracking-tight text-ink">
           {{ pageTitle }}
@@ -195,15 +199,15 @@ onMounted(() => {
         </p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <a-button @click="refreshAll">
+      <div v-if="isMobile" class="flex flex-wrap items-center gap-2">
+        <a-button size="small" @click="refreshAll">
           <template #icon><ReloadOutlined /></template>
-          Обновить
         </a-button>
 
         <a-button
           v-if="auth.isDirector"
           type="primary"
+          size="small"
           :loading="openingSupport"
           @click="openSupport"
         >
@@ -213,29 +217,30 @@ onMounted(() => {
 
         <a-button
           v-if="auth.isDirector"
+          size="small"
           :loading="openingStaff"
           @click="managerModalOpen = true; loadManagers()"
         >
           <template #icon><PlusOutlined /></template>
-          Чат с менеджером
         </a-button>
 
         <a-button
           v-if="auth.isManager && !chat.conversations.length"
           type="primary"
+          size="small"
           :loading="openingStaff"
           @click="openDirectorChat"
         >
-          Чат с директором
+          Чат
         </a-button>
       </div>
     </div>
 
-    <div class="lotax-card flex min-h-0 flex-1 overflow-hidden !p-0">
+    <div class="lotax-card flex min-h-0 flex-1 overflow-hidden !p-0 !shadow-sm">
       <div
         v-if="showSidebar"
         class="h-full min-h-0"
-        :class="isMobile ? 'w-full' : 'w-[320px] shrink-0 xl:w-[360px]'"
+        :class="isMobile ? 'w-full' : 'w-[340px] shrink-0 xl:w-[380px]'"
       >
         <ConversationSidebar
           :conversations="chat.conversations"
@@ -243,7 +248,49 @@ onMounted(() => {
           :loading="chat.loadingConversations"
           :role="auth.role"
           @select="selectConversation"
-        />
+        >
+          <template v-if="!isMobile" #actions>
+            <div class="flex items-center gap-1">
+              <a-tooltip title="Обновить">
+                <a-button type="text" class="!h-9 !w-9" @click="refreshAll">
+                  <template #icon><ReloadOutlined /></template>
+                </a-button>
+              </a-tooltip>
+
+              <a-tooltip v-if="auth.isDirector" title="Помощь">
+                <a-button
+                  type="text"
+                  class="!h-9 !w-9"
+                  :loading="openingSupport"
+                  @click="openSupport"
+                >
+                  <template #icon><CustomerServiceOutlined /></template>
+                </a-button>
+              </a-tooltip>
+
+              <a-tooltip v-if="auth.isDirector" title="Чат с менеджером">
+                <a-button
+                  type="text"
+                  class="!h-9 !w-9"
+                  :loading="openingStaff"
+                  @click="managerModalOpen = true; loadManagers()"
+                >
+                  <template #icon><PlusOutlined /></template>
+                </a-button>
+              </a-tooltip>
+
+              <a-button
+                v-if="auth.isManager && !chat.conversations.length"
+                type="primary"
+                size="small"
+                :loading="openingStaff"
+                @click="openDirectorChat"
+              >
+                Чат с директором
+              </a-button>
+            </div>
+          </template>
+        </ConversationSidebar>
       </div>
 
       <div
@@ -252,7 +299,7 @@ onMounted(() => {
       >
         <div
           v-if="chat.activeConversation"
-          class="flex items-center gap-3 border-b border-line bg-white px-4 py-3"
+          class="chat-thread-header flex items-center gap-3 border-b border-line bg-white px-4 py-2.5"
         >
           <a-button
             v-if="isMobile"
@@ -261,6 +308,21 @@ onMounted(() => {
           >
             Назад
           </a-button>
+
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+            :class="
+              chat.activeConversation.conversation_type === 'support'
+                ? 'bg-[#ffe8cc] text-[#c56a00]'
+                : 'bg-[#eef0f3] text-[#4b5563]'
+            "
+          >
+            <CustomerServiceOutlined
+              v-if="chat.activeConversation.conversation_type === 'support'"
+            />
+            <UserOutlined v-else />
+          </div>
+
           <div class="min-w-0 flex-1">
             <div class="truncate text-[16px] font-semibold text-ink">
               {{ activeTitle }}

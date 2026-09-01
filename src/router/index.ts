@@ -127,7 +127,7 @@ const routes: RouteRecordRaw[] = [
         path: 'team',
         name: 'team-hub',
         component: () => import('@/views/hubs/ParkTeamHubView.vue'),
-        meta: { title: 'Команда', roles: ['director'] },
+        meta: { title: 'Сотрудники', roles: ['director'] },
       },
       {
         path: 'rules',

@@ -22,19 +22,19 @@ function submit() {
 </script>
 
 <template>
-  <div class="border-t border-line bg-white px-4 py-3">
+  <div class="chat-composer border-t border-line bg-white px-3 py-2.5 md:px-4">
     <div class="flex items-end gap-2">
       <a-textarea
         v-model:value="text"
         :disabled="disabled || sending"
         :auto-size="{ minRows: 1, maxRows: 5 }"
         placeholder="Введите сообщение…"
-        class="!rounded-2xl"
+        class="chat-composer__input"
         @press-enter.exact.prevent="submit"
       />
       <a-button
         type="primary"
-        class="!h-11 !w-11 !rounded-xl"
+        class="chat-composer__send"
         :loading="sending"
         :disabled="disabled || !text.trim()"
         @click="submit"
@@ -44,3 +44,22 @@ function submit() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.chat-composer__input :deep(textarea) {
+  border-radius: 22px !important;
+  padding: 10px 14px !important;
+  min-height: 44px !important;
+  line-height: 1.35 !important;
+}
+
+.chat-composer__send {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+</style>

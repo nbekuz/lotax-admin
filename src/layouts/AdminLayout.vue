@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, h, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { Badge, message } from 'ant-design-vue'
 import {
   AuditOutlined,
   BankOutlined,
@@ -68,9 +68,10 @@ const selectedKeys = computed(() => {
   ) {
     return ['park-settings-hub']
   }
-  if (route.path === '/team' || route.path.startsWith('/staff') || route.path.startsWith('/chat')) {
-    return auth.canManageStaff ? ['team-hub'] : ['chat']
+  if (route.path === '/team' || route.path.startsWith('/staff')) {
+    return ['staff']
   }
+  if (route.path.startsWith('/chat')) return ['chat']
   if (route.path === '/organization' || route.path.startsWith('/organization/')) {
     return ['organization']
   }
@@ -104,7 +105,29 @@ const showAnalyticsHub = computed(
   () => auth.canViewReports || auth.canViewPdnAudit,
 )
 
+function chatMenuLabel(text: string, unread = chat.totalUnread) {
+  return h(
+    'span',
+    {
+      class: 'inline-flex w-full min-w-0 items-center justify-between gap-2',
+    },
+    [
+      h('span', { class: 'truncate' }, text),
+      unread > 0
+        ? h(Badge, {
+            count: unread,
+            overflowCount: 99,
+            size: 'small',
+          })
+        : null,
+    ],
+  )
+}
+
 const menuItems = computed(() => {
+  // Track unread badge updates in sidebar labels.
+  const unreadCount = chat.totalUnread
+
   if (auth.isPlatformOperator) {
     const items = [
       {
@@ -130,10 +153,7 @@ const menuItems = computed(() => {
       items.push({
         key: 'chat',
         icon: () => h(MessageOutlined),
-        label:
-          chat.totalUnread > 0
-            ? `Обращения (${chat.totalUnread})`
-            : 'Обращения',
+        label: chatMenuLabel('Обращения', unreadCount) as unknown as string,
         title: 'Обращения директоров',
       })
       items.push({
@@ -196,6 +216,14 @@ const menuItems = computed(() => {
       title: 'Заявки',
     },
   ]
+  if (auth.canViewChat) {
+    items.push({
+      key: 'chat',
+      icon: () => h(MessageOutlined),
+      label: chatMenuLabel('Чаты', unreadCount) as unknown as string,
+      title: 'Чаты',
+    })
+  }
   if (showAnalyticsHub.value) {
     items.push({
       key: 'analytics-hub',
@@ -222,17 +250,10 @@ const menuItems = computed(() => {
   }
   if (auth.canManageStaff) {
     items.push({
-      key: 'team-hub',
+      key: 'staff',
       icon: () => h(TeamOutlined),
-      label: 'Команда',
-      title: 'Команда',
-    })
-  } else if (auth.canViewChat) {
-    items.push({
-      key: 'chat',
-      icon: () => h(MessageOutlined),
-      label: chat.totalUnread > 0 ? `Чаты (${chat.totalUnread})` : 'Чаты',
-      title: 'Чаты',
+      label: 'Сотрудники',
+      title: 'Сотрудники',
     })
   }
   items.push({
