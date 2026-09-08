@@ -42,6 +42,7 @@ export const adminRewardsApi = {
         is_active: rest.is_active,
         one_per_driver: rest.one_per_driver,
         raffle_date: rest.raffle_date,
+        icon_id: rest.icon_id || undefined,
         ...scopeToFormFields({
           scope_type: rest.scope_type,
           park_group_id: rest.park_group_id,
@@ -72,6 +73,8 @@ export const adminRewardsApi = {
         is_active: rest.is_active,
         one_per_driver: rest.one_per_driver,
         raffle_date: rest.raffle_date,
+        icon_id: rest.clear_icon ? undefined : rest.icon_id || undefined,
+        clear_icon: rest.clear_icon || undefined,
         ...scopeToFormFields({
           scope_type: rest.scope_type,
           park_group_id: rest.park_group_id,

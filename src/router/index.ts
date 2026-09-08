@@ -91,6 +91,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'reward-icons',
+        name: 'reward-icons',
+        component: () => import('@/views/RewardIconsView.vue'),
+        meta: {
+          title: 'Иконки наград',
+          roles: ['director', 'manager'],
+        },
+      },
+      {
         path: 'orders',
         name: 'orders',
         component: () => import('@/views/OrdersView.vue'),

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { adminRewardIconsApi } from '@/api/adminRewardIcons'
 import { adminRewardsApi } from '@/api/adminRewards'
 import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -18,6 +19,7 @@ import type {
   DriverTier,
   PointsType,
   RewardAdminItem,
+  RewardIconItem,
   RewardType,
 } from '@/types/api'
 
@@ -25,6 +27,7 @@ const auth = useAuthStore()
 const org = useOrgStore()
 const loading = ref(false)
 const items = ref<RewardAdminItem[]>([])
+const icons = ref<RewardIconItem[]>([])
 const modalOpen = ref(false)
 const saving = ref(false)
 const editing = ref<RewardAdminItem | null>(null)
@@ -40,6 +43,7 @@ const form = reactive({
   sort_order: 0,
   is_active: true,
   one_per_driver: false,
+  icon_id: undefined as string | undefined,
 })
 
 const scope = ref<ScopeFieldsValue>(defaultSpecificScope())
@@ -74,8 +78,25 @@ const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageRewards)
 const isRaffle = computed(() => form.type === 'raffle_coupon')
 
+const selectedIcon = computed(() =>
+  icons.value.find((i) => i.id === form.icon_id) ?? null,
+)
+
 function typeLabel(type: string) {
   return rewardTypeLabel[type as RewardType] ?? type
+}
+
+function previewUrl(item: RewardAdminItem) {
+  return item.icon?.image_url || item.image_url || null
+}
+
+async function loadIcons() {
+  try {
+    const { data } = await adminRewardIconsApi.list({ page: 1, page_size: 100 })
+    icons.value = data.items ?? []
+  } catch {
+    icons.value = []
+  }
 }
 
 async function load() {
@@ -106,10 +127,12 @@ function openCreate() {
   form.sort_order = 0
   form.is_active = true
   form.one_per_driver = false
+  form.icon_id = undefined
   raffleDate.value = undefined
   scope.value = defaultSpecificScope(parkId.value)
   imageFile.value = null
   imagePreview.value = null
+  void loadIcons()
   modalOpen.value = true
 }
 
@@ -125,10 +148,12 @@ function openEdit(item: RewardAdminItem) {
   form.sort_order = item.sort_order
   form.is_active = item.is_active
   form.one_per_driver = Boolean(item.one_per_driver)
+  form.icon_id = item.icon_id || item.icon?.id || undefined
   raffleDate.value = item.raffle_date ? dayjs(item.raffle_date) : undefined
   scope.value = scopeFromApi(item.scope, item.park_id)
   imageFile.value = null
   imagePreview.value = item.image_url || null
+  void loadIcons()
   modalOpen.value = true
 }
 
@@ -159,6 +184,8 @@ async function save() {
         ? raffleDate.value.toISOString()
         : null
     if (editing.value) {
+      const hadIcon = Boolean(editing.value.icon_id || editing.value.icon?.id)
+      const clear_icon = hadIcon && !form.icon_id
       await adminRewardsApi.update(editing.value.id, {
         title: form.title.trim(),
         description: form.description.trim() || null,
@@ -169,6 +196,8 @@ async function save() {
         is_active: form.is_active,
         one_per_driver: form.one_per_driver,
         raffle_date,
+        icon_id: form.icon_id || null,
+        clear_icon: clear_icon || undefined,
         scope_type: scope.value.scope_type,
         park_group_id: scope.value.park_group_id,
         park_ids: scope.value.park_ids,
@@ -189,6 +218,7 @@ async function save() {
         is_active: form.is_active,
         one_per_driver: form.one_per_driver,
         raffle_date,
+        icon_id: form.icon_id || null,
         scope_type: scope.value.scope_type,
         park_group_id: scope.value.park_group_id,
         park_ids: scope.value.park_ids,
@@ -218,7 +248,7 @@ async function deactivate(item: RewardAdminItem) {
 watch(parkId, load)
 onMounted(async () => {
   if (!org.parks.length) await org.fetchParks()
-  await load()
+  await Promise.all([load(), loadIcons()])
 })
 </script>
 
@@ -260,10 +290,10 @@ onMounted(async () => {
       >
         <div class="flex min-w-0 items-start gap-3">
           <img
-            v-if="item.image_url"
-            :src="item.image_url"
+            v-if="previewUrl(item)"
+            :src="previewUrl(item)!"
             alt=""
-            class="h-12 w-12 shrink-0 rounded-lg object-cover"
+            class="h-12 w-12 shrink-0 rounded-lg object-contain bg-white ring-1 ring-line"
           />
           <div class="min-w-0">
             <div class="font-semibold text-ink">{{ item.title }}</div>
@@ -272,6 +302,7 @@ onMounted(async () => {
               от {{ tierLabel[item.min_tier] }} ·
               {{ item.is_active ? 'активна' : 'неактивна' }}
               · {{ scopeLabel(item.scope) }}
+              <template v-if="item.icon?.title"> · {{ item.icon.title }}</template>
               <template v-if="item.one_per_driver"> · 1 на водителя</template>
               <template v-if="item.raffle_date">
                 · розыгрыш {{ dayjs(item.raffle_date).format('DD.MM.YYYY') }}
@@ -308,6 +339,44 @@ onMounted(async () => {
             :auto-size="{ minRows: 2, maxRows: 4 }"
           />
         </a-form-item>
+        <a-form-item label="Иконка">
+          <a-select
+            v-model:value="form.icon_id"
+            allow-clear
+            placeholder="—"
+            class="!w-full"
+            :options="
+              icons.map((i) => ({
+                value: i.id,
+                label: i.title,
+              }))
+            "
+          >
+            <template #option="{ value, label }">
+              <div class="flex items-center gap-2">
+                <img
+                  v-if="icons.find((i) => i.id === value)?.image_url"
+                  :src="icons.find((i) => i.id === value)!.image_url"
+                  alt=""
+                  class="h-6 w-6 rounded object-contain bg-white"
+                />
+                <span>{{ label }}</span>
+              </div>
+            </template>
+          </a-select>
+          <p class="lotax-caption mt-1">
+            Каталог организации · пусто = без иконки ·
+            <router-link class="text-brand underline" :to="{ name: 'reward-icons' }">
+              Управление иконками
+            </router-link>
+          </p>
+          <img
+            v-if="selectedIcon?.image_url"
+            :src="selectedIcon.image_url"
+            alt=""
+            class="mt-2 h-12 w-12 rounded-lg object-contain ring-1 ring-line bg-white"
+          />
+        </a-form-item>
         <a-form-item label="Изображение">
           <a-upload
             accept="image/jpeg,image/png,image/webp,image/gif"
@@ -316,7 +385,7 @@ onMounted(async () => {
           >
             <a-button class="lotax-btn-secondary">Выбрать файл</a-button>
           </a-upload>
-          <p class="lotax-caption mt-1">JPEG / PNG / WEBP / GIF · multipart</p>
+          <p class="lotax-caption mt-1">Большое фото награды · JPEG / PNG / WEBP / GIF</p>
           <img
             v-if="imagePreview"
             :src="imagePreview"

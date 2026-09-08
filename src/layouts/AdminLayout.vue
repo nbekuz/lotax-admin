@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Badge, message } from 'ant-design-vue'
 import {
   AuditOutlined,
+  AppstoreOutlined,
   BankOutlined,
   BarChartOutlined,
   CarOutlined,
@@ -75,6 +76,7 @@ const selectedKeys = computed(() => {
   if (route.path === '/organization' || route.path.startsWith('/organization/')) {
     return ['organization']
   }
+  if (route.path.startsWith('/reward-icons')) return ['reward-icons']
   if (route.path.startsWith('/rewards')) return ['rewards']
   if (route.path.startsWith('/orders')) return ['orders']
   if (route.path.startsWith('/settings')) return ['settings']
@@ -208,6 +210,12 @@ const menuItems = computed(() => {
       icon: () => h(GiftOutlined),
       label: 'Награды',
       title: 'Награды',
+    },
+    {
+      key: 'reward-icons',
+      icon: () => h(AppstoreOutlined),
+      label: 'Иконки',
+      title: 'Иконки наград',
     },
     {
       key: 'orders',

@@ -490,6 +490,24 @@ export interface ParkTierSettingsUpdatePayload {
   platinum_min_month?: number
 }
 
+/* ── Reward icons (org-scoped catalog for park rewards) ── */
+
+export interface RewardIconItem {
+  id: string
+  title: string
+  image_url: string
+  organization_id: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface RewardIconListResponse {
+  items: RewardIconItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
 /* ── Rewards (admin ЛК + super-admin) ── */
 
 export interface RewardAdminItem {
@@ -498,6 +516,8 @@ export interface RewardAdminItem {
   title: string
   description?: string | null
   image_url?: string | null
+  icon_id?: string | null
+  icon?: RewardIconItem | null
   type: string
   points_type: PointsType
   points_cost: number
@@ -534,6 +554,7 @@ export interface RewardAdminCreatePayload {
   is_active?: boolean
   one_per_driver?: boolean
   raffle_date?: string | null
+  icon_id?: string | null
   scope_type?: ScopeType
   park_group_id?: string | null
   park_ids?: string[] | null
@@ -549,6 +570,8 @@ export interface RewardAdminUpdatePayload {
   is_active?: boolean | null
   one_per_driver?: boolean | null
   raffle_date?: string | null
+  icon_id?: string | null
+  clear_icon?: boolean
   scope_type?: ScopeType | null
   park_group_id?: string | null
   park_ids?: string[] | null
