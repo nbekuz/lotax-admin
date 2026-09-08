@@ -17,7 +17,6 @@ import {
 } from '@/utils/scope'
 import type {
   DriverTier,
-  PointsType,
   RewardAdminItem,
   RewardIconItem,
   RewardType,
@@ -36,7 +35,6 @@ const form = reactive({
   title: '',
   description: '',
   type: 'car_wash' as RewardType,
-  points_type: 'park' as PointsType,
   points_cost: 100,
   stock_total: undefined as number | undefined,
   min_tier: 'bronze' as DriverTier,
@@ -67,11 +65,6 @@ const tierOptions = [
   { value: 'silver', label: tierLabel.silver },
   { value: 'gold', label: tierLabel.gold },
   { value: 'platinum', label: tierLabel.platinum },
-]
-
-const pointsTypeOptions = [
-  { value: 'park', label: 'Парковые' },
-  { value: 'system', label: 'Системные' },
 ]
 
 const parkId = computed(() => org.selectedParkId)
@@ -120,7 +113,6 @@ function openCreate() {
   form.title = ''
   form.description = ''
   form.type = 'car_wash'
-  form.points_type = 'park'
   form.points_cost = 100
   form.stock_total = undefined
   form.min_tier = 'bronze'
@@ -141,7 +133,6 @@ function openEdit(item: RewardAdminItem) {
   form.title = item.title
   form.description = item.description || ''
   form.type = item.type as RewardType
-  form.points_type = item.points_type
   form.points_cost = item.points_cost
   form.stock_total = item.stock_total ?? undefined
   form.min_tier = item.min_tier
@@ -210,7 +201,7 @@ async function save() {
         title: form.title.trim(),
         description: form.description.trim() || null,
         type: form.type,
-        points_type: form.points_type,
+        points_type: 'park',
         points_cost: form.points_cost,
         stock_total: form.stock_total ?? null,
         min_tier: form.min_tier,
@@ -401,20 +392,14 @@ onMounted(async () => {
               :disabled="Boolean(editing)"
             />
           </a-form-item>
-          <a-form-item label="Тип баллов">
-            <a-select
-              v-model:value="form.points_type"
-              :options="pointsTypeOptions"
-              :disabled="Boolean(editing)"
-            />
-          </a-form-item>
           <a-form-item label="Стоимость">
             <a-input-number
               v-model:value="form.points_cost"
               class="!w-full"
               :min="1"
-              addon-after="б."
+              addon-after="парк. б."
             />
+            <p class="lotax-caption mt-1">Только парковые баллы</p>
           </a-form-item>
           <a-form-item label="Запас (пусто — без лимита)">
             <a-input-number

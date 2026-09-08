@@ -84,9 +84,13 @@ const tierOptions = [
 ]
 
 const displayTitle = computed(() => {
+  const d = drivers.current
   return (
     drivers.personalData?.display_name ||
-    drivers.current?.display_name ||
+    d?.display_name ||
+    [d?.first_name || d?.first_name_masked, d?.last_name || d?.last_name_masked]
+      .filter(Boolean)
+      .join(' ') ||
     'Водитель'
   )
 })
@@ -104,6 +108,16 @@ const initials = computed(() => {
   }
   const d = drivers.current
   if (!d) return '?'
+  const parts = [
+    d.first_name || d.first_name_masked,
+    d.last_name || d.last_name_masked,
+  ].filter(Boolean) as string[]
+  if (parts.length) {
+    return parts
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() || '')
+      .join('')
+  }
   const fromName = (d.display_name || '')
     .split(/\s+/)
     .filter(Boolean)
@@ -111,7 +125,7 @@ const initials = computed(() => {
     .map((p) => p[0]?.toUpperCase() || '')
     .join('')
   if (fromName) return fromName
-  return (d.first_name_masked?.[0] || 'D').toUpperCase()
+  return 'D'
 })
 
 async function load() {
@@ -149,7 +163,7 @@ function confirmRevealPdn() {
   Modal.confirm({
     title: 'Показать персональные данные?',
     content:
-      'ФИО и телефон будут расшифрованы. Действие записывается в журнал аудита ПДн.',
+      'ФИО и телефон уже открыты в карточке. Аудит-запрос дополнительно записывается в журнал ПДн.',
     okText: 'Показать',
     cancelText: 'Отмена',
     centered: true,
@@ -465,30 +479,26 @@ watch(driverId, () => {
             <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="flex flex-col gap-1">
                 <h2 class="lotax-section-title">Профиль</h2>
-                <p v-if="auth.canViewPdn" class="lotax-caption">
-                  В списке и карточке — маска. Расшифровка ФИО и телефона аудируется
-                </p>
-                <p v-else class="lotax-caption">
-                  Персональные данные показаны в маскированном виде
+                <p class="lotax-caption">
+                  ФИО и телефон без маски (как в диспетчерской)
                 </p>
               </div>
               <div v-if="auth.canViewPdn" class="flex flex-wrap gap-2">
                 <a-button
                   v-if="!drivers.personalData"
-                  type="primary"
-                  class="lotax-btn-primary"
+                  class="lotax-btn-secondary"
                   :loading="pdnLoading"
                   @click="confirmRevealPdn"
                 >
                   <template #icon><EyeOutlined /></template>
-                  Показать ПДн
+                  Аудит ПДн
                 </a-button>
                 <a-button
                   v-else
                   class="lotax-btn-secondary"
                   @click="hidePdn"
                 >
-                  Скрыть ПДн
+                  Скрыть аудит
                 </a-button>
               </div>
             </div>
@@ -504,23 +514,47 @@ watch(driverId, () => {
               {{ pdnError }}
             </div>
 
-            <div v-else-if="auth.canViewPdn && drivers.personalData" class="profile-fields">
-              <InfoField label="Имя" :value="drivers.personalData.first_name" />
-              <InfoField label="Фамилия" :value="drivers.personalData.last_name" />
-              <InfoField label="Отчество" :value="drivers.personalData.middle_name" />
-              <InfoField label="Телефон" :value="formatPhone(drivers.personalData.phone)" />
-              <InfoField label="Отображаемое имя" :value="drivers.personalData.display_name" />
-              <InfoField label="Реферал" :value="drivers.current.referral_code" />
-              <InfoField
-                label="Создан"
-                :value="dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm')"
-              />
-            </div>
-
             <div v-else class="profile-fields">
-              <InfoField label="Имя (маска)" :value="drivers.current.first_name_masked" />
-              <InfoField label="Фамилия (маска)" :value="drivers.current.last_name_masked" />
-              <InfoField label="Телефон (маска)" :value="formatPhone(drivers.current.phone_masked)" />
+              <InfoField
+                label="Имя"
+                :value="
+                  drivers.personalData?.first_name ||
+                  drivers.current.first_name ||
+                  drivers.current.first_name_masked
+                "
+              />
+              <InfoField
+                label="Фамилия"
+                :value="
+                  drivers.personalData?.last_name ||
+                  drivers.current.last_name ||
+                  drivers.current.last_name_masked
+                "
+              />
+              <InfoField
+                label="Отчество"
+                :value="
+                  drivers.personalData?.middle_name ||
+                  drivers.current.middle_name
+                "
+              />
+              <InfoField
+                label="Телефон"
+                :value="
+                  formatPhone(
+                    drivers.personalData?.phone ||
+                      drivers.current.phone ||
+                      drivers.current.phone_masked,
+                  )
+                "
+              />
+              <InfoField
+                label="Отображаемое имя"
+                :value="
+                  drivers.personalData?.display_name ||
+                  drivers.current.display_name
+                "
+              />
               <InfoField label="Реферал" :value="drivers.current.referral_code" />
               <InfoField
                 label="Создан"

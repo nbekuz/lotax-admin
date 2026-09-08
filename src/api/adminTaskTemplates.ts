@@ -3,6 +3,7 @@ import type {
   TaskAdminItem,
   TaskTemplateEnablePayload,
   TaskTemplateListResponse,
+  TaskTemplateUpdatePayload,
 } from '@/types/api'
 
 export const adminTaskTemplatesApi = {
@@ -15,6 +16,13 @@ export const adminTaskTemplatesApi = {
   enable(templateKey: string, payload: TaskTemplateEnablePayload) {
     return http.post<TaskAdminItem>(
       `/admin/task-templates/${templateKey}/enable`,
+      payload,
+    )
+  },
+
+  update(templateKey: string, payload: TaskTemplateUpdatePayload) {
+    return http.patch<TaskAdminItem>(
+      `/admin/task-templates/${templateKey}`,
       payload,
     )
   },

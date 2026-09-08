@@ -37,6 +37,28 @@ const createForm = reactive({
   yandex_driver_id: '',
 })
 
+function driverFirstName(d: DriverListItem) {
+  return d.first_name || d.first_name_masked || d.display_name?.split(/\s+/)[0] || '—'
+}
+
+function driverLastName(d: DriverListItem) {
+  return d.last_name || d.last_name_masked || '—'
+}
+
+function driverPhone(d: DriverListItem) {
+  return d.phone || d.phone_masked || null
+}
+
+function driverFullName(d: DriverListItem) {
+  return (
+    d.display_name ||
+    [d.first_name || d.first_name_masked, d.last_name || d.last_name_masked]
+      .filter(Boolean)
+      .join(' ') ||
+    '—'
+  )
+}
+
 /** Fixed columns + x-scroll only when viewport is tight (tablet). */
 const needsHorizontalScroll = computed(() => !isLgUp.value)
 
@@ -50,14 +72,17 @@ const columns = computed<TableColumnsType<DriverListItem>>(() => {
   return [
     {
       title: 'Имя',
-      dataIndex: 'display_name',
-      key: 'display_name',
-      ...(pin ? { fixed: 'left' as const, width: 168 } : { ellipsis: true }),
+      key: 'first_name',
+      ...(pin ? { fixed: 'left' as const, width: 110 } : { ellipsis: true }),
+    },
+    {
+      title: 'Фамилия',
+      key: 'last_name',
+      ...(pin ? { fixed: 'left' as const, width: 110 } : { ellipsis: true }),
     },
     {
       title: 'Телефон',
-      dataIndex: 'phone_masked',
-      key: 'phone_masked',
+      key: 'phone',
       width: pin ? 148 : 170,
       ...(pin ? { fixed: 'left' as const } : {}),
     },
@@ -486,10 +511,10 @@ onMounted(async () => {
           <div class="mb-3 flex items-start justify-between gap-3">
             <div class="min-w-0">
               <h3 class="truncate text-[16px] font-semibold text-ink">
-                {{ driver.display_name || '—' }}
+                {{ driverFullName(driver) }}
               </h3>
               <p class="mt-0.5 font-mono text-[12px] text-ink-muted">
-                {{ formatPhone(driver.phone_masked) }}
+                {{ formatPhone(driverPhone(driver)) }}
               </p>
             </div>
             <RightOutlined class="mt-1 shrink-0 text-ink-muted" />
@@ -584,17 +609,20 @@ onMounted(async () => {
         @change="onTableChange"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'display_name'">
+          <template v-if="column.key === 'first_name'">
             <a
               class="font-medium text-ink transition-colors duration-fast md:hover:text-brand"
               @click.prevent="openDriver(record as DriverListItem)"
             >
-              {{ (record as DriverListItem).display_name || '—' }}
+              {{ driverFirstName(record as DriverListItem) }}
             </a>
           </template>
-          <template v-else-if="column.key === 'phone_masked'">
+          <template v-else-if="column.key === 'last_name'">
+            {{ driverLastName(record as DriverListItem) }}
+          </template>
+          <template v-else-if="column.key === 'phone'">
             <span class="font-mono text-[13px] text-ink-muted">
-              {{ formatPhone((record as DriverListItem).phone_masked) }}
+              {{ formatPhone(driverPhone(record as DriverListItem)) }}
             </span>
           </template>
           <template v-else-if="column.key === 'balance_system_points'">

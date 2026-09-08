@@ -156,9 +156,9 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'task-templates',
         name: 'task-templates',
-        component: () => import('@/views/TaskTemplatesView.vue'),
+        redirect: { name: 'tasks' },
         meta: {
-          title: 'Шаблоны заданий',
+          title: 'Задания',
           roles: ['director', 'manager'],
         },
       },

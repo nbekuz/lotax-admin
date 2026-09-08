@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   FlagOutlined,
-  FileTextOutlined,
   ShareAltOutlined,
   TrophyOutlined,
 } from '@ant-design/icons-vue'
@@ -19,16 +18,9 @@ const links = computed(() => {
     items.push({
       key: 'tasks',
       title: 'Задания',
-      description: 'Задания для водителей и прогресс выполнения',
+      description: 'Дефолтные и свои задания парка',
       icon: FlagOutlined,
       route: 'tasks',
-    })
-    items.push({
-      key: 'task-templates',
-      title: 'Шаблоны заданий',
-      description: 'Готовые шаблоны для быстрого запуска',
-      icon: FileTextOutlined,
-      route: 'task-templates',
     })
   }
   if (auth.canViewCompetitions) {

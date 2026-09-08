@@ -5,13 +5,15 @@ import { ReloadOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import { adminOrdersApi } from '@/api/adminOrders'
 import { useOrgStore } from '@/stores/org'
-import { extractErrorMessage } from '@/utils/labels'
+import { extractErrorMessage, formatPhone } from '@/utils/labels'
 import type { OrderAdminItem, OrderStatus } from '@/types/api'
 
 const org = useOrgStore()
 const loading = ref(false)
 const items = ref<OrderAdminItem[]>([])
 const statusFilter = ref<OrderStatus | 'all'>('pending')
+/** Empty = all parks in org (no park_id query). */
+const parkFilter = ref<string | 'all'>('all')
 const approveOpen = ref(false)
 const rejectOpen = ref(false)
 const current = ref<OrderAdminItem | null>(null)
@@ -19,17 +21,25 @@ const saving = ref(false)
 const approveForm = reactive({ certificate_code: '' })
 const rejectForm = reactive({ reason: '' })
 
-const parkId = computed(() => org.selectedParkId)
+const parkOptions = computed(() => [
+  { value: 'all', label: 'Все парки' },
+  ...org.parks.map((p) => ({ value: p.id, label: p.name })),
+])
+
+function driverLine(item: OrderAdminItem) {
+  const name =
+    item.driver_display_name ||
+    [item.driver_first_name, item.driver_last_name].filter(Boolean).join(' ') ||
+    item.driver_id
+  const phone = item.driver_phone ? formatPhone(item.driver_phone) : null
+  return phone ? `${name} · ${phone}` : name
+}
 
 async function load() {
-  if (!parkId.value) {
-    items.value = []
-    return
-  }
   loading.value = true
   try {
     const { data } = await adminOrdersApi.list({
-      park_id: parkId.value,
+      park_id: parkFilter.value === 'all' ? undefined : parkFilter.value,
       status: statusFilter.value === 'all' ? null : statusFilter.value,
     })
     items.value = data.items
@@ -90,7 +100,7 @@ async function submitReject() {
   }
 }
 
-watch([parkId, statusFilter], load)
+watch([parkFilter, statusFilter], load)
 onMounted(async () => {
   if (!org.parks.length) await org.fetchParks()
   await load()
@@ -102,9 +112,17 @@ onMounted(async () => {
     <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <h1 class="lotax-page-title">Заявки на награды</h1>
-        <p class="lotax-caption mt-1">Модерация обменов баллов</p>
+        <p class="lotax-caption mt-1">
+          По умолчанию — все парки организации. Модерация обменов баллов.
+        </p>
       </div>
       <div class="flex flex-wrap gap-2">
+        <a-select
+          v-model:value="parkFilter"
+          class="!w-48"
+          size="large"
+          :options="parkOptions"
+        />
         <a-select
           v-model:value="statusFilter"
           class="!w-44"
@@ -124,8 +142,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div v-if="!parkId" class="lotax-card p-8 text-center">Выберите парк в шапке</div>
-    <div v-else-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>
+    <div v-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>
     <div v-else-if="!items.length" class="lotax-card p-8 text-center lotax-caption">
       Заявок нет
     </div>
@@ -139,10 +156,11 @@ onMounted(async () => {
           <div>
             <div class="font-semibold text-ink">{{ item.reward_title }}</div>
             <div class="text-[13px] text-ink-muted">
-              {{ item.driver_display_name || item.driver_id }} · −{{ item.points_spent }} б.
+              {{ driverLine(item) }} · −{{ item.points_spent }} б.
               ({{ item.points_type }})
             </div>
             <div class="text-[12px] text-ink-muted">
+              <template v-if="item.park_name">{{ item.park_name }} · </template>
               {{ dayjs(item.created_at).format('DD.MM.YYYY HH:mm') }}
             </div>
           </div>

@@ -213,6 +213,11 @@ export interface DriverListItem {
   yandex_driver_id?: string | null
   yandex_park_id?: string | null
   display_name?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  middle_name?: string | null
+  phone?: string | null
+  /** @deprecated API now returns full values; kept for old bindings */
   first_name_masked?: string | null
   last_name_masked?: string | null
   phone_masked?: string | null
@@ -583,6 +588,9 @@ export interface OrderAdminItem {
   id: string
   driver_id: string
   driver_display_name?: string | null
+  driver_first_name?: string | null
+  driver_last_name?: string | null
+  driver_phone?: string | null
   reward_id: string
   reward_title: string
   reward_type: string
@@ -593,6 +601,8 @@ export interface OrderAdminItem {
   free_shift_date?: string | null
   review_comment?: string | null
   reviewed_at?: string | null
+  park_id?: string | null
+  park_name?: string | null
   created_at: string
 }
 
@@ -934,6 +944,8 @@ export interface TaskTemplateItem {
   description: string
   task_type: string
   target_value: number
+  default_target_value?: number
+  reward_points?: number
   default_reward_points: number
   period_days?: number | null
   is_claimable: boolean
@@ -941,6 +953,8 @@ export interface TaskTemplateItem {
   enabled?: boolean
   task_id?: string | null
   task_status?: string | null
+  editable_target?: boolean
+  editable_period?: boolean
 }
 
 export interface TaskTemplateListResponse {
@@ -949,8 +963,16 @@ export interface TaskTemplateListResponse {
 
 export interface TaskTemplateEnablePayload {
   park_id: string
+  target_value?: number | null
   reward_points?: number | null
   reward_points_type?: PointsType
+}
+
+export interface TaskTemplateUpdatePayload {
+  park_id: string
+  target_value?: number | null
+  reward_points?: number | null
+  period_days?: number | null
 }
 
 /* ── Stage 4: banners, reports, PDN audit ── */

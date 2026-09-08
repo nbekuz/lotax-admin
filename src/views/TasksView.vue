@@ -8,28 +8,59 @@ import {
   PlusOutlined,
   ReloadOutlined,
 } from '@ant-design/icons-vue'
+import { adminTaskTemplatesApi } from '@/api/adminTaskTemplates'
 import { adminTasksApi } from '@/api/adminTasks'
 import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
-import { extractErrorMessage, taskStatusLabel, taskStatusTone, taskTypeLabel } from '@/utils/labels'
+import {
+  extractErrorMessage,
+  taskStatusLabel,
+  taskStatusTone,
+  taskTypeLabel,
+} from '@/utils/labels'
 import {
   defaultSpecificScope,
   scopeFromApi,
   scopeLabel,
   validateScopeFields,
 } from '@/utils/scope'
-import type { TaskAdminItem, TaskStatus, TaskType } from '@/types/api'
+import type {
+  TaskAdminItem,
+  TaskStatus,
+  TaskTemplateItem,
+  TaskType,
+} from '@/types/api'
 
 const auth = useAuthStore()
 const org = useOrgStore()
 const router = useRouter()
 
 const loading = ref(false)
-const items = ref<TaskAdminItem[]>([])
+const templates = ref<TaskTemplateItem[]>([])
+const customItems = ref<TaskAdminItem[]>([])
+const togglingKey = ref<string | null>(null)
+
 const modalOpen = ref(false)
 const saving = ref(false)
 const editing = ref<TaskAdminItem | null>(null)
+
+const editTplOpen = ref(false)
+const editTplSaving = ref(false)
+const editTplTarget = ref<TaskTemplateItem | null>(null)
+const editTplForm = reactive({
+  target_value: 1,
+  reward_points: 50,
+  period_days: undefined as number | undefined,
+})
+
+const enableOpen = ref(false)
+const enableSaving = ref(false)
+const enableTarget = ref<TaskTemplateItem | null>(null)
+const enableForm = reactive({
+  target_value: 1,
+  reward_points: 50,
+})
 
 const form = reactive({
   title: '',
@@ -49,6 +80,13 @@ const scope = ref<ScopeFieldsValue>(defaultSpecificScope())
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageTasks)
 
+const periodOptions = [
+  { value: 7, label: '7 дней' },
+  { value: 14, label: '14 дней' },
+  { value: 30, label: '30 дней' },
+  { value: 365, label: '365 дней' },
+]
+
 const taskTypeOptions = [
   { value: 'ride_count', label: taskTypeLabel.ride_count },
   { value: 'earn_points', label: taskTypeLabel.earn_points },
@@ -64,20 +102,162 @@ const statusOptions = [
   { value: 'completed', label: taskStatusLabel.completed },
 ]
 
+function tplPoints(item: TaskTemplateItem) {
+  return item.reward_points ?? item.default_reward_points
+}
+
+function tplMeta(item: TaskTemplateItem) {
+  const bits = [
+    `цель ${item.target_value}`,
+    `${tplPoints(item)} б.`,
+  ]
+  if (item.period_days) bits.push(`${item.period_days} дн.`)
+  if (item.is_claimable) bits.push('приветствие')
+  return bits.join(' · ')
+}
+
 async function load() {
   if (!parkId.value) {
-    items.value = []
+    templates.value = []
+    customItems.value = []
     return
   }
   loading.value = true
   try {
-    const { data } = await adminTasksApi.list({ park_id: parkId.value })
-    items.value = data.items
+    const [tplRes, tasksRes] = await Promise.all([
+      adminTaskTemplatesApi.list(parkId.value),
+      adminTasksApi.list({ park_id: parkId.value }),
+    ])
+    templates.value = tplRes.data.items ?? []
+    customItems.value = (tasksRes.data.items ?? []).filter(
+      (t) => !t.template_key,
+    )
   } catch (e) {
     message.error(extractErrorMessage(e))
   } finally {
     loading.value = false
   }
+}
+
+function openEnable(item: TaskTemplateItem) {
+  enableTarget.value = item
+  enableForm.target_value = item.target_value || item.default_target_value || 1
+  enableForm.reward_points = tplPoints(item)
+  enableOpen.value = true
+}
+
+async function confirmEnable() {
+  if (!parkId.value || !enableTarget.value) return
+  enableSaving.value = true
+  togglingKey.value = enableTarget.value.key
+  try {
+    const payload: {
+      park_id: string
+      reward_points: number
+      reward_points_type: 'park'
+      target_value?: number
+    } = {
+      park_id: parkId.value,
+      reward_points: enableForm.reward_points,
+      reward_points_type: 'park',
+    }
+    if (enableTarget.value.editable_target !== false && !enableTarget.value.is_claimable) {
+      payload.target_value = enableForm.target_value
+    }
+    await adminTaskTemplatesApi.enable(enableTarget.value.key, payload)
+    message.success('Задание включено')
+    enableOpen.value = false
+    await load()
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  } finally {
+    enableSaving.value = false
+    togglingKey.value = null
+  }
+}
+
+function requestDisable(item: TaskTemplateItem) {
+  if (!parkId.value) return
+  Modal.confirm({
+    title: 'Отключить задание?',
+    content: `«${item.title}» станет недоступно водителям. Сохранённые цель и баллы останутся.`,
+    okText: 'Отключить',
+    cancelText: 'Отмена',
+    okButtonProps: { danger: true },
+    centered: true,
+    async onOk() {
+      togglingKey.value = item.key
+      try {
+        await adminTaskTemplatesApi.disable(item.key, parkId.value!)
+        message.success('Задание отключено')
+        await load()
+      } catch (e) {
+        message.error(extractErrorMessage(e))
+      } finally {
+        togglingKey.value = null
+      }
+    },
+  })
+}
+
+function onTplSwitch(item: TaskTemplateItem, checked: boolean) {
+  if (!canEdit.value) return
+  if (checked) openEnable(item)
+  else requestDisable(item)
+}
+
+function openEditTpl(item: TaskTemplateItem) {
+  if (!item.enabled) {
+    message.warning('Сначала включите задание')
+    return
+  }
+  editTplTarget.value = item
+  editTplForm.target_value = item.target_value
+  editTplForm.reward_points = tplPoints(item)
+  editTplForm.period_days = item.period_days ?? undefined
+  editTplOpen.value = true
+}
+
+async function confirmEditTpl() {
+  if (!parkId.value || !editTplTarget.value) return
+  if (
+    editTplForm.target_value == null &&
+    editTplForm.reward_points == null &&
+    editTplForm.period_days == null
+  ) {
+    message.warning('Укажите цель, баллы или период')
+    return
+  }
+  editTplSaving.value = true
+  try {
+    await adminTaskTemplatesApi.update(editTplTarget.value.key, {
+      park_id: parkId.value,
+      target_value:
+        editTplTarget.value.editable_target === false
+          ? undefined
+          : editTplForm.target_value,
+      reward_points: editTplForm.reward_points,
+      period_days:
+        editTplTarget.value.editable_period
+          ? editTplForm.period_days ?? null
+          : undefined,
+    })
+    message.success('Задание обновлено')
+    editTplOpen.value = false
+    await load()
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  } finally {
+    editTplSaving.value = false
+  }
+}
+
+function openProgressTpl(item: TaskTemplateItem) {
+  if (!item.task_id) {
+    message.warning('Задание ещё не создано — включите его')
+    return
+  }
+  router.push({ name: 'task-progress', params: { id: item.task_id } })
 }
 
 function openCreate() {
@@ -220,7 +400,9 @@ onMounted(async () => {
     <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <h1 class="lotax-page-title">Задания</h1>
-        <p class="lotax-caption mt-1">Задания для водителей парка с прогрессом выполнения</p>
+        <p class="lotax-caption mt-1">
+          Дефолтные задания парка и свои. Баллы — только парковые.
+        </p>
       </div>
       <div class="flex flex-wrap gap-2">
         <a-button class="lotax-btn-secondary" @click="load">
@@ -235,59 +417,188 @@ onMounted(async () => {
           @click="openCreate"
         >
           <template #icon><PlusOutlined /></template>
-          Добавить
+          Своё задание
         </a-button>
       </div>
     </div>
 
     <div v-if="!parkId" class="lotax-card p-8 text-center">Выберите парк в шапке</div>
     <div v-else-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>
-    <div v-else-if="!items.length" class="lotax-card p-8 text-center lotax-caption">
-      Заданий пока нет
-    </div>
-    <div v-else class="flex flex-col gap-3">
-      <article
-        v-for="item in items"
-        :key="item.id"
-        class="lotax-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div class="min-w-0">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="font-semibold text-ink">{{ item.title }}</span>
-            <span
-              class="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-medium ring-1 ring-inset"
-              :class="taskStatusTone[item.status as TaskStatus] ?? taskStatusTone.draft"
+    <template v-else>
+      <section class="flex flex-col gap-3">
+        <h2 class="text-[16px] font-semibold text-ink">По умолчанию</h2>
+        <div v-if="!templates.length" class="lotax-card p-6 text-center lotax-caption">
+          Дефолтные задания недоступны
+        </div>
+        <article
+          v-for="item in templates"
+          :key="item.key"
+          class="lotax-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-semibold text-ink">{{ item.title }}</span>
+              <span
+                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset"
+                :class="
+                  item.enabled
+                    ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                    : 'bg-slate-100 text-slate-600 ring-slate-300'
+                "
+              >
+                {{ item.enabled ? 'Вкл.' : 'Выкл.' }}
+              </span>
+            </div>
+            <p v-if="item.description" class="mt-1 text-[13px] text-ink-muted">
+              {{ item.description }}
+            </p>
+            <p class="mt-1 text-[12px] text-ink-muted">{{ tplMeta(item) }}</p>
+          </div>
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
+            <a-switch
+              :checked="Boolean(item.enabled)"
+              :disabled="!canEdit || togglingKey === item.key"
+              :loading="togglingKey === item.key"
+              @change="(v: boolean | string | number) => onTplSwitch(item, Boolean(v))"
+            />
+            <a-button
+              v-if="canEdit"
+              class="lotax-btn-secondary"
+              size="small"
+              :disabled="!item.enabled"
+              @click="openEditTpl(item)"
             >
-              {{ taskStatusLabel[item.status as TaskStatus] ?? item.status }}
-            </span>
+              Изменить
+            </a-button>
+            <a-button
+              class="lotax-btn-secondary"
+              size="small"
+              :disabled="!item.task_id"
+              @click="openProgressTpl(item)"
+            >
+              <template #icon><BarChartOutlined /></template>
+              Прогресс
+            </a-button>
           </div>
-          <div class="mt-1 text-[13px] text-ink-muted">
-            {{ taskTypeLabel[item.task_type as TaskType] ?? item.task_type }} · цель {{ item.target_value }} ·
-            +{{ item.reward_points }} парковых б.
-            <span v-if="item.template_key"> · {{ item.template_key }}</span>
-            <span v-if="item.scope"> · {{ scopeLabel(item.scope) }}</span>
-          </div>
-          <div class="mt-1 text-[12px] text-ink-muted">
-            {{ dayjs(item.start_date).format('DD.MM.YYYY') }} —
-            {{ dayjs(item.end_date).format('DD.MM.YYYY') }}
-            <span v-if="item.participants_count != null">
-              · участников: {{ item.participants_count }}
-            </span>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <a-button class="lotax-btn-secondary" @click="openProgress(item)">
-            <template #icon><BarChartOutlined /></template>
-            Прогресс
-          </a-button>
-          <template v-if="canEdit">
-            <a-button class="lotax-btn-secondary" @click="openEdit(item)">Изменить</a-button>
-            <a-button danger @click="remove(item)">Удалить</a-button>
-          </template>
-        </div>
-      </article>
-    </div>
+        </article>
+      </section>
 
+      <section class="mt-2 flex flex-col gap-3">
+        <h2 class="text-[16px] font-semibold text-ink">Свои задания</h2>
+        <div v-if="!customItems.length" class="lotax-card p-6 text-center lotax-caption">
+          Своих заданий пока нет
+        </div>
+        <article
+          v-for="item in customItems"
+          :key="item.id"
+          class="lotax-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-semibold text-ink">{{ item.title }}</span>
+              <span
+                class="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-medium ring-1 ring-inset"
+                :class="taskStatusTone[item.status as TaskStatus] ?? taskStatusTone.draft"
+              >
+                {{ taskStatusLabel[item.status as TaskStatus] ?? item.status }}
+              </span>
+            </div>
+            <div class="mt-1 text-[13px] text-ink-muted">
+              {{ taskTypeLabel[item.task_type as TaskType] ?? item.task_type }} · цель
+              {{ item.target_value }} · +{{ item.reward_points }} парковых б.
+              <span v-if="item.scope"> · {{ scopeLabel(item.scope) }}</span>
+            </div>
+            <div class="mt-1 text-[12px] text-ink-muted">
+              {{ dayjs(item.start_date).format('DD.MM.YYYY') }} —
+              {{ dayjs(item.end_date).format('DD.MM.YYYY') }}
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <a-button class="lotax-btn-secondary" @click="openProgress(item)">
+              <template #icon><BarChartOutlined /></template>
+              Прогресс
+            </a-button>
+            <template v-if="canEdit">
+              <a-button class="lotax-btn-secondary" @click="openEdit(item)">Изменить</a-button>
+              <a-button danger @click="remove(item)">Удалить</a-button>
+            </template>
+          </div>
+        </article>
+      </section>
+    </template>
+
+    <!-- Enable default -->
+    <a-modal
+      v-model:open="enableOpen"
+      title="Включить задание"
+      ok-text="Включить"
+      cancel-text="Отмена"
+      :confirm-loading="enableSaving"
+      centered
+      :width="440"
+      destroy-on-close
+      @ok="confirmEnable"
+    >
+      <p v-if="enableTarget" class="mb-3 text-[14px] text-ink">{{ enableTarget.title }}</p>
+      <a-form layout="vertical">
+        <a-form-item
+          v-if="enableTarget && enableTarget.editable_target !== false && !enableTarget.is_claimable"
+          :label="enableTarget.key === 'days_120_park' ? 'Дни' : 'Число заказов'"
+        >
+          <a-input-number v-model:value="enableForm.target_value" class="!w-full" :min="1" />
+        </a-form-item>
+        <a-form-item label="Награда (парковые баллы)">
+          <a-input-number
+            v-model:value="enableForm.reward_points"
+            class="!w-full"
+            :min="0"
+            addon-after="б."
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- Edit default without disable -->
+    <a-modal
+      v-model:open="editTplOpen"
+      title="Изменить задание"
+      ok-text="Сохранить"
+      cancel-text="Отмена"
+      :confirm-loading="editTplSaving"
+      centered
+      :width="440"
+      destroy-on-close
+      @ok="confirmEditTpl"
+    >
+      <p v-if="editTplTarget" class="mb-3 text-[14px] text-ink">{{ editTplTarget.title }}</p>
+      <a-form layout="vertical">
+        <a-form-item
+          v-if="editTplTarget && editTplTarget.editable_target !== false && !editTplTarget.is_claimable"
+          :label="editTplTarget.key === 'days_120_park' ? 'Дни' : 'Число заказов'"
+        >
+          <a-input-number v-model:value="editTplForm.target_value" class="!w-full" :min="1" />
+        </a-form-item>
+        <a-form-item label="Награда (парковые баллы)">
+          <a-input-number
+            v-model:value="editTplForm.reward_points"
+            class="!w-full"
+            :min="0"
+            addon-after="б."
+          />
+        </a-form-item>
+        <a-form-item v-if="editTplTarget?.editable_period" label="Период">
+          <a-select
+            v-model:value="editTplForm.period_days"
+            class="!w-full"
+            :options="periodOptions"
+            allow-clear
+            placeholder="Не менять"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- Custom create/edit -->
     <a-modal
       v-model:open="modalOpen"
       :title="editing ? 'Редактировать задание' : 'Новое задание'"
@@ -308,7 +619,6 @@ onMounted(async () => {
             v-model:value="form.description"
             :rows="2"
             :auto-size="{ minRows: 2, maxRows: 4 }"
-            placeholder="Кратко опишите условие"
           />
         </a-form-item>
         <a-form-item label="Изображение">
@@ -347,7 +657,7 @@ onMounted(async () => {
               :min="0"
               addon-after="б."
             />
-            <p class="lotax-caption mt-1">Начисляются только парковые баллы</p>
+            <p class="lotax-caption mt-1">Только парковые баллы</p>
           </a-form-item>
         </div>
         <a-form-item label="Период" required>

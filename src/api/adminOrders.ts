@@ -20,7 +20,7 @@ export const adminOrdersApi = {
   list(params: AdminOrdersQuery = {}) {
     return http.get<OrderAdminListResponse>('/admin/orders', {
       params: {
-        park_id: params.park_id,
+        park_id: params.park_id || undefined,
         status: params.status || undefined,
         points_type: params.points_type || undefined,
         page: params.page ?? 1,
