@@ -11,7 +11,8 @@ import type { OrderAdminItem, OrderStatus } from '@/types/api'
 const org = useOrgStore()
 const loading = ref(false)
 const items = ref<OrderAdminItem[]>([])
-const statusFilter = ref<OrderStatus | 'all'>('pending')
+/** Default: all statuses (no status query). */
+const statusFilter = ref<OrderStatus | 'all'>('all')
 /** Empty = all parks in org (no park_id query). */
 const parkFilter = ref<string | 'all'>('all')
 const approveOpen = ref(false)
@@ -128,11 +129,11 @@ onMounted(async () => {
           class="!w-44"
           size="large"
           :options="[
+            { value: 'all', label: 'Все статусы' },
             { value: 'pending', label: 'На модерации' },
             { value: 'approved', label: 'Одобрены' },
             { value: 'rejected', label: 'Отклонены' },
             { value: 'cancelled', label: 'Отменены' },
-            { value: 'all', label: 'Все' },
           ]"
         />
         <a-button class="lotax-btn-secondary" @click="load">

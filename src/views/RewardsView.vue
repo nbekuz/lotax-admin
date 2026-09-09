@@ -79,8 +79,12 @@ function typeLabel(type: string) {
   return rewardTypeLabel[type as RewardType] ?? type
 }
 
-function previewUrl(item: RewardAdminItem) {
-  return item.icon?.image_url || item.image_url || null
+function iconUrl(item: RewardAdminItem) {
+  return item.icon?.image_url || null
+}
+
+function iconTitle(item: RewardAdminItem) {
+  return item.icon?.title || null
 }
 
 async function loadIcons() {
@@ -201,6 +205,7 @@ async function save() {
         title: form.title.trim(),
         description: form.description.trim() || null,
         type: form.type,
+        // Backend forces park; omit system/park UI selector.
         points_type: 'park',
         points_cost: form.points_cost,
         stock_total: form.stock_total ?? null,
@@ -248,9 +253,17 @@ onMounted(async () => {
     <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <h1 class="lotax-page-title">Награды парка</h1>
-        <p class="lotax-caption mt-1">Каталог парковых наград для водителей</p>
+        <p class="lotax-caption mt-1">
+          Парковые баллы · иконка из
+          <router-link class="text-brand underline" :to="{ name: 'reward-icons' }">
+            каталога организации
+          </router-link>
+        </p>
       </div>
       <div class="flex flex-wrap gap-2">
+        <a-button class="lotax-btn-secondary" @click="$router.push({ name: 'reward-icons' })">
+          Иконки
+        </a-button>
         <a-button class="lotax-btn-secondary" @click="load">
           <template #icon><ReloadOutlined /></template>
           Обновить
@@ -280,20 +293,31 @@ onMounted(async () => {
         class="lotax-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div class="flex min-w-0 items-start gap-3">
-          <img
-            v-if="previewUrl(item)"
-            :src="previewUrl(item)!"
-            alt=""
-            class="h-12 w-12 shrink-0 rounded-lg object-contain bg-white ring-1 ring-line"
-          />
+          <div
+            class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-line"
+          >
+            <img
+              v-if="iconUrl(item)"
+              :src="iconUrl(item)!"
+              alt=""
+              class="h-full w-full object-contain p-1"
+            />
+            <img
+              v-else-if="item.image_url"
+              :src="item.image_url"
+              alt=""
+              class="h-full w-full object-cover"
+            />
+            <span v-else class="text-[12px] text-ink-muted">—</span>
+          </div>
           <div class="min-w-0">
             <div class="font-semibold text-ink">{{ item.title }}</div>
             <div class="text-[13px] text-ink-muted">
-              {{ item.points_cost }} б. · {{ typeLabel(item.type) }} ·
+              {{ item.points_cost }} парк. б. · {{ typeLabel(item.type) }} ·
               от {{ tierLabel[item.min_tier] }} ·
               {{ item.is_active ? 'активна' : 'неактивна' }}
               · {{ scopeLabel(item.scope) }}
-              <template v-if="item.icon?.title"> · {{ item.icon.title }}</template>
+              <template v-if="iconTitle(item)"> · {{ iconTitle(item) }}</template>
               <template v-if="item.one_per_driver"> · 1 на водителя</template>
               <template v-if="item.raffle_date">
                 · розыгрыш {{ dayjs(item.raffle_date).format('DD.MM.YYYY') }}
@@ -334,7 +358,9 @@ onMounted(async () => {
           <a-select
             v-model:value="form.icon_id"
             allow-clear
-            placeholder="—"
+            show-search
+            option-filter-prop="label"
+            placeholder="— без иконки"
             class="!w-full"
             :options="
               icons.map((i) => ({
@@ -344,13 +370,14 @@ onMounted(async () => {
             "
           >
             <template #option="{ value, label }">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 py-0.5">
                 <img
                   v-if="icons.find((i) => i.id === value)?.image_url"
                   :src="icons.find((i) => i.id === value)!.image_url"
                   alt=""
-                  class="h-6 w-6 rounded object-contain bg-white"
+                  class="h-7 w-7 rounded object-contain bg-white ring-1 ring-line"
                 />
+                <span class="h-7 w-7 rounded bg-surface ring-1 ring-line" v-else />
                 <span>{{ label }}</span>
               </div>
             </template>
@@ -361,12 +388,23 @@ onMounted(async () => {
               Управление иконками
             </router-link>
           </p>
-          <img
-            v-if="selectedIcon?.image_url"
-            :src="selectedIcon.image_url"
-            alt=""
-            class="mt-2 h-12 w-12 rounded-lg object-contain ring-1 ring-line bg-white"
-          />
+          <div
+            v-if="selectedIcon"
+            class="mt-2 flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2"
+          >
+            <img
+              v-if="selectedIcon.image_url"
+              :src="selectedIcon.image_url"
+              alt=""
+              class="h-12 w-12 rounded-lg object-contain bg-white ring-1 ring-line"
+            />
+            <div class="min-w-0">
+              <div class="truncate text-[14px] font-medium text-ink">
+                {{ selectedIcon.title }}
+              </div>
+              <div class="text-[12px] text-ink-muted">Выбрана из каталога</div>
+            </div>
+          </div>
         </a-form-item>
         <a-form-item label="Изображение">
           <a-upload

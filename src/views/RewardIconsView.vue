@@ -84,13 +84,19 @@ function openEdit(item: RewardIconItem) {
 
 function onFileSelect(selected: File) {
   const name = selected.name.toLowerCase()
-  const ok =
+  const mime = (selected.type || '').toLowerCase()
+  const okExt =
     name.endsWith('.svg') ||
     name.endsWith('.png') ||
     name.endsWith('.jpg') ||
-    name.endsWith('.jpeg') ||
-    selected.type.startsWith('image/')
-  if (!ok) {
+    name.endsWith('.jpeg')
+  const okMime =
+    !mime ||
+    mime === 'image/svg+xml' ||
+    mime === 'image/png' ||
+    mime === 'image/jpeg' ||
+    mime === 'image/jpg'
+  if (!okExt || !okMime) {
     message.error('Допустимы иконки: SVG, PNG, JPG')
     return false
   }
@@ -182,7 +188,23 @@ onMounted(load)
       </div>
     </div>
 
-    <div class="lotax-card !p-0">
+    <div v-if="!items.length && !loading" class="lotax-card flex flex-col items-center gap-3 px-4 py-14 text-center">
+      <p class="text-[15px] font-medium text-ink">Иконок пока нет</p>
+      <p class="lotax-caption max-w-sm">
+        Загрузите SVG, PNG или JPG — они появятся в dropdown «Иконка» при создании награды парка
+      </p>
+      <a-button
+        v-if="canEdit"
+        type="primary"
+        class="lotax-btn-primary"
+        @click="openCreate"
+      >
+        <template #icon><PlusOutlined /></template>
+        Добавить иконку
+      </a-button>
+    </div>
+
+    <div v-else class="lotax-card !p-0">
       <a-table
         row-key="id"
         :columns="columns"

@@ -83,12 +83,21 @@ const tierOptions = [
   { value: 'platinum', label: tierLabel.platinum },
 ]
 
+function unmasked(value?: string | null): string | null {
+  if (!value) return null
+  if (/[*•]/.test(value)) return null
+  return value
+}
+
 const displayTitle = computed(() => {
   const d = drivers.current
   return (
-    drivers.personalData?.display_name ||
-    d?.display_name ||
-    [d?.first_name || d?.first_name_masked, d?.last_name || d?.last_name_masked]
+    unmasked(drivers.personalData?.display_name) ||
+    unmasked(d?.display_name) ||
+    [
+      unmasked(d?.first_name) || unmasked(d?.first_name_masked),
+      unmasked(d?.last_name) || unmasked(d?.last_name_masked),
+    ]
       .filter(Boolean)
       .join(' ') ||
     'Водитель'
@@ -109,8 +118,8 @@ const initials = computed(() => {
   const d = drivers.current
   if (!d) return '?'
   const parts = [
-    d.first_name || d.first_name_masked,
-    d.last_name || d.last_name_masked,
+    unmasked(d.first_name) || unmasked(d.first_name_masked),
+    unmasked(d.last_name) || unmasked(d.last_name_masked),
   ].filter(Boolean) as string[]
   if (parts.length) {
     return parts
@@ -518,41 +527,45 @@ watch(driverId, () => {
               <InfoField
                 label="Имя"
                 :value="
-                  drivers.personalData?.first_name ||
-                  drivers.current.first_name ||
-                  drivers.current.first_name_masked
+                  unmasked(drivers.personalData?.first_name) ||
+                  unmasked(drivers.current.first_name) ||
+                  unmasked(drivers.current.first_name_masked) ||
+                  '—'
                 "
               />
               <InfoField
                 label="Фамилия"
                 :value="
-                  drivers.personalData?.last_name ||
-                  drivers.current.last_name ||
-                  drivers.current.last_name_masked
+                  unmasked(drivers.personalData?.last_name) ||
+                  unmasked(drivers.current.last_name) ||
+                  unmasked(drivers.current.last_name_masked) ||
+                  '—'
                 "
               />
               <InfoField
                 label="Отчество"
                 :value="
-                  drivers.personalData?.middle_name ||
-                  drivers.current.middle_name
+                  unmasked(drivers.personalData?.middle_name) ||
+                  unmasked(drivers.current.middle_name) ||
+                  '—'
                 "
               />
               <InfoField
                 label="Телефон"
                 :value="
                   formatPhone(
-                    drivers.personalData?.phone ||
-                      drivers.current.phone ||
-                      drivers.current.phone_masked,
+                    unmasked(drivers.personalData?.phone) ||
+                      unmasked(drivers.current.phone) ||
+                      unmasked(drivers.current.phone_masked),
                   )
                 "
               />
               <InfoField
                 label="Отображаемое имя"
                 :value="
-                  drivers.personalData?.display_name ||
-                  drivers.current.display_name
+                  unmasked(drivers.personalData?.display_name) ||
+                  unmasked(drivers.current.display_name) ||
+                  '—'
                 "
               />
               <InfoField label="Реферал" :value="drivers.current.referral_code" />

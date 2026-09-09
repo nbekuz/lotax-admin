@@ -37,24 +37,34 @@ const createForm = reactive({
   yandex_driver_id: '',
 })
 
+/** API may still send legacy *_masked keys; they now hold full values. Never show `И***`. */
+function unmasked(value?: string | null): string | null {
+  if (!value) return null
+  if (/[*•]/.test(value)) return null
+  return value
+}
+
 function driverFirstName(d: DriverListItem) {
-  return d.first_name || d.first_name_masked || d.display_name?.split(/\s+/)[0] || '—'
+  return (
+    unmasked(d.first_name) ||
+    unmasked(d.first_name_masked) ||
+    unmasked(d.display_name)?.split(/\s+/)[0] ||
+    '—'
+  )
 }
 
 function driverLastName(d: DriverListItem) {
-  return d.last_name || d.last_name_masked || '—'
+  return unmasked(d.last_name) || unmasked(d.last_name_masked) || '—'
 }
 
 function driverPhone(d: DriverListItem) {
-  return d.phone || d.phone_masked || null
+  return unmasked(d.phone) || unmasked(d.phone_masked)
 }
 
 function driverFullName(d: DriverListItem) {
   return (
-    d.display_name ||
-    [d.first_name || d.first_name_masked, d.last_name || d.last_name_masked]
-      .filter(Boolean)
-      .join(' ') ||
+    unmasked(d.display_name) ||
+    [driverFirstName(d), driverLastName(d)].filter((p) => p && p !== '—').join(' ') ||
     '—'
   )
 }
