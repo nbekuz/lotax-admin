@@ -257,7 +257,7 @@ onMounted(load)
         <a-form-item label="Название" required>
           <a-input
             v-model:value="form.title"
-            maxlength="100"
+            :maxlength="100"
             placeholder="Например: кофэман"
           />
         </a-form-item>
