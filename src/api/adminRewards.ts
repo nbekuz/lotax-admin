@@ -89,4 +89,12 @@ export const adminRewardsApi = {
   remove(rewardId: string) {
     return http.delete<RewardAdminItem>(`/admin/rewards/${rewardId}`)
   },
+
+  /** One row per purchased ticket — CSV or Excel for external randomizer. */
+  raffleExport(rewardId: string, format: 'csv' | 'xlsx') {
+    return http.get<Blob>(`/admin/rewards/${rewardId}/raffle-export`, {
+      params: { format },
+      responseType: 'blob',
+    })
+  },
 }

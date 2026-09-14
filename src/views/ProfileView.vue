@@ -21,6 +21,7 @@ import {
   roleLabel,
 } from '@/utils/labels'
 import InfoField from '@/components/InfoField.vue'
+import PageHeader from '@/components/PageHeader.vue'
 
 const auth = useAuthStore()
 
@@ -162,10 +163,10 @@ async function changePassword() {
 
 <template>
   <div v-if="auth.admin" class="mx-auto flex w-full max-w-3xl flex-col gap-4 md:gap-6">
-    <div>
-      <h1 class="lotax-page-title">Профиль</h1>
-      <p class="lotax-caption mt-1">Данные администратора и права роли</p>
-    </div>
+    <PageHeader
+      title="Профиль"
+      subtitle="Данные администратора и права роли"
+    />
 
     <section class="lotax-card p-4 md:p-6 xl:p-7">
       <div class="mb-5 flex flex-col items-center gap-3 text-center md:mb-6 md:flex-row md:items-center md:gap-4 md:text-left">

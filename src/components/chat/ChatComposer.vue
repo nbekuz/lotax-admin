@@ -22,7 +22,7 @@ function submit() {
 </script>
 
 <template>
-  <div class="chat-composer border-t border-line bg-white px-3 py-2.5 md:px-4">
+  <div class="chat-composer border-t border-line bg-surface-card px-3 py-2.5 md:px-4">
     <div class="flex items-end gap-2">
       <a-textarea
         v-model:value="text"

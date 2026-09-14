@@ -918,6 +918,16 @@ export interface PushNotifyPayload {
   data?: Record<string, string> | null
 }
 
+/** Super-admin broadcast: selected orgs or entire platform. */
+export interface SuperAdminPushNotifyPayload {
+  title: string
+  body: string
+  organization_ids?: string[]
+  all_organizations?: boolean
+  category?: PushNotifyCategory
+  data?: Record<string, string> | null
+}
+
 export interface PushNotifyResponse {
   success_count: number
   failure_count: number

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { TeamOutlined } from '@ant-design/icons-vue'
 import HubNavCard from '@/components/HubNavCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -28,10 +29,7 @@ function open(routeName: string) {
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div>
-      <h1 class="lotax-page-title">Сотрудники</h1>
-      <p class="lotax-caption mt-1">Управление менеджерами парка</p>
-    </div>
+    <PageHeader title="Сотрудники" subtitle="Управление менеджерами парка" />
 
     <div v-if="!links.length" class="lotax-card p-8 text-center lotax-caption">
       Разделы недоступны для вашей роли

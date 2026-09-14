@@ -90,7 +90,7 @@ const links = [
   padding: 8px 6px;
   border-radius: 999px;
   border: 1px solid var(--lotax-border);
-  background: #fff;
+  background: var(--lotax-card);
   color: var(--lotax-text-secondary);
   font-size: 12px;
   font-weight: 600;
@@ -105,13 +105,14 @@ const links = [
 
 .legal-nav__link:hover {
   color: var(--lotax-text);
-  border-color: #d4d4d8;
+  border-color: var(--lotax-border-strong);
+  background: var(--lotax-bg);
 }
 
 .legal-nav__link.is-active {
   color: var(--lotax-primary);
   background: var(--lotax-primary-soft);
-  border-color: transparent;
+  border-color: var(--lotax-primary-soft);
 }
 
 .legal-nav__full {

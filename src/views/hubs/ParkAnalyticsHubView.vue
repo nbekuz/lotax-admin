@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { BarChartOutlined, FileSearchOutlined } from '@ant-design/icons-vue'
 import HubNavCard from '@/components/HubNavCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -38,10 +39,10 @@ function open(routeName: string) {
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div>
-      <h1 class="lotax-page-title">Аналитика</h1>
-      <p class="lotax-caption mt-1">Отчёты и журнал работы с персональными данными</p>
-    </div>
+    <PageHeader
+      title="Аналитика"
+      subtitle="Отчёты и журнал работы с персональными данными"
+    />
 
     <div v-if="!links.length" class="lotax-card p-8 text-center lotax-caption">
       Разделы недоступны для вашей роли

@@ -22,6 +22,8 @@ import type {
   RewardAdminItem,
   RewardAdminListResponse,
   RewardAdminUpdatePayload,
+  SuperAdminPushNotifyPayload,
+  PushNotifyResponse,
 } from '@/types/api'
 
 export interface OrganizationsQuery {
@@ -249,5 +251,16 @@ export const superAdminApi = {
       ...payload,
       role: 'admin',
     })
+  },
+
+  raffleExport(rewardId: string, format: 'csv' | 'xlsx') {
+    return http.get<Blob>(`/super-admin/rewards/${rewardId}/raffle-export`, {
+      params: { format },
+      responseType: 'blob',
+    })
+  },
+
+  pushNotify(payload: SuperAdminPushNotifyPayload) {
+    return http.post<PushNotifyResponse>('/super-admin/push/notify', payload)
   },
 }

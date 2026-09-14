@@ -25,6 +25,7 @@ import type {
   AdminStatus,
   StaffAssignableRole,
 } from '@/types/api'
+import PageHeader from '@/components/PageHeader.vue'
 
 const auth = useAuthStore()
 const admins = useAdminsStore()
@@ -210,36 +211,34 @@ onMounted(load)
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div class="min-w-0">
-        <h1 class="lotax-page-title">Сотрудники</h1>
-        <p class="lotax-caption mt-1">
-          Менеджеры парка. Роль admin в парке не создаётся.
-        </p>
-      </div>
-
-      <div class="lotax-filter-stack md:flex md:flex-wrap md:items-center md:gap-2">
-        <a-select
-          v-model:value="roleFilter"
-          class="md:!w-44"
-          size="large"
-          :options="roleFilterOptions"
-        />
-        <a-button class="lotax-btn-secondary" @click="load">
-          <template #icon><ReloadOutlined /></template>
-          Обновить
-        </a-button>
-        <a-button
-          v-if="auth.creatableRoles.length"
-          type="primary"
-          class="lotax-btn-primary"
-          @click="openCreate"
-        >
-          <template #icon><PlusOutlined /></template>
-          Добавить
-        </a-button>
-      </div>
-    </div>
+    <PageHeader
+      title="Сотрудники"
+      subtitle="Менеджеры парка. Роль admin в парке не создаётся."
+    >
+      <template #actions>
+        <div class="lotax-filter-stack md:flex md:flex-wrap md:items-center md:gap-2">
+          <a-select
+            v-model:value="roleFilter"
+            class="md:!w-44"
+            size="large"
+            :options="roleFilterOptions"
+          />
+          <a-button class="lotax-btn-secondary" @click="load">
+            <template #icon><ReloadOutlined /></template>
+            Обновить
+          </a-button>
+          <a-button
+            v-if="auth.creatableRoles.length"
+            type="primary"
+            class="lotax-btn-primary"
+            @click="openCreate"
+          >
+            <template #icon><PlusOutlined /></template>
+            Добавить
+          </a-button>
+        </div>
+      </template>
+    </PageHeader>
 
     <!-- Mobile cards -->
     <div v-if="isMobile" class="flex flex-col gap-4">

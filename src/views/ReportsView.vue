@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons-vue'
 import { reportsApi } from '@/api/reports'
 import KpiCard from '@/components/KpiCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
 import {
@@ -195,12 +196,11 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Отчёт</h1>
-        <p class="lotax-caption mt-1">Сводка по водителям, поездкам и баллам за период</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
+    <PageHeader
+      title="Отчёт"
+      subtitle="Сводка по водителям, поездкам и баллам за период"
+    >
+      <template #actions>
         <a-range-picker
           v-model:value="dateRange"
           size="large"
@@ -237,8 +237,8 @@ onMounted(async () => {
           <template #icon><DownloadOutlined /></template>
           CSV
         </a-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <div v-if="loading && !summary" class="flex justify-center py-20">
       <a-spin size="large" />

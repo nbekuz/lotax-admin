@@ -7,6 +7,7 @@ import { adminOrdersApi } from '@/api/adminOrders'
 import { useOrgStore } from '@/stores/org'
 import { extractErrorMessage, formatPhone } from '@/utils/labels'
 import type { OrderAdminItem, OrderStatus } from '@/types/api'
+import PageHeader from '@/components/PageHeader.vue'
 
 const org = useOrgStore()
 const loading = ref(false)
@@ -110,14 +111,11 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Заявки на награды</h1>
-        <p class="lotax-caption mt-1">
-          По умолчанию — все парки организации. Модерация обменов баллов.
-        </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
+    <PageHeader
+      title="Заявки на награды"
+      subtitle="По умолчанию — все парки организации. Модерация обменов баллов."
+    >
+      <template #actions>
         <a-select
           v-model:value="parkFilter"
           class="!w-48"
@@ -140,8 +138,8 @@ onMounted(async () => {
           <template #icon><ReloadOutlined /></template>
           Обновить
         </a-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <div v-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>
     <div v-else-if="!items.length" class="lotax-card p-8 text-center lotax-caption">

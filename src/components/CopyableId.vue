@@ -29,7 +29,7 @@ async function copy() {
 <template>
   <div class="copyable-id">
     <p class="copyable-id__label">{{ label }}</p>
-    <div class="copyable-id__block">
+    <div class="copyable-id__block lotax-code">
       <code class="copyable-id__value">{{ value || '—' }}</code>
       <button
         v-if="value"
@@ -52,7 +52,7 @@ async function copy() {
   margin: 0 0 10px;
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--lotax-text-secondary);
 }
 
 .copyable-id__block {
@@ -60,9 +60,6 @@ async function copy() {
   flex-direction: column;
   gap: 12px;
   padding: 14px 16px;
-  border-radius: 12px;
-  background: #f8f9fb;
-  border: 1px solid #ececec;
 }
 
 @media (min-width: 768px) {
@@ -80,8 +77,11 @@ async function copy() {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
   line-height: 1.5;
-  color: #111111;
+  color: var(--lotax-text);
   word-break: break-all;
+  background: transparent;
+  padding: 0;
+  border: none;
 }
 
 .copyable-id__btn {
@@ -91,10 +91,10 @@ async function copy() {
   gap: 6px;
   height: 36px;
   padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid #ececec;
-  background: #fff;
-  color: #6b7280;
+  border-radius: var(--lotax-radius);
+  border: 1px solid var(--lotax-border);
+  background: var(--lotax-card);
+  color: var(--lotax-text-secondary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -115,9 +115,9 @@ async function copy() {
 
 @media (hover: hover) and (pointer: fine) {
   .copyable-id__btn:hover {
-    background: #f3f4f6;
-    color: #111111;
-    border-color: #d4d4d8;
+    background: var(--lotax-bg);
+    color: var(--lotax-text);
+    border-color: var(--lotax-border-strong);
   }
 
   .copyable-id__btn:hover .copyable-id__copy-icon {
@@ -130,8 +130,8 @@ async function copy() {
 }
 
 .copyable-id__btn.is-copied {
-  color: #22c55e;
-  border-color: #bbf7d0;
-  background: #f0fdf4;
+  color: var(--lotax-success);
+  border-color: var(--lotax-success);
+  background: var(--lotax-success-soft);
 }
 </style>

@@ -62,13 +62,14 @@ async function onSubmit() {
 <template>
   <div class="relative flex min-h-full items-center justify-center overflow-hidden p-4 md:p-6">
     <div
-      class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(247,147,26,0.12),_transparent_55%),linear-gradient(180deg,#F8F9FB_0%,#FFFFFF_100%)]"
+      class="pointer-events-none absolute inset-0"
+      style="background: radial-gradient(ellipse at top, var(--lotax-primary-soft), transparent 55%), linear-gradient(180deg, var(--lotax-bg) 0%, #ffffff 100%)"
     />
     <div
       class="pointer-events-none absolute -left-24 top-24 h-72 w-72 rounded-full bg-brand/10 blur-3xl"
     />
     <div
-      class="pointer-events-none absolute -right-16 bottom-16 h-64 w-64 rounded-full bg-amber-200/30 blur-3xl"
+      class="pointer-events-none absolute -right-16 bottom-16 h-64 w-64 rounded-full bg-amber-200/25 blur-3xl"
     />
 
     <div class="relative w-full max-w-md">
@@ -81,7 +82,7 @@ async function onSubmit() {
         </BrandMark>
       </div>
 
-      <div class="lotax-card rounded-[20px] p-5 shadow-card-hover md:rounded-dialog md:p-8">
+      <div class="lotax-card p-5 md:p-8">
         <a-form
           :model="form"
           :rules="rules"
@@ -114,7 +115,7 @@ async function onSubmit() {
             html-type="submit"
             size="large"
             block
-            class="lotax-btn-primary !mt-2 !h-[50px] md:!h-11"
+            class="lotax-btn-primary !mt-2 !h-12"
             :loading="loading"
           >
             Войти

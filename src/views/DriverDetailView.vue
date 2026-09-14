@@ -358,7 +358,7 @@ watch(driverId, () => {
         <a-button
           v-if="auth.canAdjustPoints"
           type="primary"
-          class="driver-btn driver-btn--primary"
+          class="lotax-btn-primary"
           @click="balanceOpen = true"
         >
           <template #icon><WalletOutlined /></template>
@@ -366,7 +366,7 @@ watch(driverId, () => {
         </a-button>
         <a-button
           v-if="auth.canAdjustTier"
-          class="driver-btn driver-btn--secondary"
+          class="lotax-btn-secondary"
           @click="openTierModal"
         >
           <template #icon><TrophyOutlined /></template>
@@ -375,7 +375,7 @@ watch(driverId, () => {
         <a-button
           v-if="auth.canEditStatus && drivers.current.status === 'pending'"
           type="primary"
-          class="driver-btn driver-btn--primary"
+          class="lotax-btn-primary"
           @click="confirmActivate"
         >
           <template #icon><CheckCircleOutlined /></template>
@@ -383,7 +383,7 @@ watch(driverId, () => {
         </a-button>
         <a-button
           v-if="auth.canEditStatus"
-          class="driver-btn driver-btn--secondary"
+          class="lotax-btn-secondary"
           @click="statusOpen = true"
         >
           <template #icon><EditOutlined /></template>
@@ -391,7 +391,7 @@ watch(driverId, () => {
         </a-button>
         <a-button
           v-if="auth.canEditStatus && drivers.current.status !== 'blocked' && drivers.current.status !== 'pending'"
-          class="driver-btn driver-btn--danger"
+          class="lotax-btn-danger"
           @click="confirmBlock"
         >
           <template #icon><StopOutlined /></template>
@@ -409,7 +409,7 @@ watch(driverId, () => {
     </div>
 
     <!-- Summary -->
-    <section class="summary-card">
+    <section class="summary-card lotax-card">
       <!-- 1. Identity -->
       <div class="summary-card__identity">
         <div class="summary-card__avatar" aria-hidden="true">{{ initials }}</div>
@@ -484,7 +484,7 @@ watch(driverId, () => {
     <a-tabs v-model:activeKey="activeTab" class="driver-tabs" @change="onTabChange">
       <a-tab-pane key="profile" tab="Профиль">
         <section class="driver-detail__section info-grid">
-          <div class="detail-card">
+          <div class="detail-card lotax-card">
             <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="flex flex-col gap-1">
                 <h2 class="lotax-section-title">Профиль</h2>
@@ -576,7 +576,7 @@ watch(driverId, () => {
             </div>
           </div>
 
-          <div class="detail-card">
+          <div class="detail-card lotax-card">
             <h2 class="lotax-section-title mb-6">ID Яндекс</h2>
             <div class="flex flex-col gap-6">
               <CopyableId label="ID водителя" :value="drivers.current.yandex_driver_id" />
@@ -587,7 +587,7 @@ watch(driverId, () => {
       </a-tab-pane>
 
       <a-tab-pane key="rides" tab="Поездки">
-        <section class="detail-card">
+        <section class="detail-card lotax-card">
           <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 class="lotax-section-title">Поездки</h2>
@@ -801,24 +801,24 @@ watch(driverId, () => {
   height: 40px;
   padding: 0 14px;
   margin-bottom: 16px;
-  border-radius: 12px;
-  border: 1px solid #ececec;
-  background: #fff;
-  color: #6b7280;
+  border-radius: var(--lotax-radius);
+  border: 1px solid var(--lotax-border);
+  background: var(--lotax-card);
+  color: var(--lotax-text-secondary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition:
-    background 180ms ease,
-    color 180ms ease,
-    border-color 180ms ease;
+    background var(--lotax-transition),
+    color var(--lotax-transition),
+    border-color var(--lotax-transition);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .driver-back:hover {
     background: #f3f4f6;
-    color: #111111;
-    border-color: #d4d4d8;
+    color: var(--lotax-text);
+    border-color: var(--lotax-border-strong);
   }
 }
 
@@ -826,7 +826,7 @@ watch(driverId, () => {
   margin: 0 0 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--lotax-text-secondary);
 }
 
 .driver-detail__title {
@@ -835,7 +835,7 @@ watch(driverId, () => {
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.15;
-  color: #111111;
+  color: var(--lotax-text);
   word-break: break-word;
 }
 
@@ -854,87 +854,19 @@ watch(driverId, () => {
   }
 }
 
-.driver-btn {
-  height: 44px !important;
-  border-radius: 14px !important;
-  font-weight: 500 !important;
-  padding-inline: 16px !important;
-  transition:
-    transform 180ms ease,
-    background 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease !important;
-}
-
 @media (max-width: 767px) {
-  .driver-btn {
-    width: 100% !important;
-  }
-}
-
-.driver-btn--primary {
-  background: #f7931a !important;
-  border-color: #f7931a !important;
-  box-shadow: 0 1px 2px rgba(247, 147, 26, 0.25) !important;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .driver-btn--primary:hover:not(:disabled) {
-    background: #e8860f !important;
-    border-color: #e8860f !important;
-    transform: translateY(-1px);
-  }
-}
-
-.driver-btn--secondary {
-  background: #fff !important;
-  border-color: #ececec !important;
-  color: #111111 !important;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .driver-btn--secondary:hover:not(:disabled) {
-    background: #fafafa !important;
-    border-color: #d4d4d8 !important;
-    transform: translateY(-1px);
-  }
-}
-
-.driver-btn--danger {
-  background: #fff !important;
-  border-color: #fecaca !important;
-  color: #ef4444 !important;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .driver-btn--danger:hover:not(:disabled) {
-    background: #fef2f2 !important;
-    border-color: #ef4444 !important;
-    transform: translateY(-1px);
+  .driver-actions :deep(.ant-btn) {
+    width: 100%;
   }
 }
 
 .detail-card {
   padding: 20px;
-  border-radius: 24px;
-  background: #fff;
-  border: 1px solid #ececec;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.05);
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease;
 }
 
 @media (min-width: 768px) {
   .detail-card {
     padding: 28px;
-  }
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .detail-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.07);
   }
 }
 
@@ -944,10 +876,7 @@ watch(driverId, () => {
   gap: 24px;
   align-items: center;
   padding: 24px;
-  border-radius: 28px;
-  background: #fff;
-  border: 1px solid #ececec;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.05);
+  border-radius: var(--lotax-radius-xl);
 }
 
 @media (min-width: 768px) {
@@ -996,12 +925,12 @@ watch(driverId, () => {
   width: 72px;
   height: 72px;
   flex-shrink: 0;
-  border-radius: 20px;
-  background: linear-gradient(180deg, #ffb000 0%, #f7931a 50%, #e67e00 100%);
+  border-radius: var(--lotax-radius-xl);
+  background: var(--lotax-primary);
   color: #fff;
   font-size: 24px;
   font-weight: 700;
-  box-shadow: 0 8px 24px rgba(247, 147, 26, 0.28);
+  box-shadow: 0 8px 24px var(--lotax-primary-strong);
 }
 
 .summary-card__name {
@@ -1009,7 +938,7 @@ watch(driverId, () => {
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: #111111;
+  color: var(--lotax-text);
   word-break: break-word;
 }
 
@@ -1040,12 +969,12 @@ watch(driverId, () => {
 
 .summary-meta__icon--calendar {
   background: #f3f4f6;
-  color: #6b7280;
+  color: var(--lotax-text-secondary);
 }
 
 .summary-meta__icon--gift {
-  background: #fff4e8;
-  color: #f7931a;
+  background: var(--lotax-primary-soft);
+  color: var(--lotax-primary);
 }
 
 .summary-meta__body {
@@ -1056,14 +985,14 @@ watch(driverId, () => {
   margin: 0 0 4px;
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--lotax-text-secondary);
 }
 
 .summary-meta__value {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #111111;
+  color: var(--lotax-text);
   word-break: break-word;
 }
 
@@ -1104,7 +1033,7 @@ watch(driverId, () => {
   height: 40px;
   margin: 0 16px;
   flex-shrink: 0;
-  background: #ececec;
+  background: var(--lotax-border);
 }
 
 .summary-balance__icon {
@@ -1119,20 +1048,20 @@ watch(driverId, () => {
 }
 
 .summary-balance__icon--system {
-  background: #eef4ff;
-  color: #3b82f6;
+  background: var(--lotax-info-soft);
+  color: var(--lotax-info);
 }
 
 .summary-balance__icon--park {
-  background: #ecfdf3;
-  color: #22c55e;
+  background: var(--lotax-success-soft);
+  color: var(--lotax-success);
 }
 
 .summary-balance__label {
   margin: 0 0 2px;
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--lotax-text-secondary);
 }
 
 .summary-balance__value {
@@ -1141,7 +1070,7 @@ watch(driverId, () => {
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  color: #111111;
+  color: var(--lotax-text);
   font-variant-numeric: tabular-nums;
 }
 

@@ -5,6 +5,7 @@ import { ReloadOutlined } from '@ant-design/icons-vue'
 import { superAdminApi } from '@/api/superAdmin'
 import { extractErrorMessage } from '@/utils/labels'
 import type { AdminListItem } from '@/types/api'
+import PageHeader from '@/components/PageHeader.vue'
 
 const loading = ref(false)
 const items = ref<AdminListItem[]>([])
@@ -42,18 +43,17 @@ onMounted(load)
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Директоры платформы</h1>
-        <p class="lotax-caption mt-1">
-          Активные директора и их организации
-        </p>
-      </div>
-      <a-button class="lotax-btn-secondary" @click="load">
-        <template #icon><ReloadOutlined /></template>
-        Обновить
-      </a-button>
-    </div>
+    <PageHeader
+      title="Директоры платформы"
+      subtitle="Активные директора и их организации"
+    >
+      <template #actions>
+        <a-button class="lotax-btn-secondary" @click="load">
+          <template #icon><ReloadOutlined /></template>
+          Обновить
+        </a-button>
+      </template>
+    </PageHeader>
 
     <div v-if="loading && !items.length" class="flex justify-center py-20">
       <a-spin size="large" />

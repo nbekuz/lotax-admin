@@ -60,7 +60,7 @@ const bubbleClass = computed(() => {
 }
 
 .chat-bubble--other {
-  background: #fff;
+  background: var(--lotax-card);
   color: var(--lotax-text);
   border: 1px solid var(--lotax-border);
 }

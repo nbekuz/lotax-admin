@@ -20,6 +20,7 @@ import {
   SettingOutlined,
   TeamOutlined,
   UserOutlined,
+  NotificationOutlined,
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
@@ -43,6 +44,7 @@ const selectedKeys = computed(() => {
   if (route.path.startsWith('/directors')) return ['directors']
   if (route.path.startsWith('/platform-admins')) return ['platform-admins']
   if (route.path.startsWith('/system-rewards')) return ['system-rewards']
+  if (route.path.startsWith('/platform-push')) return ['platform-push']
   if (route.path.startsWith('/banners')) return ['banners']
   if (route.path.startsWith('/deleted-drivers')) return ['deleted-drivers']
   if (route.path === '/analytics' || route.path.startsWith('/reports') || route.path.startsWith('/pdn')) {
@@ -127,7 +129,6 @@ function chatMenuLabel(text: string, unread = chat.totalUnread) {
 }
 
 const menuItems = computed(() => {
-  // Track unread badge updates in sidebar labels.
   const unreadCount = chat.totalUnread
 
   if (auth.isPlatformOperator) {
@@ -163,6 +164,12 @@ const menuItems = computed(() => {
         icon: () => h(GiftOutlined),
         label: 'Каталог LOTAX',
         title: 'Каталог LOTAX',
+      })
+      items.push({
+        key: 'platform-push',
+        icon: () => h(NotificationOutlined),
+        label: 'Push',
+        title: 'Push по организациям',
       })
       items.push({
         key: 'banners',
@@ -285,6 +292,17 @@ const userInitial = computed(() =>
   (auth.admin?.first_name?.[0] || auth.admin?.email?.[0] || 'A').toUpperCase(),
 )
 
+const headerTitle = computed(() => String(route.meta.title || 'Lotax'))
+
+const isDetailRoute = computed(
+  () =>
+    route.name === 'driver-detail' ||
+    route.name === 'organization-detail' ||
+    route.name === 'task-progress' ||
+    route.name === 'competition-leaderboard' ||
+    route.name === 'chat-conversation',
+)
+
 onMounted(async () => {
   if (auth.isParkAdmin) {
     try {
@@ -368,17 +386,17 @@ function toggleNav() {
       class="lotax-sider !bg-white"
     >
       <div
-        class="flex h-16 items-center border-b border-line px-4 xl:h-[72px]"
+        class="lotax-sider__brand flex items-center border-b border-line px-4"
         :class="collapsed ? 'justify-center' : 'justify-start'"
       >
         <BrandMark
-          :size="collapsed ? 36 : 44"
+          :size="collapsed ? 34 : 40"
           :show-wordmark="!collapsed"
           layout="inline"
         />
       </div>
 
-      <div class="px-2 py-4">
+      <div class="lotax-sider__menu flex-1 overflow-y-auto px-1 py-3">
         <a-menu
           theme="light"
           mode="inline"
@@ -394,15 +412,15 @@ function toggleNav() {
     <a-drawer
       v-model:open="drawerOpen"
       placement="left"
-      :width="280"
+      :width="288"
       :closable="false"
       class="lotax-nav-drawer"
       :body-style="{ padding: 0 }"
     >
-      <div class="flex h-16 items-center border-b border-line px-4">
-        <BrandMark :size="40" layout="inline" />
+      <div class="flex h-14 items-center border-b border-line px-4">
+        <BrandMark :size="36" layout="inline" />
       </div>
-      <div class="px-2 py-4">
+      <div class="px-1 py-3">
         <a-menu
           theme="light"
           mode="inline"
@@ -412,7 +430,7 @@ function toggleNav() {
           @click="onMenuClick"
         />
       </div>
-      <div class="absolute inset-x-0 bottom-0 border-t border-line p-4">
+      <div class="absolute inset-x-0 bottom-0 border-t border-line bg-white p-4">
         <a-button class="lotax-btn-secondary w-full" block @click="logout">
           <template #icon><LogoutOutlined /></template>
           Выйти
@@ -421,13 +439,11 @@ function toggleNav() {
     </a-drawer>
 
     <a-layout class="!min-w-0 !bg-surface">
-      <a-layout-header
-        class="lotax-topbar !sticky !top-0 !z-20 !flex !h-14 !items-center !justify-between !bg-white/95 !px-4 !backdrop-blur-md md:!h-16 md:!px-6 xl:!h-[72px]"
-      >
+      <a-layout-header class="lotax-topbar">
         <div class="flex min-w-0 flex-1 items-center gap-3">
           <button
             type="button"
-            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-muted transition-all duration-fast md:hover:border-zinc-300 md:hover:text-ink"
+            class="lotax-icon-btn"
             :aria-label="isMobile ? 'Открыть меню' : collapsed ? 'Развернуть меню' : 'Свернуть меню'"
             @click="toggleNav"
           >
@@ -437,26 +453,24 @@ function toggleNav() {
           </button>
 
           <div class="min-w-0 flex-1">
-            <div
-              class="truncate tracking-tight"
+            <p
+              class="truncate"
               :class="
-                route.name === 'driver-detail' ||
-                route.name === 'organization-detail'
-                  ? 'text-[13px] font-medium text-ink-muted md:text-[14px]'
-                  : 'text-base font-semibold text-ink md:text-[20px]'
+                isDetailRoute
+                  ? 'text-[13px] font-medium text-ink-muted'
+                  : 'text-[15px] font-semibold tracking-tight text-ink md:text-base'
               "
             >
-              {{ route.meta.title || 'Lotax' }}
-            </div>
+              {{ headerTitle }}
+            </p>
           </div>
         </div>
 
-        <div class="flex shrink-0 items-center gap-2 md:gap-3">
+        <div class="flex shrink-0 items-center gap-2 md:gap-2.5">
           <a-select
             v-if="auth.isParkAdmin && org.hasMultipleOrgs"
             :value="org.organization?.id"
-            class="!w-36 md:!w-44"
-            size="large"
+            class="!w-32 md:!w-44"
             :options="orgSelectOptions"
             :loading="org.switching"
             placeholder="Организация"
@@ -465,30 +479,43 @@ function toggleNav() {
           <a-select
             v-if="auth.isParkAdmin && parkSelectOptions.length"
             :value="org.selectedParkId ?? undefined"
-            class="!w-36 md:!w-48"
-            size="large"
+            class="!w-32 md:!w-44"
             :options="parkSelectOptions"
             placeholder="Парк"
             @change="(v) => onParkChange(String(v))"
           />
 
-
-          <div class="hidden text-[15px] font-medium text-ink lg:block">
+          <div
+            class="hidden max-w-[180px] truncate text-[13px] font-medium text-ink-muted xl:block"
+          >
             {{ auth.fullName || auth.admin?.email }}
           </div>
 
           <button
             type="button"
-            class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-soft text-[13px] font-semibold text-brand md:hidden"
+            class="lotax-avatar-btn md:hidden"
             aria-label="Профиль"
             @click="router.push('/profile')"
           >
             {{ userInitial }}
           </button>
 
-          <a-button class="lotax-btn-secondary !hidden md:!inline-flex" @click="logout">
+          <button
+            type="button"
+            class="lotax-avatar-btn hidden md:inline-flex"
+            :title="auth.fullName || auth.admin?.email || 'Профиль'"
+            aria-label="Профиль"
+            @click="router.push('/profile')"
+          >
+            {{ userInitial }}
+          </button>
+
+          <a-button
+            class="lotax-btn-secondary !hidden lg:!inline-flex"
+            @click="logout"
+          >
             <template #icon><LogoutOutlined /></template>
-            <span class="hidden lg:inline">Выйти</span>
+            Выйти
           </a-button>
         </div>
       </a-layout-header>
@@ -505,34 +532,111 @@ function toggleNav() {
 <style scoped>
 .lotax-sider {
   border-right: 1px solid var(--lotax-border) !important;
-  transition: width 150ms ease !important;
+  transition: width 160ms ease !important;
   position: sticky !important;
   top: 0;
   height: 100vh;
-  overflow: auto;
+  overflow: hidden;
+  z-index: 30;
+}
+
+.lotax-sider__brand {
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.lotax-sider__menu {
+  min-height: 0;
 }
 
 .lotax-topbar {
+  position: sticky !important;
+  top: 0;
+  z-index: 20;
+  display: flex !important;
+  height: 64px !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px;
+  padding-inline: 16px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--lotax-border);
+  line-height: 1.2 !important;
+}
+
+@media (min-width: 768px) {
+  .lotax-topbar {
+    padding-inline: 24px !important;
+  }
+}
+
+.lotax-icon-btn {
+  display: inline-flex;
+  height: 40px;
+  width: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid var(--lotax-border);
+  background: #fff;
+  color: var(--lotax-text-secondary);
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lotax-icon-btn:hover {
+    border-color: var(--lotax-border-strong);
+    color: var(--lotax-text);
+    background: #fafafa;
+  }
+}
+
+.lotax-avatar-btn {
+  display: inline-flex;
+  height: 36px;
+  width: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--lotax-primary-soft);
+  color: var(--lotax-primary);
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lotax-avatar-btn:hover {
+    background: var(--lotax-primary-strong);
+  }
 }
 
 :deep(.ant-layout-sider-children) {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 :deep(.ant-menu-item-selected) {
   position: relative;
 }
 
-:deep(.ant-menu-item-selected)::before {
+:deep(.ant-menu-item-selected::before) {
   content: '';
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
-  height: 20px;
+  height: 18px;
   border-radius: 0 4px 4px 0;
   background: var(--lotax-primary);
 }

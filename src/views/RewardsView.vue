@@ -2,12 +2,18 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { DownloadOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { adminRewardIconsApi } from '@/api/adminRewardIcons'
 import { adminRewardsApi } from '@/api/adminRewards'
 import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
+import {
+  filenameFromContentDisposition,
+  messageFromBlobError,
+  triggerBlobDownload,
+} from '@/utils/download'
 import { extractErrorMessage, rewardTypeLabel, tierLabel } from '@/utils/labels'
 import {
   defaultSpecificScope,
@@ -70,6 +76,7 @@ const tierOptions = [
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageRewards)
 const isRaffle = computed(() => form.type === 'raffle_coupon')
+const exportingId = ref<string | null>(null)
 
 const selectedIcon = computed(() =>
   icons.value.find((i) => i.id === form.icon_id) ?? null,
@@ -178,6 +185,9 @@ async function save() {
       form.type === 'raffle_coupon' && raffleDate.value
         ? raffleDate.value.toISOString()
         : null
+    // Raffle: backend forces one_per_driver=false; never send true from UI.
+    const one_per_driver =
+      form.type === 'raffle_coupon' ? false : form.one_per_driver
     if (editing.value) {
       const hadIcon = Boolean(editing.value.icon_id || editing.value.icon?.id)
       const clear_icon = hadIcon && !form.icon_id
@@ -189,7 +199,7 @@ async function save() {
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
-        one_per_driver: form.one_per_driver,
+        one_per_driver,
         raffle_date,
         icon_id: form.icon_id || null,
         clear_icon: clear_icon || undefined,
@@ -212,7 +222,7 @@ async function save() {
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
-        one_per_driver: form.one_per_driver,
+        one_per_driver,
         raffle_date,
         icon_id: form.icon_id || null,
         scope_type: scope.value.scope_type,
@@ -241,6 +251,34 @@ async function deactivate(item: RewardAdminItem) {
   }
 }
 
+async function downloadRaffle(item: RewardAdminItem, format: 'csv' | 'xlsx') {
+  exportingId.value = `${item.id}:${format}`
+  try {
+    const response = await adminRewardsApi.raffleExport(item.id, format)
+    const fallback =
+      format === 'xlsx'
+        ? `raffle_${item.id}.xlsx`
+        : `raffle_${item.id}.csv`
+    const filename = filenameFromContentDisposition(
+      response.headers['content-disposition'] as string | undefined,
+      fallback,
+    )
+    const mime =
+      format === 'xlsx'
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'text/csv;charset=utf-8'
+    const blob =
+      response.data instanceof Blob
+        ? response.data
+        : new Blob([response.data], { type: mime })
+    triggerBlobDownload(blob, filename)
+  } catch (e) {
+    message.error(await messageFromBlobError(e, 'Не удалось скачать файл'))
+  } finally {
+    exportingId.value = null
+  }
+}
+
 watch(parkId, load)
 onMounted(async () => {
   if (!org.parks.length) await org.fetchParks()
@@ -250,17 +288,16 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Награды парка</h1>
-        <p class="lotax-caption mt-1">
+    <PageHeader title="Награды парка">
+      <template #description>
+        <p class="lotax-page-subtitle">
           Парковые баллы · иконка из
           <router-link class="text-brand underline" :to="{ name: 'reward-icons' }">
             каталога организации
           </router-link>
         </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
+      </template>
+      <template #actions>
         <a-button class="lotax-btn-secondary" @click="$router.push({ name: 'reward-icons' })">
           Иконки
         </a-button>
@@ -278,8 +315,8 @@ onMounted(async () => {
           <template #icon><PlusOutlined /></template>
           Добавить
         </a-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <div v-if="!parkId" class="lotax-card p-8 text-center">Выберите парк в шапке</div>
     <div v-else-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>
@@ -318,16 +355,37 @@ onMounted(async () => {
               {{ item.is_active ? 'активна' : 'неактивна' }}
               · {{ scopeLabel(item.scope) }}
               <template v-if="iconTitle(item)"> · {{ iconTitle(item) }}</template>
-              <template v-if="item.one_per_driver"> · 1 на водителя</template>
+              <template v-if="item.one_per_driver && item.type !== 'raffle_coupon'">
+                · 1 на водителя
+              </template>
               <template v-if="item.raffle_date">
                 · розыгрыш {{ dayjs(item.raffle_date).format('DD.MM.YYYY') }}
               </template>
             </div>
           </div>
         </div>
-        <div v-if="canEdit" class="flex gap-2">
-          <a-button class="lotax-btn-secondary" @click="openEdit(item)">Изменить</a-button>
-          <a-button v-if="item.is_active" danger @click="deactivate(item)">Выкл.</a-button>
+        <div class="flex flex-wrap gap-2">
+          <a-dropdown v-if="item.type === 'raffle_coupon'" :trigger="['click']">
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="exportingId?.startsWith(item.id)"
+            >
+              <template #icon><DownloadOutlined /></template>
+              Скачать для рандомайзера
+            </a-button>
+            <template #overlay>
+              <a-menu
+                @click="({ key }: { key: string | number }) => downloadRaffle(item, String(key) as 'csv' | 'xlsx')"
+              >
+                <a-menu-item key="csv">CSV</a-menu-item>
+                <a-menu-item key="xlsx">Excel (XLSX)</a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <template v-if="canEdit">
+            <a-button class="lotax-btn-secondary" @click="openEdit(item)">Изменить</a-button>
+            <a-button v-if="item.is_active" danger @click="deactivate(item)">Выкл.</a-button>
+          </template>
         </div>
       </article>
     </div>
@@ -430,7 +488,7 @@ onMounted(async () => {
               :disabled="Boolean(editing)"
             />
           </a-form-item>
-          <a-form-item label="Стоимость">
+          <a-form-item :label="isRaffle ? 'Стоимость билета' : 'Стоимость'">
             <a-input-number
               v-model:value="form.points_cost"
               class="!w-full"
@@ -439,7 +497,7 @@ onMounted(async () => {
             />
             <p class="lotax-caption mt-1">Только парковые баллы</p>
           </a-form-item>
-          <a-form-item label="Запас (пусто — без лимита)">
+          <a-form-item :label="isRaffle ? 'Запас билетов (пусто — без лимита)' : 'Запас (пусто — без лимита)'">
             <a-input-number
               v-model:value="form.stock_total"
               class="!w-full"
@@ -454,14 +512,6 @@ onMounted(async () => {
             <a-input-number v-model:value="form.sort_order" class="!w-full" :min="0" />
           </a-form-item>
         </div>
-        <a-form-item v-if="isRaffle" label="Один на водителя">
-          <div class="flex items-center gap-2">
-            <a-switch v-model:checked="form.one_per_driver" />
-            <span class="text-[13px] text-ink-muted">
-              {{ form.one_per_driver ? 'Да' : 'Нет' }}
-            </span>
-          </div>
-        </a-form-item>
         <a-form-item v-if="isRaffle" label="Дата розыгрыша">
           <a-date-picker
             v-model:value="raffleDate"
@@ -469,6 +519,9 @@ onMounted(async () => {
             show-time
             format="DD.MM.YYYY HH:mm"
           />
+          <p class="lotax-caption mt-1">
+            Водитель может купить несколько билетов · победитель выбирается вне приложения
+          </p>
         </a-form-item>
         <ScopeFields v-model="scope" />
         <a-form-item label="Статус">

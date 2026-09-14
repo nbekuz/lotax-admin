@@ -11,6 +11,7 @@ import {
   OrderedListOutlined,
 } from '@ant-design/icons-vue'
 import HubNavCard from '@/components/HubNavCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -91,12 +92,10 @@ function open(routeName: string) {
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div>
-      <h1 class="lotax-page-title">Настройки парка</h1>
-      <p class="lotax-caption mt-1">
-        Правила, уровни, интеграции и сервисные параметры
-      </p>
-    </div>
+    <PageHeader
+      title="Настройки парка"
+      subtitle="Правила, уровни, интеграции и сервисные параметры"
+    />
 
     <div v-if="!links.length" class="lotax-card p-8 text-center lotax-caption">
       Разделы недоступны для вашей роли

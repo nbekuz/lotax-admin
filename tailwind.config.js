@@ -13,23 +13,24 @@ export default {
     extend: {
       colors: {
         brand: {
-          DEFAULT: '#F7931A',
-          hover: '#E8860F',
-          soft: 'rgba(247, 147, 26, 0.1)',
-          dark: '#111111',
+          DEFAULT: 'var(--lotax-primary)',
+          hover: 'var(--lotax-primary-hover)',
+          soft: 'var(--lotax-primary-soft)',
+          dark: 'var(--lotax-text)',
         },
         surface: {
-          DEFAULT: '#F8F9FB',
-          card: '#FFFFFF',
+          DEFAULT: 'var(--lotax-bg)',
+          card: 'var(--lotax-card)',
         },
-        line: '#ECECEC',
+        line: 'var(--lotax-border)',
         ink: {
-          DEFAULT: '#111111',
-          muted: '#6B7280',
+          DEFAULT: 'var(--lotax-text)',
+          muted: 'var(--lotax-text-secondary)',
+          tertiary: 'var(--lotax-text-tertiary)',
         },
-        danger: '#EF4444',
-        success: '#22C55E',
-        warning: '#F59E0B',
+        danger: 'var(--lotax-danger)',
+        success: 'var(--lotax-success)',
+        warning: 'var(--lotax-warning)',
       },
       fontFamily: {
         sans: [
@@ -45,22 +46,22 @@ export default {
         ],
       },
       fontSize: {
-        title: ['clamp(1.75rem, 1.5rem + 1.2vw, 2.25rem)', { lineHeight: '1.2', fontWeight: '600' }],
-        section: ['clamp(1.25rem, 1.15rem + 0.4vw, 1.375rem)', { lineHeight: '1.3', fontWeight: '600' }],
-        body: ['clamp(0.875rem, 0.85rem + 0.15vw, 0.9375rem)', { lineHeight: '1.5' }],
-        caption: ['clamp(0.75rem, 0.72rem + 0.1vw, 0.8125rem)', { lineHeight: '1.4' }],
+        title: ['clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem)', { lineHeight: '1.25', fontWeight: '650' }],
+        section: ['clamp(1.05rem, 1rem + 0.3vw, 1.2rem)', { lineHeight: '1.3', fontWeight: '600' }],
+        body: ['0.9375rem', { lineHeight: '1.5' }],
+        caption: ['0.8125rem', { lineHeight: '1.4' }],
       },
       borderRadius: {
-        card: '16px',
-        dialog: '24px',
+        card: 'var(--lotax-radius-lg)',
+        control: 'var(--lotax-radius)',
+        dialog: 'var(--lotax-radius-xl)',
       },
       boxShadow: {
-        card: '0 1px 2px rgba(17, 17, 17, 0.04), 0 4px 16px rgba(17, 17, 17, 0.04)',
-        'card-hover':
-          '0 4px 12px rgba(17, 17, 17, 0.06), 0 12px 32px rgba(17, 17, 17, 0.06)',
+        card: 'var(--lotax-shadow)',
+        'card-hover': 'var(--lotax-shadow-hover)',
       },
       transitionDuration: {
-        fast: '150ms',
+        fast: '160ms',
       },
       spacing: {
         'page-mobile': '16px',

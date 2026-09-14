@@ -11,6 +11,7 @@ import {
 import { adminTaskTemplatesApi } from '@/api/adminTaskTemplates'
 import { adminTasksApi } from '@/api/adminTasks'
 import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
 import {
@@ -397,14 +398,11 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Задания</h1>
-        <p class="lotax-caption mt-1">
-          Дефолтные задания парка и свои. Баллы — только парковые.
-        </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
+    <PageHeader
+      title="Задания"
+      subtitle="Дефолтные задания парка и свои. Баллы — только парковые."
+    >
+      <template #actions>
         <a-button class="lotax-btn-secondary" @click="load">
           <template #icon><ReloadOutlined /></template>
           Обновить
@@ -419,8 +417,8 @@ onMounted(async () => {
           <template #icon><PlusOutlined /></template>
           Своё задание
         </a-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <div v-if="!parkId" class="lotax-card p-8 text-center">Выберите парк в шапке</div>
     <div v-else-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>

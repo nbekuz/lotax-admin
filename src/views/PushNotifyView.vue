@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
 import { extractErrorMessage } from '@/utils/labels'
 import type { PushNotifyCategory } from '@/types/api'
+import PageHeader from '@/components/PageHeader.vue'
 
 const auth = useAuthStore()
 const org = useOrgStore()
@@ -65,12 +66,10 @@ onMounted(async () => {
 
 <template>
   <div class="mx-auto flex w-full max-w-xl flex-col gap-4 md:gap-6">
-    <div>
-      <h1 class="lotax-page-title">Push-уведомления</h1>
-      <p class="lotax-caption mt-1">
-        Отправка водителям выбранного парка (нужны device tokens)
-      </p>
-    </div>
+    <PageHeader
+      title="Push-уведомления"
+      subtitle="Отправка водителям выбранного парка (нужны device tokens)"
+    />
 
     <section class="lotax-card p-5 md:p-7">
       <a-form layout="vertical">

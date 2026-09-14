@@ -33,7 +33,7 @@ function previewText(conversation: ChatConversation) {
 </script>
 
 <template>
-  <div class="chat-sidebar flex h-full min-h-0 flex-col bg-white">
+  <div class="chat-sidebar flex h-full min-h-0 flex-col bg-surface-card">
     <div class="chat-sidebar__toolbar">
       <div class="min-w-0 flex-1">
         <div class="text-[17px] font-semibold tracking-tight text-ink">Чаты</div>
@@ -135,7 +135,7 @@ function previewText(conversation: ChatConversation) {
   min-height: 56px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--lotax-border);
-  background: #fff;
+  background: var(--lotax-card);
 }
 
 .chat-sidebar__list {
@@ -178,16 +178,16 @@ function previewText(conversation: ChatConversation) {
 }
 
 .chat-sidebar__item:focus-visible {
-  outline: 2px solid rgba(247, 147, 26, 0.45);
+  outline: 2px solid var(--lotax-primary);
   outline-offset: -2px;
 }
 
 .chat-sidebar__item--active {
-  background: rgba(247, 147, 26, 0.08);
+  background: var(--lotax-primary-soft);
 }
 
 .chat-sidebar__item--active:hover {
-  background: rgba(247, 147, 26, 0.1);
+  background: var(--lotax-primary-strong);
 }
 
 .chat-sidebar__avatar {
@@ -204,13 +204,13 @@ function previewText(conversation: ChatConversation) {
 }
 
 .chat-sidebar__avatar--support {
-  background: linear-gradient(145deg, #fff1df 0%, #ffd9a8 100%);
-  color: #c56a00;
+  background: var(--lotax-primary-soft);
+  color: var(--lotax-primary);
 }
 
 .chat-sidebar__avatar--person {
-  background: linear-gradient(145deg, #f4f5f7 0%, #e7eaef 100%);
-  color: #5b6470;
+  background: var(--lotax-bg);
+  color: var(--lotax-text-secondary);
 }
 
 .chat-sidebar__content {
@@ -250,7 +250,7 @@ function previewText(conversation: ChatConversation) {
   flex-shrink: 0;
   font-size: 12px;
   line-height: 1.2;
-  color: #9ca3af;
+  color: var(--lotax-text-tertiary);
 }
 
 .chat-sidebar__item--unread .chat-sidebar__time {
@@ -265,16 +265,16 @@ function previewText(conversation: ChatConversation) {
   white-space: nowrap;
   font-size: 14px;
   line-height: 1.25;
-  color: #8e8e93;
+  color: var(--lotax-text-secondary);
 }
 
 .chat-sidebar__preview--empty {
   font-style: italic;
-  color: #b0b4bb;
+  color: var(--lotax-text-tertiary);
 }
 
 .chat-sidebar__item--unread .chat-sidebar__preview:not(.chat-sidebar__preview--empty) {
-  color: #4b5563;
+  color: var(--lotax-text);
   font-weight: 500;
 }
 

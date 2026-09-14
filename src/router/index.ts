@@ -321,6 +321,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Каталог LOTAX', roles: ['super_admin'] },
       },
       {
+        path: 'platform-push',
+        name: 'platform-push',
+        component: () => import('@/views/PlatformPushNotifyView.vue'),
+        meta: { title: 'Push по организациям', roles: ['super_admin'] },
+      },
+      {
         path: 'profile',
         name: 'profile',
         component: () => import('@/views/ProfileView.vue'),

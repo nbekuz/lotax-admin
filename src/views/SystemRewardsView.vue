@@ -2,16 +2,23 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { DownloadOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { superAdminApi } from '@/api/superAdmin'
+import {
+  filenameFromContentDisposition,
+  messageFromBlobError,
+  triggerBlobDownload,
+} from '@/utils/download'
 import { extractErrorMessage, rewardTypeLabel, tierLabel } from '@/utils/labels'
 import type { DriverTier, RewardAdminItem, RewardType } from '@/types/api'
+import PageHeader from '@/components/PageHeader.vue'
 
 const loading = ref(false)
 const items = ref<RewardAdminItem[]>([])
 const modalOpen = ref(false)
 const saving = ref(false)
 const editing = ref<RewardAdminItem | null>(null)
+const exportingId = ref<string | null>(null)
 
 const form = reactive({
   title: '',
@@ -120,6 +127,8 @@ async function save() {
       form.type === 'raffle_coupon' && raffleDate.value
         ? raffleDate.value.toISOString()
         : null
+    const one_per_driver =
+      form.type === 'raffle_coupon' ? false : form.one_per_driver
     if (editing.value) {
       await superAdminApi.updateReward(editing.value.id, {
         title: form.title.trim(),
@@ -129,7 +138,7 @@ async function save() {
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
-        one_per_driver: form.one_per_driver,
+        one_per_driver,
         raffle_date,
         image: imageFile.value,
       })
@@ -139,13 +148,14 @@ async function save() {
         title: form.title.trim(),
         description: form.description.trim() || null,
         type: form.type,
+        // Backend forces system for super-admin raffle.
         points_type: 'system',
         points_cost: form.points_cost,
         stock_total: form.stock_total ?? null,
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
-        one_per_driver: form.one_per_driver,
+        one_per_driver,
         raffle_date,
         image: imageFile.value,
       })
@@ -160,17 +170,44 @@ async function save() {
   }
 }
 
+async function downloadRaffle(item: RewardAdminItem, format: 'csv' | 'xlsx') {
+  exportingId.value = `${item.id}:${format}`
+  try {
+    const response = await superAdminApi.raffleExport(item.id, format)
+    const fallback =
+      format === 'xlsx'
+        ? `raffle_${item.id}.xlsx`
+        : `raffle_${item.id}.csv`
+    const filename = filenameFromContentDisposition(
+      response.headers['content-disposition'] as string | undefined,
+      fallback,
+    )
+    const mime =
+      format === 'xlsx'
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'text/csv;charset=utf-8'
+    const blob =
+      response.data instanceof Blob
+        ? response.data
+        : new Blob([response.data], { type: mime })
+    triggerBlobDownload(blob, filename)
+  } catch (e) {
+    message.error(await messageFromBlobError(e, 'Не удалось скачать файл'))
+  } finally {
+    exportingId.value = null
+  }
+}
+
 onMounted(load)
 </script>
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Системный каталог LOTAX</h1>
-        <p class="lotax-caption mt-1">Награды за системные баллы</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
+    <PageHeader
+      title="Системный каталог LOTAX"
+      subtitle="Награды за системные баллы"
+    >
+      <template #actions>
         <a-button class="lotax-btn-secondary" @click="load">
           <template #icon><ReloadOutlined /></template>
           Обновить
@@ -179,8 +216,8 @@ onMounted(load)
           <template #icon><PlusOutlined /></template>
           Добавить
         </a-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <div v-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>
     <div v-else-if="!items.length" class="lotax-card p-8 text-center lotax-caption">
@@ -205,10 +242,32 @@ onMounted(load)
               {{ item.points_cost }} б. · {{ typeLabel(item.type) }} ·
               от {{ tierLabel[item.min_tier] }} ·
               {{ item.is_active ? 'активна' : 'неактивна' }}
+              <template v-if="item.raffle_date">
+                · розыгрыш {{ dayjs(item.raffle_date).format('DD.MM.YYYY') }}
+              </template>
             </div>
           </div>
         </div>
-        <a-button class="lotax-btn-secondary" @click="openEdit(item)">Изменить</a-button>
+        <div class="flex flex-wrap gap-2">
+          <a-dropdown v-if="item.type === 'raffle_coupon'" :trigger="['click']">
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="exportingId?.startsWith(item.id)"
+            >
+              <template #icon><DownloadOutlined /></template>
+              Скачать для рандомайзера
+            </a-button>
+            <template #overlay>
+              <a-menu
+                @click="({ key }: { key: string | number }) => downloadRaffle(item, String(key) as 'csv' | 'xlsx')"
+              >
+                <a-menu-item key="csv">CSV</a-menu-item>
+                <a-menu-item key="xlsx">Excel (XLSX)</a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <a-button class="lotax-btn-secondary" @click="openEdit(item)">Изменить</a-button>
+        </div>
       </article>
     </div>
 
@@ -265,7 +324,7 @@ onMounted(load)
               :options="[{ value: 'system', label: 'Системные (LOTAX)' }]"
             />
           </a-form-item>
-          <a-form-item label="Стоимость">
+          <a-form-item :label="isRaffle ? 'Стоимость билета' : 'Стоимость'">
             <a-input-number
               v-model:value="form.points_cost"
               class="!w-full"
@@ -273,7 +332,7 @@ onMounted(load)
               addon-after="б."
             />
           </a-form-item>
-          <a-form-item label="Запас (пусто — без лимита)">
+          <a-form-item :label="isRaffle ? 'Запас билетов (пусто — без лимита)' : 'Запас (пусто — без лимита)'">
             <a-input-number
               v-model:value="form.stock_total"
               class="!w-full"
@@ -288,14 +347,6 @@ onMounted(load)
             <a-input-number v-model:value="form.sort_order" class="!w-full" :min="0" />
           </a-form-item>
         </div>
-        <a-form-item v-if="isRaffle" label="Один на водителя">
-          <div class="flex items-center gap-2">
-            <a-switch v-model:checked="form.one_per_driver" />
-            <span class="text-[13px] text-ink-muted">
-              {{ form.one_per_driver ? 'Да' : 'Нет' }}
-            </span>
-          </div>
-        </a-form-item>
         <a-form-item v-if="isRaffle" label="Дата розыгрыша">
           <a-date-picker
             v-model:value="raffleDate"
@@ -303,6 +354,9 @@ onMounted(load)
             show-time
             format="DD.MM.YYYY HH:mm"
           />
+          <p class="lotax-caption mt-1">
+            Без лимита на водителя · системные баллы · экспорт для рандомайзера
+          </p>
         </a-form-item>
         <a-form-item label="Статус">
           <div class="flex items-center gap-2">

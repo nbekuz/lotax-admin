@@ -7,24 +7,24 @@ defineProps<{
 }>()
 
 const styles: Record<DriverStatus, string> = {
-  active: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  pending: 'bg-amber-50 text-amber-700 ring-amber-200',
-  blocked: 'bg-red-50 text-red-700 ring-red-200',
+  active: 'bg-[var(--lotax-success-soft)] text-[var(--lotax-success)] ring-[var(--lotax-success)]/20',
+  pending: 'bg-[var(--lotax-warning-soft)] text-[var(--lotax-warning)] ring-[var(--lotax-warning)]/20',
+  blocked: 'bg-[var(--lotax-danger-soft)] text-[var(--lotax-danger)] ring-[var(--lotax-danger)]/20',
 }
 
 const dots: Record<DriverStatus, string> = {
-  active: 'bg-emerald-500',
-  pending: 'bg-amber-500',
-  blocked: 'bg-red-500',
+  active: 'bg-[var(--lotax-success)]',
+  pending: 'bg-[var(--lotax-warning)]',
+  blocked: 'bg-[var(--lotax-danger)]',
 }
 </script>
 
 <template>
   <span
-    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-medium ring-1 ring-inset"
+    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1 ring-inset"
     :class="styles[status]"
   >
-    <span class="h-1.5 w-1.5 rounded-full" :class="dots[status]" />
+    <span class="h-1.5 w-1.5 rounded-full" :class="dots[status]" aria-hidden="true" />
     {{ driverStatusLabel[status] }}
   </span>
 </template>

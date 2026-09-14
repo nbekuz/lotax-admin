@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons-vue'
 import { adminCompetitionsApi } from '@/api/adminCompetitions'
 import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useOrgStore } from '@/stores/org'
 import {
@@ -260,12 +261,11 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Соревнования</h1>
-        <p class="lotax-caption mt-1">Соревнования водителей парка с призовыми местами</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
+    <PageHeader
+      title="Соревнования"
+      subtitle="Соревнования водителей парка с призовыми местами"
+    >
+      <template #actions>
         <a-button class="lotax-btn-secondary" @click="load">
           <template #icon><ReloadOutlined /></template>
           Обновить
@@ -280,8 +280,8 @@ onMounted(async () => {
           <template #icon><PlusOutlined /></template>
           Добавить
         </a-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <div v-if="!parkId" class="lotax-card p-8 text-center">Выберите парк в шапке</div>
     <div v-else-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>

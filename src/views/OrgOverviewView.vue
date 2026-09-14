@@ -7,6 +7,7 @@ import { useOrgStore } from '@/stores/org'
 import { extractErrorMessage, formatPhone } from '@/utils/labels'
 import InfoField from '@/components/InfoField.vue'
 import CopyableId from '@/components/CopyableId.vue'
+import PageHeader from '@/components/PageHeader.vue'
 
 const org = useOrgStore()
 
@@ -41,16 +42,14 @@ onMounted(load)
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Организация</h1>
-        <p class="lotax-caption mt-1">Ваша организация и парки ЛК</p>
-      </div>
-      <a-button class="lotax-btn-secondary" @click="load">
-        <template #icon><ReloadOutlined /></template>
-        Обновить
-      </a-button>
-    </div>
+    <PageHeader title="Организация" subtitle="Ваша организация и парки ЛК">
+      <template #actions>
+        <a-button class="lotax-btn-secondary" @click="load">
+          <template #icon><ReloadOutlined /></template>
+          Обновить
+        </a-button>
+      </template>
+    </PageHeader>
 
     <div v-if="org.loading && !org.organization" class="flex justify-center py-20">
       <a-spin size="large" />

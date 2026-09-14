@@ -9,6 +9,7 @@ import { useOrganizationsStore } from '@/stores/organizations'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { extractErrorMessage, formatPhone } from '@/utils/labels'
 import type { OrganizationResponse } from '@/types/api'
+import PageHeader from '@/components/PageHeader.vue'
 
 const orgs = useOrganizationsStore()
 const router = useRouter()
@@ -122,36 +123,37 @@ onMounted(load)
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Организации</h1>
-        <p class="lotax-caption mt-1">Клиенты LOTAX: организации → парки → директора</p>
-      </div>
-      <div class="lotax-filter-stack md:flex md:flex-wrap md:items-center md:gap-2">
-        <a-select
-          v-model:value="subscriptionFilter"
-          class="md:!w-48"
-          size="large"
-          :options="[
-            { value: 'all', label: 'Все подписки' },
-            { value: 'active', label: 'Активна' },
-            { value: 'off', label: 'Отключена' },
-          ]"
-        />
-        <a-button class="lotax-btn-secondary" @click="load">
-          <template #icon><ReloadOutlined /></template>
-          Обновить
-        </a-button>
-        <a-button
-          type="primary"
-          class="lotax-btn-primary"
-          @click="createOpen = true; resetCreate()"
-        >
-          <template #icon><PlusOutlined /></template>
-          Создать организацию
-        </a-button>
-      </div>
-    </div>
+    <PageHeader
+      title="Организации"
+      subtitle="Клиенты LOTAX: организации → парки → директора"
+    >
+      <template #actions>
+        <div class="lotax-filter-stack md:flex md:flex-wrap md:items-center md:gap-2">
+          <a-select
+            v-model:value="subscriptionFilter"
+            class="md:!w-48"
+            size="large"
+            :options="[
+              { value: 'all', label: 'Все подписки' },
+              { value: 'active', label: 'Активна' },
+              { value: 'off', label: 'Отключена' },
+            ]"
+          />
+          <a-button class="lotax-btn-secondary" @click="load">
+            <template #icon><ReloadOutlined /></template>
+            Обновить
+          </a-button>
+          <a-button
+            type="primary"
+            class="lotax-btn-primary"
+            @click="createOpen = true; resetCreate()"
+          >
+            <template #icon><PlusOutlined /></template>
+            Создать организацию
+          </a-button>
+        </div>
+      </template>
+    </PageHeader>
 
     <div v-if="isMobile" class="flex flex-col gap-4">
       <div v-if="orgs.loading" class="flex justify-center py-16">

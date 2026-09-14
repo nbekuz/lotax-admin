@@ -22,6 +22,7 @@ import type {
   OrganizationResponse,
   ParkResponse,
 } from '@/types/api'
+import PageHeader from '@/components/PageHeader.vue'
 
 const auth = useAuthStore()
 const loading = ref(false)
@@ -323,14 +324,11 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Баннеры</h1>
-        <p class="lotax-caption mt-1">
-          Реклама в приложении водителя. Меньший порядок — выше в карусели
-        </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
+    <PageHeader
+      title="Баннеры"
+      subtitle="Реклама в приложении водителя. Меньший порядок — выше в карусели"
+    >
+      <template #actions>
         <a-select
           v-model:value="activeFilter"
           class="!w-44"
@@ -349,8 +347,8 @@ onMounted(async () => {
           <template #icon><PlusOutlined /></template>
           Добавить
         </a-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <section class="lotax-card overflow-hidden">
       <a-table

@@ -299,7 +299,7 @@ onMounted(() => {
       >
         <div
           v-if="chat.activeConversation"
-          class="chat-thread-header flex items-center gap-3 border-b border-line bg-white px-4 py-2.5"
+          class="chat-thread-header flex items-center gap-3 border-b border-line bg-surface-card px-4 py-2.5"
         >
           <a-button
             v-if="isMobile"
@@ -313,8 +313,8 @@ onMounted(() => {
             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
             :class="
               chat.activeConversation.conversation_type === 'support'
-                ? 'bg-[#ffe8cc] text-[#c56a00]'
-                : 'bg-[#eef0f3] text-[#4b5563]'
+                ? 'bg-brand-soft text-brand'
+                : 'bg-surface text-ink-muted'
             "
           >
             <CustomerServiceOutlined

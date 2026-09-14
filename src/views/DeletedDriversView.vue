@@ -5,6 +5,7 @@ import { ReloadOutlined, UndoOutlined } from '@ant-design/icons-vue'
 import { superAdminApi } from '@/api/superAdmin'
 import { extractErrorMessage } from '@/utils/labels'
 import type { DeletedDriverItem } from '@/types/api'
+import PageHeader from '@/components/PageHeader.vue'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -81,18 +82,17 @@ onMounted(load)
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Архив водителей</h1>
-        <p class="lotax-caption mt-1">
-          Soft-delete. Восстановление → «Ожидание», затем SMS → «Активен»
-        </p>
-      </div>
-      <a-button class="lotax-btn-secondary" :loading="loading" @click="load">
-        <template #icon><ReloadOutlined /></template>
-        Обновить
-      </a-button>
-    </div>
+    <PageHeader
+      title="Архив водителей"
+      subtitle="Soft-delete. Восстановление → «Ожидание», затем SMS → «Активен»"
+    >
+      <template #actions>
+        <a-button class="lotax-btn-secondary" :loading="loading" @click="load">
+          <template #icon><ReloadOutlined /></template>
+          Обновить
+        </a-button>
+      </template>
+    </PageHeader>
 
     <div class="lotax-card !p-0">
       <a-table

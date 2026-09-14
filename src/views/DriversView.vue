@@ -13,6 +13,7 @@ import { extractErrorMessage, formatPhone, driverTierLabel, isForbiddenError, is
 import type { DriverListItem, DriverStatus, DriverTier } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
+import PageHeader from '@/components/PageHeader.vue'
 
 const auth = useAuthStore()
 const drivers = useDriversStore()
@@ -403,68 +404,65 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div class="min-w-0">
-        <h1 class="lotax-page-title">Водители</h1>
-        <p class="lotax-caption mt-1">
-          После синхронизации новые водители — в статусе «Ожидание».
-          Первый вход по SMS делает водителя активным. Массовые действия — только у директора.
-        </p>
-      </div>
-
-      <div
-        class="lotax-filter-stack md:flex md:flex-wrap md:items-center md:gap-2"
-      >
-        <a-input
-          v-model:value="searchQ"
-          allow-clear
-          class="md:!w-56"
-          size="large"
-          placeholder="Поиск: имя, телефон, ID…"
-        />
-        <a-select
-          v-model:value="statusFilter"
-          class="md:!w-40"
-          size="large"
-          :options="statusOptions"
-        />
-        <a-select
-          v-model:value="tierFilter"
-          class="md:!w-40"
-          size="large"
-          :options="tierOptions"
-        />
-        <a-select
-          v-if="org.parks.length > 1"
-          v-model:value="parkFilter"
-          class="md:!w-48"
-          size="large"
-          :options="parkOptions"
-        />
-        <a-button class="lotax-btn-secondary" @click="load">
-          <template #icon><ReloadOutlined /></template>
-          Обновить
-        </a-button>
-        <a-button
-          v-if="auth.canCreateDriver"
-          type="primary"
-          class="lotax-btn-primary"
-          @click="createOpen = true"
+    <PageHeader
+      title="Водители"
+      subtitle="После синхронизации новые водители — в статусе «Ожидание». Первый вход по SMS делает водителя активным. Массовые действия — только у директора."
+    >
+      <template #actions>
+        <div
+          class="lotax-filter-stack md:flex md:flex-wrap md:items-center md:gap-2"
         >
-          <template #icon><PlusOutlined /></template>
-          Добавить
-        </a-button>
-        <a-button
-          v-if="auth.canSync"
-          type="primary"
-          class="lotax-btn-primary"
-          @click="router.push('/sync')"
-        >
-          <template #icon><CloudSyncOutlined /></template>
-          Синхронизация
-        </a-button>
-      </div>
-    </div>
+          <a-input
+            v-model:value="searchQ"
+            allow-clear
+            class="md:!w-56"
+            size="large"
+            placeholder="Поиск: имя, телефон, ID…"
+          />
+          <a-select
+            v-model:value="statusFilter"
+            class="md:!w-40"
+            size="large"
+            :options="statusOptions"
+          />
+          <a-select
+            v-model:value="tierFilter"
+            class="md:!w-40"
+            size="large"
+            :options="tierOptions"
+          />
+          <a-select
+            v-if="org.parks.length > 1"
+            v-model:value="parkFilter"
+            class="md:!w-48"
+            size="large"
+            :options="parkOptions"
+          />
+          <a-button class="lotax-btn-secondary" @click="load">
+            <template #icon><ReloadOutlined /></template>
+            Обновить
+          </a-button>
+          <a-button
+            v-if="auth.canCreateDriver"
+            type="primary"
+            class="lotax-btn-primary"
+            @click="createOpen = true"
+          >
+            <template #icon><PlusOutlined /></template>
+            Добавить
+          </a-button>
+          <a-button
+            v-if="auth.canSync"
+            type="primary"
+            class="lotax-btn-primary"
+            @click="router.push('/sync')"
+          >
+            <template #icon><CloudSyncOutlined /></template>
+            Синхронизация
+          </a-button>
+        </div>
+      </template>
+    </PageHeader>
 
     <div
       v-if="auth.canEditStatus"

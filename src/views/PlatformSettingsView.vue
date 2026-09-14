@@ -5,6 +5,7 @@ import { PlusOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons-vu
 import { superAdminApi } from '@/api/superAdmin'
 import { useOrganizationsStore } from '@/stores/organizations'
 import { extractErrorMessage } from '@/utils/labels'
+import PageHeader from '@/components/PageHeader.vue'
 
 type SettingsDraftRow = {
   key: string
@@ -116,12 +117,8 @@ onMounted(() => {
 
 <template>
   <div class="mx-auto flex w-full max-w-4xl flex-col gap-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 class="lotax-page-title">Настройки платформы</h1>
-        <p class="lotax-caption mt-1">Глобальные параметры LOTAX</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
+    <PageHeader title="Настройки платформы" subtitle="Глобальные параметры LOTAX">
+      <template #actions>
         <a-button class="lotax-btn-secondary" @click="load">
           <template #icon><ReloadOutlined /></template>
           Обновить
@@ -139,8 +136,8 @@ onMounted(() => {
           <template #icon><SaveOutlined /></template>
           Сохранить
         </a-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <section class="lotax-card p-5 md:p-7">
       <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

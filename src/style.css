@@ -2,25 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Lotax design tokens (single source of truth) ─── */
 :root {
   --lotax-primary: #f7931a;
   --lotax-primary-hover: #e8860f;
-  --lotax-primary-soft: rgba(247, 147, 26, 0.1);
-  --lotax-bg: #f8f9fb;
+  --lotax-primary-soft: rgba(247, 147, 26, 0.12);
+  --lotax-primary-strong: rgba(247, 147, 26, 0.2);
+
+  --lotax-bg: #f5f6f8;
   --lotax-card: #ffffff;
-  --lotax-border: #ececec;
+  --lotax-border: #e8eaed;
+  --lotax-border-strong: #d5d8de;
+
   --lotax-text: #111111;
   --lotax-text-secondary: #6b7280;
+  --lotax-ink-muted: #6b7280;
+  --lotax-text-tertiary: #9ca3af;
+
   --lotax-danger: #ef4444;
-  --lotax-success: #22c55e;
-  --lotax-warning: #f59e0b;
-  --lotax-radius: 16px;
-  --lotax-radius-lg: 24px;
-  --lotax-shadow: 0 1px 2px rgba(17, 17, 17, 0.04), 0 4px 16px rgba(17, 17, 17, 0.04);
-  --lotax-shadow-hover: 0 4px 12px rgba(17, 17, 17, 0.06), 0 12px 32px rgba(17, 17, 17, 0.06);
-  --lotax-transition: 150ms ease;
+  --lotax-danger-soft: #fef2f2;
+  --lotax-success: #16a34a;
+  --lotax-success-soft: #ecfdf3;
+  --lotax-warning: #d97706;
+  --lotax-warning-soft: #fffbeb;
+  --lotax-info: #2563eb;
+  --lotax-info-soft: #eff6ff;
+
+  --lotax-radius-sm: 8px;
+  --lotax-radius: 12px;
+  --lotax-radius-md: 14px;
+  --lotax-radius-lg: 16px;
+  --lotax-radius-xl: 20px;
+  --lotax-radius-pill: 999px;
+
+  --lotax-shadow: 0 1px 2px rgba(17, 17, 17, 0.04), 0 4px 12px rgba(17, 17, 17, 0.03);
+  --lotax-shadow-hover: 0 4px 12px rgba(17, 17, 17, 0.06), 0 10px 28px rgba(17, 17, 17, 0.05);
+  --lotax-shadow-modal: 0 16px 48px rgba(17, 17, 17, 0.14);
+
+  --lotax-transition: 160ms ease;
   --lotax-sidebar-expanded: 260px;
   --lotax-sidebar-collapsed: 72px;
+  --lotax-header-height: 64px;
+  --lotax-control-height: 40px;
 }
 
 html,
@@ -46,6 +69,8 @@ body {
   color: var(--lotax-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 *:focus-visible {
@@ -55,31 +80,52 @@ body {
 
 @layer components {
   .lotax-card {
-    @apply rounded-2xl border bg-white;
+    @apply border bg-white;
+    border-radius: var(--lotax-radius-lg);
     border-color: var(--lotax-border);
     box-shadow: var(--lotax-shadow);
     transition:
       box-shadow var(--lotax-transition),
-      transform var(--lotax-transition);
+      transform var(--lotax-transition),
+      border-color var(--lotax-transition);
   }
 
   @media (hover: hover) and (pointer: fine) {
     .lotax-card-hover:hover {
       box-shadow: var(--lotax-shadow-hover);
-      transform: translateY(-2px);
+      transform: translateY(-1px);
+      border-color: var(--lotax-border-strong);
     }
   }
 
+  .lotax-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px 16px;
+    margin-bottom: 20px;
+  }
+
   .lotax-page-title {
-    font-size: clamp(1.75rem, 1.5rem + 1.2vw, 2.25rem);
+    font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
     font-weight: 600;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
     color: var(--lotax-text);
+    margin: 0;
+  }
+
+  .lotax-page-subtitle {
+    margin: 6px 0 0;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--lotax-text-secondary);
+    max-width: 62ch;
   }
 
   .lotax-section-title {
-    font-size: clamp(1.25rem, 1.15rem + 0.4vw, 1.375rem);
+    font-size: clamp(1.05rem, 1rem + 0.3vw, 1.2rem);
     font-weight: 600;
     letter-spacing: -0.02em;
     line-height: 1.3;
@@ -87,34 +133,35 @@ body {
   }
 
   .lotax-body {
-    font-size: clamp(0.875rem, 0.85rem + 0.15vw, 0.9375rem);
+    font-size: 0.9375rem;
     color: var(--lotax-text);
   }
 
   .lotax-caption {
-    font-size: clamp(0.75rem, 0.72rem + 0.1vw, 0.8125rem);
+    font-size: 0.8125rem;
     color: var(--lotax-text-secondary);
   }
 
   .lotax-field-label {
-    font-size: clamp(0.75rem, 0.72rem + 0.1vw, 0.8125rem);
+    font-size: 0.8125rem;
     font-weight: 500;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
     color: var(--lotax-text-secondary);
   }
 
   .lotax-field-value {
-    font-size: clamp(0.875rem, 0.85rem + 0.15vw, 0.9375rem);
+    font-size: 0.9375rem;
     font-weight: 500;
     color: var(--lotax-text);
     word-break: break-word;
   }
 
   .lotax-code {
-    @apply font-mono rounded-xl px-3 py-2.5;
-    font-size: clamp(0.75rem, 0.72rem + 0.1vw, 0.8125rem);
+    @apply font-mono px-3 py-2.5;
+    border-radius: var(--lotax-radius);
+    font-size: 0.8125rem;
     word-break: break-all;
-    background: #f3f4f6;
+    background: var(--lotax-bg);
     color: var(--lotax-text);
     border: 1px solid var(--lotax-border);
   }
@@ -122,13 +169,15 @@ body {
   .lotax-btn-primary,
   .lotax-btn-secondary,
   .lotax-btn-danger {
-    height: 42px !important;
-    border-radius: 12px !important;
-    font-weight: 500 !important;
+    height: var(--lotax-control-height) !important;
+    border-radius: var(--lotax-radius) !important;
+    font-weight: 550 !important;
+    font-size: 14px !important;
+    box-shadow: none !important;
     transition:
       background var(--lotax-transition),
       border-color var(--lotax-transition),
-      transform var(--lotax-transition),
+      color var(--lotax-transition),
       box-shadow var(--lotax-transition) !important;
   }
 
@@ -136,11 +185,12 @@ body {
     background: var(--lotax-primary) !important;
     border-color: var(--lotax-primary) !important;
     color: #ffffff !important;
-    box-shadow: 0 1px 2px rgba(247, 147, 26, 0.25) !important;
+    box-shadow: 0 1px 2px rgba(247, 147, 26, 0.22) !important;
   }
 
   .lotax-btn-primary:disabled {
     color: rgba(255, 255, 255, 0.65) !important;
+    opacity: 0.65;
   }
 
   .lotax-btn-secondary {
@@ -160,19 +210,16 @@ body {
       background: var(--lotax-primary-hover) !important;
       border-color: var(--lotax-primary-hover) !important;
       color: #ffffff !important;
-      transform: translateY(-1px);
     }
 
     .lotax-btn-secondary:hover:not(:disabled) {
       background: #fafafa !important;
-      border-color: #d4d4d8 !important;
-      transform: translateY(-1px);
+      border-color: var(--lotax-border-strong) !important;
     }
 
     .lotax-btn-danger:hover:not(:disabled) {
-      background: #fef2f2 !important;
+      background: var(--lotax-danger-soft) !important;
       border-color: var(--lotax-danger) !important;
-      transform: translateY(-1px);
     }
   }
 
@@ -180,6 +227,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+    align-items: center;
   }
 
   .lotax-page-pad {
@@ -188,29 +236,59 @@ body {
 
   @media (min-width: 768px) {
     .lotax-page-pad {
-      padding: 24px;
+      padding: 20px 24px 28px;
     }
   }
 
   @media (min-width: 1440px) {
     .lotax-page-pad {
-      padding: 32px;
+      padding: 24px 32px 36px;
     }
   }
 
-  /* Mobile: full-width action buttons */
+  .lotax-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    margin-bottom: 16px;
+  }
+
+  .lotax-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--lotax-text-secondary);
+  }
+
+  .lotax-empty__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: 12px;
+    border-radius: var(--lotax-radius-pill);
+    background: var(--lotax-primary-soft);
+    color: var(--lotax-primary);
+    font-size: 22px;
+  }
+
   @media (max-width: 767px) {
     .lotax-btn-primary,
     .lotax-btn-secondary,
     .lotax-btn-danger {
-      height: 50px !important;
+      height: 48px !important;
     }
 
     .lotax-btn-stack > .ant-btn,
     .lotax-btn-stack > button,
     .lotax-actions-mobile .ant-btn {
       width: 100% !important;
-      height: 50px !important;
+      height: 48px !important;
     }
 
     .lotax-filter-stack {
@@ -227,11 +305,12 @@ body {
   }
 }
 
-/* Ant Design overrides for premium look */
+/* ─── Layout ─── */
 .ant-layout {
   background: var(--lotax-bg) !important;
 }
 
+/* ─── Tables ─── */
 .ant-table-wrapper .ant-table {
   background: #fff;
 }
@@ -243,18 +322,22 @@ body {
 }
 
 .ant-table-thead > tr > th {
-  background: #fafafa !important;
+  background: #fafbfc !important;
   color: var(--lotax-text-secondary) !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
   font-weight: 600 !important;
+  letter-spacing: 0.02em;
+  text-transform: none;
   border-bottom: 1px solid var(--lotax-border) !important;
-  padding: 10px 12px !important;
+  padding: 12px 16px !important;
 }
 
 .ant-table-tbody > tr > td {
   border-bottom: 1px solid var(--lotax-border) !important;
-  padding: 10px 12px !important;
+  padding: 14px 16px !important;
   font-size: 14px;
+  color: var(--lotax-text);
+  vertical-align: middle;
 }
 
 .ant-table-tbody > tr:hover > td {
@@ -265,10 +348,23 @@ body {
   border-bottom: none !important;
 }
 
-.ant-pagination {
-  margin-top: 20px !important;
+.ant-table-wrapper .ant-table-pagination.ant-pagination {
+  margin: 16px 16px 4px !important;
 }
 
+.ant-pagination {
+  margin-top: 16px !important;
+}
+
+.ant-pagination .ant-pagination-item-active {
+  border-color: var(--lotax-primary) !important;
+}
+
+.ant-pagination .ant-pagination-item-active a {
+  color: var(--lotax-primary) !important;
+}
+
+/* ─── Modals ─── */
 .ant-modal {
   max-width: calc(100vw - 32px);
   padding-bottom: 0;
@@ -278,10 +374,10 @@ body {
   display: flex !important;
   flex-direction: column;
   max-height: 80vh;
-  border-radius: 14px !important;
+  border-radius: var(--lotax-radius-xl) !important;
   overflow: hidden;
-  padding: 16px 20px 18px !important;
-  box-shadow: 0 16px 48px rgba(17, 17, 17, 0.14) !important;
+  padding: 20px 24px 20px !important;
+  box-shadow: var(--lotax-shadow-modal) !important;
   margin-inline: auto;
 }
 
@@ -293,8 +389,8 @@ body {
 
   .ant-modal-content {
     max-height: 80vh;
-    padding: 14px 16px 16px !important;
-    border-radius: 12px !important;
+    padding: 16px !important;
+    border-radius: var(--lotax-radius-lg) !important;
   }
 
   .ant-modal-footer {
@@ -312,7 +408,7 @@ body {
   .ant-table-tbody > tr > td,
   .ant-table-thead > tr > th {
     padding: 12px !important;
-    font-size: 14px;
+    font-size: 13px;
   }
 }
 
@@ -323,8 +419,9 @@ body {
 
 .ant-modal-header {
   flex-shrink: 0;
-  margin-bottom: 12px !important;
+  margin-bottom: 14px !important;
   padding: 0 !important;
+  border-bottom: none !important;
 }
 
 .ant-modal-body {
@@ -340,35 +437,37 @@ body {
 .ant-modal-title {
   font-size: 17px !important;
   font-weight: 600 !important;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   line-height: 1.3 !important;
 }
 
 .ant-modal-footer {
   flex-shrink: 0;
-  margin-top: 14px !important;
-  padding: 0 !important;
+  margin-top: 16px !important;
+  padding: 16px 0 0 !important;
+  border-top: 1px solid var(--lotax-border) !important;
 }
 
 .ant-modal-footer .ant-btn {
   height: 38px !important;
-  border-radius: 10px !important;
+  border-radius: var(--lotax-radius) !important;
   padding-inline: 16px !important;
   font-weight: 500 !important;
 }
 
 .ant-modal .ant-form-item {
-  margin-bottom: 12px !important;
+  margin-bottom: 14px !important;
 }
 
 .ant-modal .ant-form-item-label {
-  padding-bottom: 2px !important;
+  padding-bottom: 4px !important;
 }
 
 .ant-modal .ant-form-item-label > label {
   font-size: 13px !important;
   height: auto !important;
-  color: var(--lotax-ink-muted, #6b7280);
+  color: var(--lotax-ink-muted);
+  font-weight: 500 !important;
 }
 
 .ant-modal .ant-input,
@@ -376,7 +475,14 @@ body {
 .ant-modal .ant-input-number,
 .ant-modal .ant-picker,
 .ant-modal .ant-select-selector {
-  border-radius: 10px !important;
+  border-radius: var(--lotax-radius) !important;
+}
+
+/* ─── Buttons ─── */
+.ant-btn {
+  border-radius: var(--lotax-radius) !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
 }
 
 .ant-btn-primary {
@@ -395,36 +501,42 @@ body {
   color: rgba(255, 255, 255, 0.65) !important;
 }
 
+.ant-btn-dangerous {
+  border-radius: var(--lotax-radius) !important;
+}
+
+/* ─── Forms ─── */
+.ant-form-item-label > label {
+  color: var(--lotax-text-secondary) !important;
+  font-weight: 500 !important;
+}
+
 .ant-input,
 .ant-input-affix-wrapper,
 .ant-input-number,
-.ant-select-selector {
-  border-radius: 12px !important;
+.ant-select-selector,
+.ant-picker {
+  border-radius: var(--lotax-radius) !important;
   border-color: var(--lotax-border) !important;
 }
 
-/*
-  Affix wrappers (password etc.) clip overflow with border-radius.
-  Cursor sits flush on the inner input edge → top/bottom of caret get cut.
-  Fix: enough outer padding + square inner input (no radius, no overflow clip).
-*/
 .ant-input:not(textarea) {
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+
+.ant-input-lg:not(textarea) {
   padding-left: 16px !important;
   padding-right: 16px !important;
 }
 
-.ant-input-lg:not(textarea) {
-  padding-left: 18px !important;
-  padding-right: 18px !important;
-}
-
 .ant-input-affix-wrapper {
-  padding-left: 16px !important;
+  padding-left: 14px !important;
   padding-right: 12px !important;
 }
 
 .ant-input-affix-wrapper-lg {
-  padding-left: 18px !important;
+  padding-left: 16px !important;
   padding-right: 14px !important;
 }
 
@@ -434,7 +546,6 @@ body {
   border-radius: 0 !important;
   box-shadow: none !important;
   background: transparent !important;
-  /* Small inset so caret never sits on the clip edge */
   padding-left: 4px !important;
   padding-right: 4px !important;
   overflow: visible !important;
@@ -447,22 +558,22 @@ body {
 
 .ant-input-number .ant-input-number-input {
   border-radius: 0 !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+
+.ant-input-number-lg .ant-input-number-input {
   padding-left: 16px !important;
   padding-right: 16px !important;
 }
 
-.ant-input-number-lg .ant-input-number-input {
-  padding-left: 18px !important;
-  padding-right: 18px !important;
-}
-
 .ant-select-single:not(.ant-select-customize-input) .ant-select-selector {
-  padding-left: 16px !important;
+  padding-left: 14px !important;
   padding-right: 32px !important;
 }
 
 .ant-select-single.ant-select-lg:not(.ant-select-customize-input) .ant-select-selector {
-  padding-left: 18px !important;
+  padding-left: 16px !important;
 }
 
 .ant-select-single:not(.ant-select-customize-input) .ant-select-selector .ant-select-selection-search-input {
@@ -472,16 +583,33 @@ body {
 .ant-input:hover,
 .ant-input-affix-wrapper:hover,
 .ant-input-number:hover,
+.ant-picker:hover,
 .ant-select:not(.ant-select-disabled):hover .ant-select-selector {
-  border-color: #d4d4d8 !important;
+  border-color: var(--lotax-border-strong) !important;
 }
 
 .ant-input:focus,
 .ant-input-affix-wrapper-focused,
 .ant-input-number-focused,
+.ant-picker-focused,
 .ant-select-focused .ant-select-selector {
   border-color: var(--lotax-primary) !important;
   box-shadow: 0 0 0 3px var(--lotax-primary-soft) !important;
+}
+
+/* ─── Menu / Sidebar ─── */
+.ant-menu-light.ant-menu-inline {
+  background: transparent !important;
+}
+
+.ant-menu-light .ant-menu-item {
+  border-radius: var(--lotax-radius) !important;
+  margin-inline: 10px !important;
+  margin-block: 2px !important;
+  width: calc(100% - 20px) !important;
+  height: 42px !important;
+  line-height: 42px !important;
+  transition: all var(--lotax-transition) !important;
 }
 
 .ant-menu-light .ant-menu-item-selected {
@@ -490,28 +618,75 @@ body {
   font-weight: 600;
 }
 
-.ant-menu-light .ant-menu-item {
-  border-radius: 12px !important;
-  margin-inline: 8px !important;
-  width: calc(100% - 16px) !important;
-  transition: all var(--lotax-transition) !important;
-}
-
 .ant-menu-light .ant-menu-item:hover {
   background: #f3f4f6 !important;
   color: var(--lotax-text) !important;
+}
+
+.ant-menu-light .ant-menu-item-selected:hover {
+  background: var(--lotax-primary-soft) !important;
+  color: var(--lotax-primary) !important;
 }
 
 .ant-menu-inline .ant-menu-item::after {
   display: none !important;
 }
 
+.ant-menu-inline-collapsed .ant-menu-item {
+  margin-inline: 12px !important;
+  width: calc(100% - 24px) !important;
+  padding-inline: calc(50% - 8px - 8px) !important;
+}
+
+/* ─── Cards / Misc ─── */
 .ant-card {
-  border-radius: 16px !important;
+  border-radius: var(--lotax-radius-lg) !important;
   border-color: var(--lotax-border) !important;
   box-shadow: var(--lotax-shadow) !important;
 }
 
+.ant-card-head {
+  border-bottom-color: var(--lotax-border) !important;
+  min-height: 52px !important;
+}
+
+.ant-card-head-title {
+  font-weight: 600 !important;
+  font-size: 15px !important;
+}
+
 .ant-spin-dot-item {
   background-color: var(--lotax-primary) !important;
+}
+
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--lotax-primary) !important;
+  font-weight: 600 !important;
+}
+
+.ant-tabs-ink-bar {
+  background: var(--lotax-primary) !important;
+}
+
+.ant-switch-checked {
+  background: var(--lotax-primary) !important;
+}
+
+.ant-message-notice-content {
+  border-radius: var(--lotax-radius) !important;
+  box-shadow: var(--lotax-shadow-hover) !important;
+}
+
+.ant-drawer .ant-drawer-content {
+  border-radius: 0 !important;
+}
+
+.ant-empty-description {
+  color: var(--lotax-text-secondary) !important;
+}
+
+/* Soften duplicate page titles when header also shows title */
+.lotax-page-title + .lotax-caption,
+.lotax-page-title + p.lotax-caption {
+  margin-top: 6px;
 }
