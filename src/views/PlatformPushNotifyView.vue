@@ -44,6 +44,7 @@ async function loadOrganizations() {
         page,
         page_size: pageSize,
       })
+      
       const batch = data.items ?? []
       all.push(...batch)
       total = data.total ?? all.length
