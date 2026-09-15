@@ -813,7 +813,7 @@ watch(driverId, () => {
           <a-input
             v-model:value="passwordValue"
             size="large"
-            maxlength="4"
+            :maxlength="4"
             inputmode="numeric"
             autocomplete="off"
             placeholder="1234"
