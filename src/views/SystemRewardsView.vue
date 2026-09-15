@@ -2,8 +2,16 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
-import { DownloadOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import {
+  DownloadOutlined,
+  EditOutlined,
+  GiftOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons-vue'
 import { superAdminApi } from '@/api/superAdmin'
+import PageHeader from '@/components/PageHeader.vue'
+import TierBadge from '@/components/TierBadge.vue'
 import {
   filenameFromContentDisposition,
   messageFromBlobError,
@@ -11,7 +19,6 @@ import {
 } from '@/utils/download'
 import { extractErrorMessage, rewardTypeLabel, tierLabel } from '@/utils/labels'
 import type { DriverTier, RewardAdminItem, RewardType } from '@/types/api'
-import PageHeader from '@/components/PageHeader.vue'
 
 const loading = ref(false)
 const items = ref<RewardAdminItem[]>([])
@@ -55,9 +62,19 @@ const tierOptions = [
 ]
 
 const isRaffle = computed(() => form.type === 'raffle_coupon')
+const activeCount = computed(() => items.value.filter((i) => i.is_active).length)
+const raffleCount = computed(
+  () => items.value.filter((i) => i.type === 'raffle_coupon').length,
+)
 
 function typeLabel(type: string) {
   return rewardTypeLabel[type as RewardType] ?? type
+}
+
+function stockLabel(item: RewardAdminItem) {
+  if (item.stock_total == null) return 'Без лимита'
+  const left = item.stock_remaining ?? item.stock_total
+  return `${left} / ${item.stock_total}`
 }
 
 async function load() {
@@ -205,7 +222,7 @@ onMounted(load)
   <div class="flex flex-col gap-4 md:gap-6">
     <PageHeader
       title="Системный каталог LOTAX"
-      subtitle="Награды за системные баллы"
+      subtitle="Награды за системные баллы · видны всем водителям"
     >
       <template #actions>
         <a-button class="lotax-btn-secondary" @click="load">
@@ -220,56 +237,169 @@ onMounted(load)
     </PageHeader>
 
     <div v-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>
-    <div v-else-if="!items.length" class="lotax-card p-8 text-center lotax-caption">
-      Каталог пуст
-    </div>
-    <div v-else class="flex flex-col gap-3">
-      <article
-        v-for="item in items"
-        :key="item.id"
-        class="lotax-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+
+    <template v-else>
+      <div
+        v-if="items.length"
+        class="grid grid-cols-3 gap-3 sm:max-w-xl"
       >
-        <div class="flex min-w-0 items-start gap-3">
-          <img
-            v-if="item.image_url"
-            :src="item.image_url"
-            alt=""
-            class="h-12 w-12 shrink-0 rounded-lg object-cover"
-          />
-          <div class="min-w-0">
-            <div class="font-semibold text-ink">{{ item.title }}</div>
-            <div class="text-[13px] text-ink-muted">
-              {{ item.points_cost }} б. · {{ typeLabel(item.type) }} ·
-              от {{ tierLabel[item.min_tier] }} ·
-              {{ item.is_active ? 'активна' : 'неактивна' }}
-              <template v-if="item.raffle_date">
-                · розыгрыш {{ dayjs(item.raffle_date).format('DD.MM.YYYY') }}
-              </template>
+        <div class="lotax-card px-3 py-3 sm:px-4">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+            Всего
+          </p>
+          <p class="mt-1 text-[20px] font-semibold tabular-nums text-ink">
+            {{ items.length }}
+          </p>
+        </div>
+        <div class="lotax-card px-3 py-3 sm:px-4">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+            Активны
+          </p>
+          <p class="mt-1 text-[20px] font-semibold tabular-nums text-[var(--lotax-success)]">
+            {{ activeCount }}
+          </p>
+        </div>
+        <div class="lotax-card px-3 py-3 sm:px-4">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+            Розыгрыши
+          </p>
+          <p class="mt-1 text-[20px] font-semibold tabular-nums text-ink">
+            {{ raffleCount }}
+          </p>
+        </div>
+      </div>
+
+      <div
+        v-if="!items.length"
+        class="lotax-card lotax-empty"
+      >
+        <div class="lotax-empty__icon">
+          <GiftOutlined />
+        </div>
+        <p class="text-[16px] font-semibold text-ink">Каталог пуст</p>
+        <p class="lotax-caption mt-1 max-w-sm">
+          Добавьте первую системную награду — мерч, сертификат или розыгрыш.
+        </p>
+        <a-button
+          type="primary"
+          class="lotax-btn-primary mt-4"
+          @click="openCreate"
+        >
+          <template #icon><PlusOutlined /></template>
+          Добавить награду
+        </a-button>
+      </div>
+
+      <div v-else class="flex flex-col gap-3">
+        <article
+          v-for="item in items"
+          :key="item.id"
+          class="lotax-card lotax-card-hover overflow-hidden"
+        >
+          <div class="flex flex-col gap-4 p-4 md:flex-row md:items-center md:gap-5">
+            <div
+              class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[14px] bg-[var(--lotax-bg)] ring-1 ring-line sm:h-[72px] sm:w-[72px]"
+            >
+              <img
+                v-if="item.image_url"
+                :src="item.image_url"
+                alt=""
+                class="h-full w-full object-cover"
+              />
+              <GiftOutlined v-else class="text-[22px] text-ink-muted" />
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-start gap-2">
+                <h3 class="min-w-0 flex-1 text-[15px] font-semibold leading-snug text-ink sm:text-[16px]">
+                  {{ item.title }}
+                </h3>
+                <span
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1 ring-inset"
+                  :class="
+                    item.is_active
+                      ? 'bg-[var(--lotax-success-soft)] text-[var(--lotax-success)] ring-[var(--lotax-success)]/20'
+                      : 'bg-[var(--lotax-bg)] text-ink-muted ring-line'
+                  "
+                >
+                  <span
+                    class="h-1.5 w-1.5 rounded-full"
+                    :class="item.is_active ? 'bg-[var(--lotax-success)]' : 'bg-ink-muted'"
+                    aria-hidden="true"
+                  />
+                  {{ item.is_active ? 'Активна' : 'Неактивна' }}
+                </span>
+              </div>
+
+              <p
+                v-if="item.description"
+                class="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-muted"
+              >
+                {{ item.description }}
+              </p>
+
+              <div class="mt-3 flex flex-wrap items-center gap-2">
+                <span
+                  class="inline-flex items-center rounded-full bg-[var(--lotax-primary-soft)] px-2.5 py-1 text-[12px] font-semibold tabular-nums text-[var(--lotax-primary)]"
+                >
+                  {{ item.points_cost }} б.
+                </span>
+                <span
+                  class="inline-flex items-center rounded-full bg-[var(--lotax-bg)] px-2.5 py-1 text-[12px] font-medium text-ink ring-1 ring-inset ring-line"
+                >
+                  {{ typeLabel(item.type) }}
+                </span>
+                <TierBadge :tier="item.min_tier" />
+                <span
+                  class="inline-flex items-center rounded-full bg-[var(--lotax-bg)] px-2.5 py-1 text-[12px] font-medium text-ink-muted ring-1 ring-inset ring-line"
+                >
+                  Запас · {{ stockLabel(item) }}
+                </span>
+                <span
+                  v-if="item.raffle_date"
+                  class="inline-flex items-center rounded-full bg-[var(--lotax-info-soft)] px-2.5 py-1 text-[12px] font-medium text-[var(--lotax-info)] ring-1 ring-inset ring-[var(--lotax-info)]/15"
+                >
+                  Розыгрыш {{ dayjs(item.raffle_date).format('DD.MM.YYYY') }}
+                </span>
+              </div>
+            </div>
+
+            <div
+              class="flex shrink-0 flex-wrap items-center gap-2 border-t border-line pt-3 md:border-t-0 md:pt-0"
+            >
+              <a-dropdown
+                v-if="item.type === 'raffle_coupon'"
+                :trigger="['click']"
+              >
+                <a-button
+                  class="lotax-btn-secondary"
+                  :loading="exportingId?.startsWith(item.id)"
+                >
+                  <template #icon><DownloadOutlined /></template>
+                  <span class="hidden sm:inline">Скачать</span>
+                </a-button>
+                <template #overlay>
+                  <a-menu
+                    @click="({ key }: { key: string | number }) => downloadRaffle(item, String(key) as 'csv' | 'xlsx')"
+                  >
+                    <a-menu-item key="csv">CSV</a-menu-item>
+                    <a-menu-item key="xlsx">Excel (XLSX)</a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
+              <a-button
+                type="primary"
+                class="lotax-btn-primary"
+                @click="openEdit(item)"
+              >
+                <template #icon><EditOutlined /></template>
+                Изменить
+              </a-button>
             </div>
           </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <a-dropdown v-if="item.type === 'raffle_coupon'" :trigger="['click']">
-            <a-button
-              class="lotax-btn-secondary"
-              :loading="exportingId?.startsWith(item.id)"
-            >
-              <template #icon><DownloadOutlined /></template>
-              Скачать для рандомайзера
-            </a-button>
-            <template #overlay>
-              <a-menu
-                @click="({ key }: { key: string | number }) => downloadRaffle(item, String(key) as 'csv' | 'xlsx')"
-              >
-                <a-menu-item key="csv">CSV</a-menu-item>
-                <a-menu-item key="xlsx">Excel (XLSX)</a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
-          <a-button class="lotax-btn-secondary" @click="openEdit(item)">Изменить</a-button>
-        </div>
-      </article>
-    </div>
+        </article>
+      </div>
+    </template>
 
     <a-modal
       v-model:open="modalOpen"

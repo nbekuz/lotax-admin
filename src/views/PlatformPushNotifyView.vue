@@ -34,11 +34,25 @@ const orgOptions = computed(() =>
 async function loadOrganizations() {
   loadingOrgs.value = true
   try {
-    const { data } = await superAdminApi.listOrganizations({
-      page: 1,
-      page_size: 200,
-    })
-    organizations.value = data.items ?? []
+    const pageSize = 10
+    const all: OrganizationResponse[] = []
+    let page = 1
+    let total = Infinity
+
+    while (all.length < total) {
+      const { data } = await superAdminApi.listOrganizations({
+        page,
+        page_size: pageSize,
+      })
+      const batch = data.items ?? []
+      all.push(...batch)
+      total = data.total ?? all.length
+      if (batch.length < pageSize) break
+      page += 1
+      if (page > 100) break
+    }
+
+    organizations.value = all
   } catch (e) {
     message.error(extractErrorMessage(e, 'Не удалось загрузить организации'))
   } finally {
