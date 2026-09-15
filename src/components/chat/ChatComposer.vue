@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { SendOutlined } from '@ant-design/icons-vue'
 
-defineProps<{
+const props = defineProps<{
   sending: boolean
   disabled?: boolean
+  /** When set, replaces the composer draft (e.g. after assigning a password). */
+  prefill?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -12,6 +14,15 @@ const emit = defineEmits<{
 }>()
 
 const text = ref('')
+
+watch(
+  () => props.prefill,
+  (value) => {
+    if (value != null && value !== '') {
+      text.value = value
+    }
+  },
+)
 
 function submit() {
   const body = text.value.trim()

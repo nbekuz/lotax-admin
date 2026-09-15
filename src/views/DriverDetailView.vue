@@ -10,6 +10,7 @@ import {
   EditOutlined,
   EyeOutlined,
   GiftOutlined,
+  KeyOutlined,
   LeftOutlined,
   StarOutlined,
   StopOutlined,
@@ -19,6 +20,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
+import { driversApi } from '@/api/drivers'
 import { extractErrorMessage, formatPhone, isForbiddenError, tierLabel } from '@/utils/labels'
 import type { DriverRideItem, DriverStatus, DriverTier } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -37,6 +39,9 @@ const activeTab = ref('profile')
 const balanceOpen = ref(false)
 const statusOpen = ref(false)
 const tierOpen = ref(false)
+const passwordOpen = ref(false)
+const passwordSaving = ref(false)
+const passwordValue = ref('')
 const pdnLoading = ref(false)
 const pdnError = ref<string | null>(null)
 const adjustSaving = ref(false)
@@ -324,6 +329,30 @@ function confirmBlock() {
   })
 }
 
+function openPasswordModal() {
+  passwordValue.value = ''
+  passwordOpen.value = true
+}
+
+async function savePassword() {
+  const password = passwordValue.value.trim()
+  if (!/^\d{4}$/.test(password)) {
+    message.warning('Пароль — ровно 4 цифры')
+    return
+  }
+  passwordSaving.value = true
+  try {
+    await driversApi.setPassword(driverId.value, { password })
+    message.success('Пароль обновлён')
+    passwordOpen.value = false
+    passwordValue.value = ''
+  } catch (e) {
+    message.error(extractErrorMessage(e, 'Не удалось сменить пароль'))
+  } finally {
+    passwordSaving.value = false
+  }
+}
+
 onMounted(load)
 
 watch(driverId, () => {
@@ -352,7 +381,7 @@ watch(driverId, () => {
       </div>
 
       <div
-        v-if="auth.canAdjustPoints || auth.canEditStatus || auth.canAdjustTier"
+        v-if="auth.canAdjustPoints || auth.canEditStatus || auth.canAdjustTier || auth.isDirector"
         class="driver-actions"
       >
         <a-button
@@ -371,6 +400,14 @@ watch(driverId, () => {
         >
           <template #icon><TrophyOutlined /></template>
           Изменить уровень
+        </a-button>
+        <a-button
+          v-if="auth.isDirector"
+          class="lotax-btn-secondary"
+          @click="openPasswordModal"
+        >
+          <template #icon><KeyOutlined /></template>
+          Сменить пароль
         </a-button>
         <a-button
           v-if="auth.canEditStatus && drivers.current.status === 'pending'"
@@ -404,7 +441,7 @@ watch(driverId, () => {
       v-if="drivers.current.status === 'pending'"
       class="rounded-xl bg-amber-50 px-4 py-3 text-[14px] text-amber-800 ring-1 ring-inset ring-amber-200"
     >
-      Водитель в статусе «Ожидание». Первый вход по SMS переводит в «Активен».
+      Водитель в статусе «Ожидание». Первый вход по паролю переводит в «Активен».
       Пока нет первого входа, поездки и баллы не начисляются.
     </div>
 
@@ -756,6 +793,36 @@ watch(driverId, () => {
           />
           <p class="lotax-caption mt-1">
             После даты уровень снова считается автоматически
+          </p>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:open="passwordOpen"
+      title="Сменить пароль"
+      ok-text="Сохранить"
+      cancel-text="Отмена"
+      centered
+      :width="400"
+      :confirm-loading="passwordSaving"
+      @ok="savePassword"
+    >
+      <a-form layout="vertical" class="mt-2">
+        <a-form-item label="Новый пароль (4 цифры)" required>
+          <a-input
+            v-model:value="passwordValue"
+            size="large"
+            maxlength="4"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="1234"
+            @update:value="
+              (v: string) => (passwordValue = String(v).replace(/\D/g, '').slice(0, 4))
+            "
+          />
+          <p class="mt-1 text-[13px] text-ink-muted">
+            Водитель входит по телефону и этому паролю. По умолчанию — последние 4 цифры номера.
           </p>
         </a-form-item>
       </a-form>

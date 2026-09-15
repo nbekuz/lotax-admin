@@ -12,6 +12,7 @@ import type {
   DriverBulkStatusPayload,
   DriverLaunchResetPayload,
   ManualDriverCreatePayload,
+  MessageResponse,
   StatusUpdatePayload,
   SyncTaskResponse,
 } from '@/types/api'
@@ -57,6 +58,9 @@ export const driversApi = {
   },
   updateStatus(driverId: string, payload: StatusUpdatePayload) {
     return http.patch<DriverListItem>(`/drivers/${driverId}/status`, payload)
+  },
+  setPassword(driverId: string, payload: { password: string }) {
+    return http.patch<MessageResponse>(`/drivers/${driverId}/password`, payload)
   },
   createManual(payload: ManualDriverCreatePayload) {
     return http.post<DriverListItem>('/admin/drivers', payload)

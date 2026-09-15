@@ -14,6 +14,7 @@ import {
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
+  LockOutlined,
   MessageOutlined,
   PictureOutlined,
   RocketOutlined,
@@ -25,12 +26,14 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useOrgStore } from '@/stores/org'
+import { usePasswordResetStore } from '@/stores/passwordReset'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { extractErrorMessage } from '@/utils/labels'
 import BrandMark from '@/components/BrandMark.vue'
 
 const auth = useAuthStore()
 const chat = useChatStore()
+const passwordReset = usePasswordResetStore()
 const org = useOrgStore()
 const route = useRoute()
 const router = useRouter()
@@ -75,6 +78,7 @@ const selectedKeys = computed(() => {
     return ['staff']
   }
   if (route.path.startsWith('/chat')) return ['chat']
+  if (route.path.startsWith('/password-reset')) return ['password-reset']
   if (route.path === '/organization' || route.path.startsWith('/organization/')) {
     return ['organization']
   }
@@ -239,6 +243,17 @@ const menuItems = computed(() => {
       title: 'Чаты',
     })
   }
+  if (auth.canViewPasswordReset) {
+    items.push({
+      key: 'password-reset',
+      icon: () => h(LockOutlined),
+      label: chatMenuLabel(
+        'Восстановление пароля',
+        passwordReset.openCount,
+      ) as unknown as string,
+      title: 'Восстановление пароля',
+    })
+  }
   if (showAnalyticsHub.value) {
     items.push({
       key: 'analytics-hub',
@@ -319,6 +334,13 @@ onMounted(async () => {
       /* ignore */
     }
   }
+  if (auth.canViewPasswordReset) {
+    try {
+      await passwordReset.fetchOpenCount()
+    } catch {
+      /* ignore */
+    }
+  }
 })
 
 watch(isLgUp, (lg) => {
@@ -360,6 +382,7 @@ async function onOrgChange(id: string) {
 
 function logout() {
   chat.reset()
+  passwordReset.reset()
   auth.logout()
   router.push({ name: 'login' })
 }

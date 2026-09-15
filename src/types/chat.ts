@@ -3,7 +3,13 @@ import type { AdminRole } from '@/types/api'
 export type ChatConversationType = 'support' | 'staff'
 export type ChatParticipantRole = 'initiator' | 'receiver'
 export type ChatSenderType = 'initiator' | 'receiver'
-export type ChatStreamEventType = 'ping' | 'message' | 'read'
+export type ChatStreamEventType =
+  | 'ping'
+  | 'message'
+  | 'read'
+  | 'password_reset_opened'
+  | 'password_reset_message'
+  | 'password_reset_closed'
 
 export interface ChatParticipant {
   id: string
@@ -59,8 +65,15 @@ export interface ChatNotificationsResponse {
 
 export interface ChatStreamEvent {
   event: ChatStreamEventType
+  /** Some backends emit `type` instead of `event`. */
+  type?: ChatStreamEventType
   conversation_id?: string
   message?: ChatMessage
+  room_id?: string
+  driver_id?: string
+  park_id?: string
+  driver_display_name?: string | null
+  body_preview?: string | null
 }
 
 export interface StaffChatPayload {

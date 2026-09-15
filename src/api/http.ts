@@ -8,6 +8,9 @@ const PUBLIC_API_PATHS = [
   '/auth/refresh',
   '/auth/driver/sms/request',
   '/auth/driver/sms/verify',
+  '/auth/driver/phone-check',
+  '/auth/driver/login',
+  '/auth/driver/password-reset/session',
 ]
 
 /** SPA routes that must never force a login redirect (legal / auth pages). */

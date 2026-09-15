@@ -236,10 +236,29 @@ export const useChatStore = defineStore('chat', {
 
     handleStreamEvent(event: {
       event: string
+      type?: string
       conversation_id?: string
       message?: ChatMessage
+      room_id?: string
+      driver_id?: string
+      park_id?: string
+      driver_display_name?: string | null
+      body_preview?: string | null
     }) {
-      if (event.event === 'message' && event.message) {
+      const name = event.type ?? event.event
+
+      if (
+        name === 'password_reset_opened' ||
+        name === 'password_reset_message' ||
+        name === 'password_reset_closed'
+      ) {
+        void import('@/stores/passwordReset').then(({ usePasswordResetStore }) => {
+          usePasswordResetStore().handleStreamEvent(event as import('@/types/chat').ChatStreamEvent)
+        })
+        return
+      }
+
+      if (name === 'message' && event.message) {
         const msg = event.message
         this.touchConversation(msg.conversation_id, msg.body, msg.created_at)
 
@@ -258,7 +277,7 @@ export const useChatStore = defineStore('chat', {
         }
       }
 
-      if (event.event === 'read') {
+      if (name === 'read') {
         void this.fetchNotifications()
       }
     },

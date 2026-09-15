@@ -271,6 +271,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'password-reset',
+        name: 'password-reset',
+        component: () => import('@/views/PasswordResetView.vue'),
+        meta: {
+          title: 'Восстановление пароля',
+          roles: ['director', 'manager'],
+        },
+      },
+      {
         path: 'organizations',
         name: 'organizations',
         component: () => import('@/views/OrganizationsView.vue'),

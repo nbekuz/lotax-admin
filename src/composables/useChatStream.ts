@@ -66,8 +66,9 @@ export function createChatStream(onEvent: ChatStreamHandler) {
         buffer = parsed.rest
 
         for (const event of parsed.events) {
-          if (event.event === 'ping') continue
-          onEvent(event)
+          const name = event.type ?? event.event
+          if (name === 'ping') continue
+          onEvent({ ...event, event: name as typeof event.event })
         }
       }
     } catch (error) {
