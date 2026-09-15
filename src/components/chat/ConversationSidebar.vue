@@ -132,14 +132,14 @@ function previewText(conversation: ChatConversation) {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 56px;
-  padding: 10px 16px;
+  min-height: 64px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--lotax-border);
   background: var(--lotax-card);
 }
 
 .chat-sidebar__list {
-  padding: 4px 0;
+  padding: 8px;
 }
 
 .chat-sidebar__item {
@@ -149,10 +149,10 @@ function previewText(conversation: ChatConversation) {
   width: 100%;
   align-items: center;
   gap: 12px;
-  margin: 0;
-  padding: 10px 16px;
+  margin: 0 0 4px;
+  padding: 10px 12px;
   border: none;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.05);
+  border-radius: 14px;
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -161,15 +161,15 @@ function previewText(conversation: ChatConversation) {
 }
 
 .chat-sidebar__item:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .chat-sidebar__item:hover {
-  background: rgba(17, 17, 17, 0.03);
+  background: rgba(17, 17, 17, 0.04);
 }
 
 .chat-sidebar__item:active {
-  background: rgba(17, 17, 17, 0.05);
+  background: rgba(17, 17, 17, 0.06);
 }
 
 .chat-sidebar__item:focus {
@@ -179,7 +179,7 @@ function previewText(conversation: ChatConversation) {
 
 .chat-sidebar__item:focus-visible {
   outline: 2px solid var(--lotax-primary);
-  outline-offset: -2px;
+  outline-offset: 0;
 }
 
 .chat-sidebar__item--active {
@@ -187,7 +187,7 @@ function previewText(conversation: ChatConversation) {
 }
 
 .chat-sidebar__item--active:hover {
-  background: var(--lotax-primary-strong);
+  background: var(--lotax-primary-soft);
 }
 
 .chat-sidebar__avatar {

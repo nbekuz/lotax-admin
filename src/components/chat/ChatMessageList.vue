@@ -107,15 +107,15 @@ onMounted(async () => {
 }
 
 .chat-date-chip {
-  margin: 8px auto 10px;
+  margin: 10px auto 12px;
   width: fit-content;
   border-radius: 999px;
-  background: var(--lotax-card);
-  border: 1px solid var(--lotax-border);
-  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: none;
+  padding: 5px 12px;
   font-size: 12px;
   font-weight: 600;
   color: var(--lotax-text-secondary);
-  box-shadow: var(--lotax-shadow);
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.06);
 }
 </style>

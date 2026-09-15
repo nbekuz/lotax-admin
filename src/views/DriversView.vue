@@ -13,7 +13,6 @@ import { extractErrorMessage, formatPhone, driverTierLabel, isForbiddenError, is
 import type { DriverListItem, DriverStatus, DriverTier } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
-import PageHeader from '@/components/PageHeader.vue'
 
 const auth = useAuthStore()
 const drivers = useDriversStore()
@@ -403,81 +402,104 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 md:gap-6">
-    <PageHeader
-      title="Водители"
-      subtitle="После синхронизации новые водители — в статусе «Ожидание». Первый вход по SMS делает водителя активным. Массовые действия — только у директора."
+  <div class="drivers-page flex flex-col gap-4 md:gap-5">
+    <div
+      class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
     >
-      <template #actions>
-        <div
-          class="lotax-filter-stack md:flex md:flex-wrap md:items-center md:gap-2"
+      <div class="min-w-0">
+        <h1 class="lotax-page-title">Водители</h1>
+        <p class="lotax-page-subtitle !mt-1.5 !max-w-xl">
+          После синхронизации — статус «Ожидание»; первый вход по SMS активирует.
+          Массовые действия — только у директора.
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <a-button class="lotax-btn-secondary" @click="load">
+          <template #icon><ReloadOutlined /></template>
+          Обновить
+        </a-button>
+        <a-button
+          v-if="auth.canCreateDriver"
+          type="primary"
+          class="lotax-btn-primary"
+          @click="createOpen = true"
         >
-          <a-input
-            v-model:value="searchQ"
-            allow-clear
-            class="md:!w-56"
-            size="large"
-            placeholder="Поиск: имя, телефон, ID…"
-          />
-          <a-select
-            v-model:value="statusFilter"
-            class="md:!w-40"
-            size="large"
-            :options="statusOptions"
-          />
-          <a-select
-            v-model:value="tierFilter"
-            class="md:!w-40"
-            size="large"
-            :options="tierOptions"
-          />
-          <a-select
-            v-if="org.parks.length > 1"
-            v-model:value="parkFilter"
-            class="md:!w-48"
-            size="large"
-            :options="parkOptions"
-          />
-          <a-button class="lotax-btn-secondary" @click="load">
-            <template #icon><ReloadOutlined /></template>
-            Обновить
-          </a-button>
-          <a-button
-            v-if="auth.canCreateDriver"
-            type="primary"
-            class="lotax-btn-primary"
-            @click="createOpen = true"
-          >
-            <template #icon><PlusOutlined /></template>
-            Добавить
-          </a-button>
-          <a-button
-            v-if="auth.canSync"
-            type="primary"
-            class="lotax-btn-primary"
-            @click="router.push('/sync')"
-          >
-            <template #icon><CloudSyncOutlined /></template>
-            Синхронизация
-          </a-button>
-        </div>
-      </template>
-    </PageHeader>
+          <template #icon><PlusOutlined /></template>
+          Добавить
+        </a-button>
+        <a-button
+          v-if="auth.canSync"
+          type="primary"
+          class="lotax-btn-primary"
+          @click="router.push('/sync')"
+        >
+          <template #icon><CloudSyncOutlined /></template>
+          Синхронизация
+        </a-button>
+      </div>
+    </div>
+
+    <div class="drivers-toolbar lotax-card !p-3">
+      <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <a-input
+          v-model:value="searchQ"
+          allow-clear
+          class="sm:!w-64 sm:!flex-none"
+          size="large"
+          placeholder="Поиск: имя, телефон, ID…"
+        />
+        <a-select
+          v-model:value="statusFilter"
+          class="sm:!w-40"
+          size="large"
+          :options="statusOptions"
+        />
+        <a-select
+          v-model:value="tierFilter"
+          class="sm:!w-40"
+          size="large"
+          :options="tierOptions"
+        />
+        <a-select
+          v-if="org.parks.length > 1"
+          v-model:value="parkFilter"
+          class="sm:!w-48"
+          size="large"
+          :options="parkOptions"
+        />
+      </div>
+    </div>
 
     <div
       v-if="auth.canEditStatus"
-      class="flex flex-wrap items-center gap-2"
+      class="drivers-bulk flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-white px-3 py-2.5"
     >
-      <a-button :loading="bulkBusy" @click="confirmBulk('pending', 'В ожидание')">
+      <span class="mr-1 text-[12px] font-semibold uppercase tracking-wide text-ink-muted">
+        Массово
+      </span>
+      <a-button
+        class="lotax-btn-secondary !h-9"
+        :loading="bulkBusy"
+        @click="confirmBulk('pending', 'В ожидание')"
+      >
         В ожидание
       </a-button>
-      <a-button :loading="bulkBusy" @click="confirmBulk('active', 'Активировать')">
+      <a-button
+        class="lotax-btn-secondary !h-9"
+        :loading="bulkBusy"
+        @click="confirmBulk('active', 'Активировать')"
+      >
         Активировать
       </a-button>
-      <a-button :loading="bulkBusy" @click="confirmBulk('blocked', 'Заблокировать')">
+      <a-button
+        class="lotax-btn-secondary !h-9"
+        :loading="bulkBusy"
+        @click="confirmBulk('blocked', 'Заблокировать')"
+      >
         Заблокировать
       </a-button>
       <a-button
+        class="lotax-btn-secondary !h-9"
         :loading="bulkBusy"
         @click="confirmResetPoints"
       >
@@ -485,17 +507,17 @@ onMounted(async () => {
       </a-button>
       <a-button
         type="primary"
-        class="lotax-btn-primary"
+        class="lotax-btn-primary !h-9"
         :loading="launchBusy"
         :disabled="launchResetDone || !org.selectedParkId"
         @click="confirmLaunchReset"
       >
         Старт парка
       </a-button>
-      <span v-if="selectedRowKeys.length" class="text-[13px] text-ink-muted">
+      <span v-if="selectedRowKeys.length" class="ml-auto text-[13px] text-ink-muted">
         Выбрано: {{ selectedRowKeys.length }}
       </span>
-      <span v-else-if="launchResetDone" class="text-[13px] text-ink-muted">
+      <span v-else-if="launchResetDone" class="ml-auto text-[13px] text-ink-muted">
         Старт парка уже выполнен
       </span>
     </div>
@@ -693,6 +715,15 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.drivers-toolbar :deep(.ant-input-affix-wrapper),
+.drivers-toolbar :deep(.ant-select-selector) {
+  border-radius: 12px !important;
+}
+
+.drivers-bulk :deep(.ant-btn) {
+  border-radius: 10px !important;
+}
+
 .driver-mobile-card {
   animation: lotax-fade-in 180ms ease;
 }

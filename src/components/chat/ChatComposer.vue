@@ -22,8 +22,8 @@ function submit() {
 </script>
 
 <template>
-  <div class="chat-composer border-t border-line bg-surface-card px-3 py-2.5 md:px-4">
-    <div class="flex items-end gap-2">
+  <div class="chat-composer border-t border-line bg-surface-card px-3 py-3 md:px-4">
+    <div class="flex items-end gap-2.5">
       <a-textarea
         v-model:value="text"
         :disabled="disabled || sending"
@@ -48,18 +48,32 @@ function submit() {
 <style scoped>
 .chat-composer__input :deep(textarea) {
   border-radius: 22px !important;
-  padding: 10px 14px !important;
+  padding: 11px 16px !important;
   min-height: 44px !important;
-  line-height: 1.35 !important;
+  line-height: 1.4 !important;
+  resize: none !important;
+  box-shadow: none !important;
+}
+
+.chat-composer__input :deep(.ant-input) {
+  border-color: var(--lotax-border) !important;
+}
+
+.chat-composer__input :deep(.ant-input:focus),
+.chat-composer__input :deep(.ant-input-focused) {
+  border-color: var(--lotax-primary) !important;
+  box-shadow: 0 0 0 2px rgba(247, 147, 26, 0.12) !important;
 }
 
 .chat-composer__send {
   width: 44px !important;
   height: 44px !important;
+  min-width: 44px !important;
   border-radius: 50% !important;
   padding: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  flex-shrink: 0 !important;
 }
 </style>

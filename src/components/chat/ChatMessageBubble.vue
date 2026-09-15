@@ -31,7 +31,7 @@ const bubbleClass = computed(() => {
 
 <template>
   <div class="flex" :class="message.is_mine ? 'justify-end' : 'justify-start'">
-    <div class="max-w-[min(100%,72%)] px-1" :class="cluster.isLast ? 'mb-1.5' : 'mb-0.5'">
+    <div class="max-w-[min(100%,68%)]" :class="cluster.isLast ? 'mb-2' : 'mb-0.5'">
       <div :class="bubbleClass">
         <div class="chat-bubble__text">
           <span class="chat-bubble__body">{{ message.body }}</span>
@@ -50,7 +50,8 @@ const bubbleClass = computed(() => {
 <style scoped>
 .chat-bubble {
   position: relative;
-  padding: 7px 10px 6px;
+  min-width: 52px;
+  padding: 8px 12px 7px;
   box-shadow: 0 1px 1px rgba(17, 17, 17, 0.04);
 }
 
@@ -60,47 +61,47 @@ const bubbleClass = computed(() => {
 }
 
 .chat-bubble--other {
-  background: var(--lotax-card);
+  background: #fff;
   color: var(--lotax-text);
-  border: 1px solid var(--lotax-border);
+  border: 1px solid rgba(17, 17, 17, 0.06);
 }
 
 .chat-bubble--mine-single {
-  border-radius: 18px 18px 4px 18px;
+  border-radius: 18px 18px 6px 18px;
 }
 
 .chat-bubble--mine-first {
-  border-radius: 18px 18px 4px 18px;
+  border-radius: 18px 18px 6px 18px;
 }
 
 .chat-bubble--mine-middle {
-  border-radius: 18px 4px 4px 18px;
+  border-radius: 18px 6px 6px 18px;
 }
 
 .chat-bubble--mine-last {
-  border-radius: 18px 4px 4px 18px;
+  border-radius: 18px 6px 6px 18px;
 }
 
 .chat-bubble--other-single {
-  border-radius: 18px 18px 18px 4px;
+  border-radius: 18px 18px 18px 6px;
 }
 
 .chat-bubble--other-first {
-  border-radius: 18px 18px 18px 4px;
+  border-radius: 18px 18px 18px 6px;
 }
 
 .chat-bubble--other-middle {
-  border-radius: 4px 18px 18px 4px;
+  border-radius: 6px 18px 18px 6px;
 }
 
 .chat-bubble--other-last {
-  border-radius: 4px 18px 18px 4px;
+  border-radius: 6px 18px 18px 6px;
 }
 
 .chat-bubble__text {
   display: block;
   font-size: 15px;
-  line-height: 1.35;
+  line-height: 1.4;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -120,10 +121,10 @@ const bubbleClass = computed(() => {
 }
 
 .chat-bubble__time--mine {
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .chat-bubble__time--other {
-  color: var(--lotax-text-secondary);
+  color: var(--lotax-text-tertiary);
 }
 </style>
