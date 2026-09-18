@@ -1,15 +1,39 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { SendOutlined } from '@ant-design/icons-vue'
+import dayjs from 'dayjs'
+import {
+  NotificationOutlined,
+  PlusOutlined,
+  SendOutlined,
+} from '@ant-design/icons-vue'
 import { superAdminApi } from '@/api/superAdmin'
 import { extractErrorMessage } from '@/utils/labels'
 import type { OrganizationResponse, PushNotifyCategory } from '@/types/api'
 import PageHeader from '@/components/PageHeader.vue'
 
+const HISTORY_KEY = 'lotax.superadmin.push.history'
+const HISTORY_LIMIT = 100
+
+interface PlatformPushHistoryItem {
+  id: string
+  title: string
+  body: string
+  category: PushNotifyCategory
+  all_organizations: boolean
+  organization_ids: string[]
+  organization_names: string[]
+  success_count: number
+  failure_count: number
+  devices_targeted: number
+  sent_at: string
+}
+
 const sending = ref(false)
 const loadingOrgs = ref(false)
+const modalOpen = ref(false)
 const organizations = ref<OrganizationResponse[]>([])
+const history = ref<PlatformPushHistoryItem[]>([])
 
 const form = reactive({
   title: '',
@@ -27,9 +51,63 @@ const categoryOptions = [
   { value: 'earn_points', label: 'Баллы' },
 ]
 
+const categoryLabel = computed(() =>
+  Object.fromEntries(categoryOptions.map((o) => [o.value, o.label])),
+)
+
 const orgOptions = computed(() =>
   organizations.value.map((o) => ({ value: o.id, label: o.name })),
 )
+
+const orgNameById = computed(() => {
+  const map = new Map<string, string>()
+  for (const o of organizations.value) map.set(o.id, o.name)
+  return map
+})
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY)
+    if (!raw) {
+      history.value = []
+      return
+    }
+    const parsed = JSON.parse(raw) as PlatformPushHistoryItem[]
+    history.value = Array.isArray(parsed) ? parsed : []
+  } catch {
+    history.value = []
+  }
+}
+
+function saveHistory(items: PlatformPushHistoryItem[]) {
+  history.value = items.slice(0, HISTORY_LIMIT)
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.value))
+}
+
+function resetForm() {
+  form.title = ''
+  form.body = ''
+  form.category = 'promo'
+  form.all_organizations = false
+  form.organization_ids = []
+}
+
+function openCreate() {
+  resetForm()
+  modalOpen.value = true
+  if (!organizations.value.length) void loadOrganizations()
+}
+
+function audienceLabel(item: PlatformPushHistoryItem) {
+  if (item.all_organizations) return 'Все организации'
+  if (!item.organization_names.length) {
+    return `${item.organization_ids.length || '—'} орг.`
+  }
+  if (item.organization_names.length <= 2) {
+    return item.organization_names.join(', ')
+  }
+  return `${item.organization_names.slice(0, 2).join(', ')} +${item.organization_names.length - 2}`
+}
 
 async function loadOrganizations() {
   loadingOrgs.value = true
@@ -44,7 +122,6 @@ async function loadOrganizations() {
         page,
         page_size: pageSize,
       })
-      
       const batch = data.items ?? []
       all.push(...batch)
       total = data.total ?? all.length
@@ -78,16 +155,21 @@ async function send() {
   }
   sending.value = true
   try {
+    const title = form.title.trim()
+    const body = form.body.trim()
+    const category = form.category
+    const allOrgs = form.all_organizations
+    const orgIds = [...form.organization_ids]
+
     const { data } = await superAdminApi.pushNotify({
-      title: form.title.trim(),
-      body: form.body.trim(),
-      category: form.category,
-      all_organizations: form.all_organizations || undefined,
-      organization_ids: form.all_organizations
-        ? undefined
-        : form.organization_ids,
+      title,
+      body,
+      category,
+      all_organizations: allOrgs || undefined,
+      organization_ids: allOrgs ? undefined : orgIds,
       data: { type: 'promo' },
     })
+
     if (data.devices_targeted === 0) {
       message.warning(data.detail || 'Нет активных устройств')
     } else {
@@ -95,8 +177,30 @@ async function send() {
         `Отправлено: ${data.success_count} · ошибок: ${data.failure_count} · устройств: ${data.devices_targeted}`,
       )
     }
-    form.title = ''
-    form.body = ''
+
+    const names = orgIds
+      .map((id) => orgNameById.value.get(id) ?? id)
+      .filter(Boolean)
+
+    saveHistory([
+      {
+        id: crypto.randomUUID(),
+        title,
+        body,
+        category,
+        all_organizations: allOrgs,
+        organization_ids: orgIds,
+        organization_names: names,
+        success_count: data.success_count,
+        failure_count: data.failure_count,
+        devices_targeted: data.devices_targeted,
+        sent_at: new Date().toISOString(),
+      },
+      ...history.value,
+    ])
+
+    modalOpen.value = false
+    resetForm()
   } catch (e) {
     message.error(extractErrorMessage(e, 'Не удалось отправить push'))
   } finally {
@@ -104,22 +208,118 @@ async function send() {
   }
 }
 
-onMounted(loadOrganizations)
+onMounted(() => {
+  loadHistory()
+  void loadOrganizations()
+})
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-xl flex-col gap-4 md:gap-6">
+  <div class="flex flex-col gap-4 md:gap-6">
     <PageHeader
       title="Push по организациям"
-      subtitle="Рассылка водителям выбранных организаций или всей платформы"
-    />
+      subtitle="История рассылок · новый push — через кнопку"
+    >
+      <template #actions>
+        <a-button type="primary" class="lotax-btn-primary" @click="openCreate">
+          <template #icon><PlusOutlined /></template>
+          Новый push
+        </a-button>
+      </template>
+    </PageHeader>
 
-    <section class="lotax-card p-5 md:p-7">
-      <a-form layout="vertical">
+    <div
+      v-if="!history.length"
+      class="lotax-card lotax-empty"
+    >
+      <div class="lotax-empty__icon">
+        <NotificationOutlined />
+      </div>
+      <p class="text-[16px] font-semibold text-ink">Пока нет отправок</p>
+      <p class="lotax-caption mt-1 max-w-sm">
+        Отправленные push появятся здесь. История хранится в этом браузере.
+      </p>
+      <a-button
+        type="primary"
+        class="lotax-btn-primary mt-4"
+        @click="openCreate"
+      >
+        <template #icon><PlusOutlined /></template>
+        Отправить первый push
+      </a-button>
+    </div>
+
+    <div v-else class="flex flex-col gap-3">
+      <article
+        v-for="item in history"
+        :key="item.id"
+        class="lotax-card lotax-card-hover p-4 md:p-5"
+      >
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-[15px] font-semibold text-ink sm:text-[16px]">
+                {{ item.title }}
+              </h3>
+              <span
+                class="inline-flex items-center rounded-full bg-[var(--lotax-bg)] px-2.5 py-1 text-[12px] font-medium text-ink ring-1 ring-inset ring-line"
+              >
+                {{ categoryLabel[item.category] ?? item.category }}
+              </span>
+            </div>
+            <p class="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-muted">
+              {{ item.body }}
+            </p>
+            <div class="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-ink-muted">
+              <span
+                class="inline-flex items-center rounded-full bg-[var(--lotax-primary-soft)] px-2.5 py-1 font-medium text-[var(--lotax-primary)]"
+              >
+                {{ audienceLabel(item) }}
+              </span>
+              <span class="tabular-nums">
+                {{ dayjs(item.sent_at).format('DD.MM.YYYY HH:mm') }}
+              </span>
+            </div>
+          </div>
+          <div
+            class="shrink-0 rounded-[12px] bg-[var(--lotax-bg)] px-3 py-2 text-[12px] text-ink-muted ring-1 ring-line sm:text-right"
+          >
+            <p>
+              Успех
+              <span class="font-semibold tabular-nums text-[var(--lotax-success)]">
+                {{ item.success_count }}
+              </span>
+            </p>
+            <p>
+              Ошибки
+              <span class="font-semibold tabular-nums text-ink">
+                {{ item.failure_count }}
+              </span>
+            </p>
+            <p>
+              Устройств
+              <span class="font-semibold tabular-nums text-ink">
+                {{ item.devices_targeted }}
+              </span>
+            </p>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <a-modal
+      v-model:open="modalOpen"
+      title="Новый push"
+      centered
+      :width="520"
+      :confirm-loading="sending"
+      destroy-on-close
+      :footer="null"
+    >
+      <a-form layout="vertical" class="mt-2">
         <a-form-item label="Категория">
           <a-select
             v-model:value="form.category"
-            size="large"
             class="!w-full"
             :options="categoryOptions"
           />
@@ -127,7 +327,6 @@ onMounted(loadOrganizations)
         <a-form-item label="Заголовок" required>
           <a-input
             v-model:value="form.title"
-            size="large"
             :maxlength="120"
             placeholder="Акция LOTAX"
           />
@@ -153,7 +352,6 @@ onMounted(loadOrganizations)
           <a-select
             v-model:value="form.organization_ids"
             mode="multiple"
-            size="large"
             class="!w-full"
             :loading="loadingOrgs"
             :options="orgOptions"
@@ -162,6 +360,11 @@ onMounted(loadOrganizations)
             placeholder="Выберите организации"
           />
         </a-form-item>
+      </a-form>
+      <div class="mt-4 flex flex-wrap justify-end gap-2">
+        <a-button class="lotax-btn-secondary" @click="modalOpen = false">
+          Отмена
+        </a-button>
         <a-button
           type="primary"
           class="lotax-btn-primary"
@@ -171,7 +374,7 @@ onMounted(loadOrganizations)
           <template #icon><SendOutlined /></template>
           Отправить
         </a-button>
-      </a-form>
-    </section>
+      </div>
+    </a-modal>
   </div>
 </template>

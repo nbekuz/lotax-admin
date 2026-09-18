@@ -267,32 +267,26 @@ watch(
             </p>
           </div>
 
-          <div v-else class="min-h-0 flex-1 overflow-y-auto p-2">
+          <div v-else class="pr-sidebar__list min-h-0 flex-1 overflow-y-auto">
             <button
               v-for="room in store.rooms"
               :key="room.id"
               type="button"
-              class="mb-1 flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left transition-colors"
-              :class="
-                store.activeRoomId === room.id
-                  ? 'bg-brand-soft'
-                  : 'hover:bg-black/[0.04]'
-              "
+              class="pr-sidebar__item"
+              :class="{
+                'pr-sidebar__item--active': store.activeRoomId === room.id,
+              }"
               @click="selectRoom(room.id)"
             >
-              <div
-                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface text-ink-muted"
-              >
-                <LockOutlined class="text-[20px]" />
+              <div class="pr-sidebar__avatar">
+                <LockOutlined class="text-[22px]" />
               </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="truncate text-[15px] font-medium text-ink">
-                    {{ roomLabel(room) }}
-                  </span>
+              <div class="pr-sidebar__content">
+                <div class="pr-sidebar__top">
+                  <span class="pr-sidebar__name">{{ roomLabel(room) }}</span>
                   <span
                     v-if="room.last_message_at || room.created_at"
-                    class="shrink-0 text-[12px] text-ink-muted"
+                    class="pr-sidebar__time"
                   >
                     {{
                       formatChatListTime(
@@ -301,14 +295,12 @@ watch(
                     }}
                   </span>
                 </div>
-                <div class="mt-1 flex items-center justify-between gap-2">
+                <div class="pr-sidebar__bottom">
                   <span
-                    class="truncate text-[14px]"
-                    :class="
-                      room.last_message_preview?.trim()
-                        ? 'text-ink-muted'
-                        : 'italic text-ink-muted/70'
-                    "
+                    class="pr-sidebar__preview"
+                    :class="{
+                      'pr-sidebar__preview--empty': !room.last_message_preview?.trim(),
+                    }"
                   >
                     {{ roomPreview(room) }}
                   </span>
@@ -430,3 +422,120 @@ watch(
     </a-modal>
   </div>
 </template>
+
+<style scoped>
+.pr-sidebar__list {
+  padding: 8px;
+}
+
+.pr-sidebar__item {
+  appearance: none;
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 4px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pr-sidebar__item:last-child {
+  margin-bottom: 0;
+}
+
+.pr-sidebar__item:hover {
+  background: rgba(17, 17, 17, 0.04);
+}
+
+.pr-sidebar__item:active {
+  background: rgba(17, 17, 17, 0.06);
+}
+
+.pr-sidebar__item:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.pr-sidebar__item:focus-visible {
+  outline: 2px solid var(--lotax-primary);
+  outline-offset: 0;
+}
+
+.pr-sidebar__item--active {
+  background: var(--lotax-primary-soft);
+}
+
+.pr-sidebar__item--active:hover {
+  background: var(--lotax-primary-soft);
+}
+
+.pr-sidebar__avatar {
+  display: flex;
+  height: 48px;
+  width: 48px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--lotax-primary-soft);
+  color: var(--lotax-primary);
+}
+
+.pr-sidebar__content {
+  min-width: 0;
+  flex: 1;
+  padding: 1px 0;
+}
+
+.pr-sidebar__top,
+.pr-sidebar__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pr-sidebar__bottom {
+  margin-top: 4px;
+}
+
+.pr-sidebar__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--lotax-text);
+}
+
+.pr-sidebar__time {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--lotax-text-tertiary);
+}
+
+.pr-sidebar__preview {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--lotax-text-secondary);
+}
+
+.pr-sidebar__preview--empty {
+  font-style: italic;
+  color: var(--lotax-text-tertiary);
+}
+</style>
