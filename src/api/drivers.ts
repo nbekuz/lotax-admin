@@ -6,9 +6,13 @@ import type {
   DriverListItem,
   DriverListResponse,
   DriverPersonalData,
+  DriverPointsHistoryResponse,
   DriverRideListResponse,
+  DriverRidesHistoryResponse,
   DriverStatus,
+  DriverTaskHistoryResponse,
   DriverTier,
+  DriverTierHistoryResponse,
   DriverBulkStatusPayload,
   DriverLaunchResetPayload,
   ManualDriverCreatePayload,
@@ -82,6 +86,86 @@ export const driversApi = {
   },
   launchReset(payload: DriverLaunchResetPayload) {
     return http.post<SyncTaskResponse>('/drivers/launch-reset', payload)
+  },
+
+  // ── History tabs (B1) ──────────────────────────────────────────────────────
+  pointsHistory(
+    driverId: string,
+    params: {
+      points_type?: string | null
+      operation?: string | null
+      period?: string | null
+      page?: number
+      page_size?: number
+    } = {},
+  ) {
+    return http.get<DriverPointsHistoryResponse>(
+      `/admin/drivers/${driverId}/points-history`,
+      {
+        params: {
+          points_type: params.points_type || undefined,
+          operation: params.operation || undefined,
+          period: params.period || undefined,
+          page: params.page ?? 1,
+          page_size: params.page_size ?? 20,
+        },
+      },
+    )
+  },
+
+  ridesHistory(
+    driverId: string,
+    params: { period?: string | null; page?: number; page_size?: number } = {},
+  ) {
+    return http.get<DriverRidesHistoryResponse>(
+      `/admin/drivers/${driverId}/rides-history`,
+      {
+        params: {
+          period: params.period || undefined,
+          page: params.page ?? 1,
+          page_size: params.page_size ?? 20,
+        },
+      },
+    )
+  },
+
+  tasksHistory(
+    driverId: string,
+    params: { status?: string | null; page?: number; page_size?: number } = {},
+  ) {
+    return http.get<DriverTaskHistoryResponse>(
+      `/admin/drivers/${driverId}/tasks-history`,
+      {
+        params: {
+          status: params.status || undefined,
+          page: params.page ?? 1,
+          page_size: params.page_size ?? 20,
+        },
+      },
+    )
+  },
+
+  tierHistory(
+    driverId: string,
+    params: { page?: number; page_size?: number } = {},
+  ) {
+    return http.get<DriverTierHistoryResponse>(
+      `/admin/drivers/${driverId}/tier-history`,
+      {
+        params: {
+          page: params.page ?? 1,
+          page_size: params.page_size ?? 20,
+        },
+      },
+    )
+  },
+
+  /** Director-only: download Excel of all points history (responseType: blob). */
+  exportPoints(driverId: string) {
+    return http.get(`/admin/drivers/${driverId}/export/points`, {
+      params: { points_type: 'all' },
+      responseType: 'blob',
+    })
   },
 }
 

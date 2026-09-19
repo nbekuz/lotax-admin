@@ -225,6 +225,8 @@ export interface DriverListItem {
   balance_park_points: number
   tier: DriverTier
   status: DriverStatus
+  /** Yandex employment status: working | fired */
+  work_status?: string | null
   referral_code?: string | null
   created_at: string
 }
@@ -300,6 +302,96 @@ export interface DriverRideItem {
 
 export interface DriverRideListResponse {
   items: DriverRideItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
+/* ── Driver history tabs (B1) ── */
+
+export type PointsOperation = 'earn' | 'spend'
+export type HistoryPeriod = 'day' | 'week' | 'month' | 'all'
+
+export interface DriverPointsHistoryItem {
+  id?: string | null
+  amount: number
+  description?: string | null
+  source?: string | null
+  balance_after?: number | null
+  points_type: PointsType | string
+  created_at?: string | null
+  date?: string | null
+  operation: PointsOperation | string
+}
+
+export interface DriverPointsHistoryResponse {
+  items: DriverPointsHistoryItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface DriverRidesHistoryItem {
+  id?: string | null
+  ride_date?: string | null
+  date?: string | null
+  pickup_address?: string | null
+  dropoff_address?: string | null
+  fare_amount?: number | null
+  currency?: string | null
+  points_system_earned?: number | null
+  points_park_earned?: number | null
+}
+
+export interface DriverRidesHistorySummary {
+  total_rides?: number | null
+  total_fare?: number | null
+  total_system_points?: number | null
+  total_park_points?: number | null
+  [key: string]: unknown
+}
+
+export interface DriverRidesHistoryResponse {
+  items: DriverRidesHistoryItem[]
+  total: number
+  page: number
+  page_size: number
+  summary?: DriverRidesHistorySummary | null
+}
+
+export interface DriverTaskHistoryItem {
+  id?: string | null
+  task_id?: string | null
+  title?: string | null
+  task_type?: string | null
+  progress?: number | null
+  target_value?: number | null
+  status?: string | null
+  reward_points?: number | null
+  reward_points_type?: PointsType | string | null
+  completed_at?: string | null
+  created_at?: string | null
+  joined_at?: string | null
+}
+
+export interface DriverTaskHistoryResponse {
+  items: DriverTaskHistoryItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface DriverTierHistoryItem {
+  id?: string | null
+  tier: DriverTier | string
+  reason?: string | null
+  created_at?: string | null
+  expires_at?: string | null
+  changed_by?: string | null
+}
+
+export interface DriverTierHistoryResponse {
+  items: DriverTierHistoryItem[]
   total: number
   page: number
   page_size: number

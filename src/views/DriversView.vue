@@ -123,6 +123,12 @@ const columns = computed<TableColumnsType<DriverListItem>>(() => {
       width: 130,
     },
     {
+      title: 'Яндекс',
+      dataIndex: 'work_status',
+      key: 'work_status',
+      width: 100,
+    },
+    {
       title: 'Создан',
       dataIndex: 'created_at',
       key: 'created_at',
@@ -553,6 +559,15 @@ onMounted(async () => {
           <div class="mb-3 flex flex-wrap gap-2">
             <StatusBadge :status="driver.status" />
             <TierBadge :tier="driver.tier" />
+            <span
+              v-if="driver.work_status"
+              :class="[
+                'driver-work-status',
+                driver.work_status === 'fired' ? 'driver-work-status--fired' : 'driver-work-status--working',
+              ]"
+            >
+              {{ driver.work_status === 'working' ? 'Яндекс: работает' : driver.work_status === 'fired' ? 'Яндекс: уволен' : driver.work_status }}
+            </span>
           </div>
 
           <div class="grid grid-cols-2 gap-3 border-t border-line pt-3">
@@ -670,6 +685,27 @@ onMounted(async () => {
           </template>
           <template v-else-if="column.key === 'status'">
             <StatusBadge :status="(record as DriverListItem).status" />
+          </template>
+          <template v-else-if="column.key === 'work_status'">
+            <template v-if="(record as DriverListItem).work_status">
+              <span
+                :class="[
+                  'driver-work-status',
+                  (record as DriverListItem).work_status === 'fired'
+                    ? 'driver-work-status--fired'
+                    : 'driver-work-status--working',
+                ]"
+              >
+                {{
+                  (record as DriverListItem).work_status === 'working'
+                    ? 'Работает'
+                    : (record as DriverListItem).work_status === 'fired'
+                    ? 'Уволен'
+                    : (record as DriverListItem).work_status
+                }}
+              </span>
+            </template>
+            <span v-else class="text-ink-muted">—</span>
           </template>
           <template v-else-if="column.key === 'created_at'">
             <span class="whitespace-nowrap text-[13px] tabular-nums text-ink-muted">
@@ -795,5 +831,26 @@ onMounted(async () => {
 
 :deep(.ant-pagination-options) {
   margin-inline-start: 0 !important;
+}
+
+/* Yandex work status badge in driver list */
+.driver-work-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.driver-work-status--working {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.driver-work-status--fired {
+  background: #fee2e2;
+  color: #dc2626;
 }
 </style>

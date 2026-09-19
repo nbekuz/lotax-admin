@@ -7,6 +7,7 @@ import {
   CalendarOutlined,
   CheckCircleOutlined,
   CloudSyncOutlined,
+  DownloadOutlined,
   EditOutlined,
   EyeOutlined,
   GiftOutlined,
@@ -22,7 +23,16 @@ import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
 import { driversApi } from '@/api/drivers'
 import { extractErrorMessage, formatPhone, isForbiddenError, tierLabel } from '@/utils/labels'
-import type { DriverRideItem, DriverStatus, DriverTier } from '@/types/api'
+import { filenameFromContentDisposition, triggerBlobDownload, messageFromBlobError } from '@/utils/download'
+import type {
+  DriverPointsHistoryItem,
+  DriverRidesHistoryItem,
+  DriverRidesHistorySummary,
+  DriverTaskHistoryItem,
+  DriverTierHistoryItem,
+  DriverStatus,
+  DriverTier,
+} from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
 import CopyableId from '@/components/CopyableId.vue'
@@ -48,37 +58,111 @@ const adjustSaving = ref(false)
 const tierSaving = ref(false)
 const syncingRides = ref(false)
 
-const ridesPagination = reactive({
+// ── Points history ────────────────────────────────────────────────────────────
+const pointsFilter = reactive({ points_type: 'all', operation: 'all', period: 'all' })
+const pointsPag = reactive({
   current: 1,
   pageSize: 20,
   total: 0,
   showSizeChanger: true,
   pageSizeOptions: ['10', '20', '50'],
-  showTotal: (total: number) => `Всего: ${total}`,
+  showTotal: (t: number) => `Всего: ${t}`,
 })
+const pointsItems = ref<DriverPointsHistoryItem[]>([])
+const pointsLoading = ref(false)
+const exportingPoints = ref(false)
 
-const rideColumns = [
-  { title: 'Дата', key: 'ride_date', dataIndex: 'ride_date', width: 150 },
-  { title: 'Откуда', key: 'pickup_address', dataIndex: 'pickup_address', ellipsis: true },
-  { title: 'Куда', key: 'dropoff_address', dataIndex: 'dropoff_address', ellipsis: true },
-  { title: 'Сумма', key: 'fare_amount', dataIndex: 'fare_amount', width: 110, align: 'right' as const },
-  { title: 'Сист.', key: 'points_system_earned', dataIndex: 'points_system_earned', width: 80, align: 'right' as const },
-  { title: 'Парк', key: 'points_park_earned', dataIndex: 'points_park_earned', width: 80, align: 'right' as const },
+const pointsColumns = [
+  { title: 'Дата', key: 'date', width: 170 },
+  { title: 'Тип', key: 'points_type', width: 100 },
+  { title: 'Операция', key: 'operation', width: 120 },
+  { title: 'Сумма', key: 'amount', width: 90, align: 'right' as const },
+  { title: 'Баланс после', key: 'balance_after', width: 120, align: 'right' as const },
+  { title: 'Описание', key: 'description', ellipsis: true },
 ]
 
-const adjustForm = reactive({
-  amount: 0,
-  description: '',
+// ── Rides history ─────────────────────────────────────────────────────────────
+const rhPeriod = ref('all')
+const rhPag = reactive({
+  current: 1,
+  pageSize: 20,
+  total: 0,
+  showSizeChanger: true,
+  pageSizeOptions: ['10', '20', '50'],
+  showTotal: (t: number) => `Всего: ${t}`,
 })
+const rhItems = ref<DriverRidesHistoryItem[]>([])
+const rhSummary = ref<DriverRidesHistorySummary | null>(null)
+const rhLoading = ref(false)
 
-const statusForm = reactive<{ status: DriverStatus }>({
-  status: 'active',
-})
+const rhColumns = [
+  { title: 'Дата', key: 'ride_date', width: 150 },
+  { title: 'Откуда', key: 'pickup_address', ellipsis: true },
+  { title: 'Куда', key: 'dropoff_address', ellipsis: true },
+  { title: 'Сумма', key: 'fare_amount', width: 110, align: 'right' as const },
+  { title: 'Сист.', key: 'points_system_earned', width: 80, align: 'right' as const },
+  { title: 'Парк', key: 'points_park_earned', width: 80, align: 'right' as const },
+]
 
-const tierForm = reactive({
-  tier: 'bronze' as DriverTier,
-  reason: '',
+// ── Tasks history ─────────────────────────────────────────────────────────────
+const thStatus = ref('all')
+const thPag = reactive({
+  current: 1,
+  pageSize: 20,
+  total: 0,
+  showSizeChanger: true,
+  pageSizeOptions: ['10', '20', '50'],
+  showTotal: (t: number) => `Всего: ${t}`,
 })
+const thItems = ref<DriverTaskHistoryItem[]>([])
+const thLoading = ref(false)
+
+const thColumns = [
+  { title: 'Задание', key: 'title', ellipsis: true },
+  { title: 'Прогресс', key: 'progress', width: 160 },
+  { title: 'Статус', key: 'status', width: 130 },
+  { title: 'Награда', key: 'reward', width: 130, align: 'right' as const },
+  { title: 'Дата', key: 'task_date', width: 150 },
+]
+
+// ── Tier history ──────────────────────────────────────────────────────────────
+const tierHistPag = reactive({
+  current: 1,
+  pageSize: 20,
+  total: 0,
+  showSizeChanger: true,
+  pageSizeOptions: ['10', '20', '50'],
+  showTotal: (t: number) => `Всего: ${t}`,
+})
+const tierHistItems = ref<DriverTierHistoryItem[]>([])
+const tierHistLoading = ref(false)
+
+const tierHistColumns = [
+  { title: 'Дата', key: 'created_at', width: 160 },
+  { title: 'Уровень', key: 'tier', width: 130 },
+  { title: 'Причина', key: 'reason', ellipsis: true },
+  { title: 'Срок до', key: 'expires_at', width: 170 },
+]
+
+// ── Filter option lists ───────────────────────────────────────────────────────
+const periodOptions = [
+  { value: 'all', label: 'Весь период' },
+  { value: 'day', label: 'День' },
+  { value: 'week', label: 'Неделя' },
+  { value: 'month', label: 'Месяц' },
+]
+
+const taskStatusOptions = [
+  { value: 'all', label: 'Все статусы' },
+  { value: 'completed', label: 'Выполнено' },
+  { value: 'active', label: 'Активно' },
+  { value: 'cancelled', label: 'Отменено' },
+]
+
+// ── Profile adjust forms ──────────────────────────────────────────────────────
+const adjustForm = reactive({ amount: 0, description: '' })
+const statusForm = reactive<{ status: DriverStatus }>({ status: 'active' })
+const tierForm = reactive({ tier: 'bronze' as DriverTier, reason: '' })
 const tierExpiresAt = ref<Dayjs | undefined>(undefined)
 
 const tierOptions = [
@@ -88,10 +172,57 @@ const tierOptions = [
   { value: 'platinum', label: tierLabel.platinum },
 ]
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function unmasked(value?: string | null): string | null {
   if (!value) return null
   if (/[*•]/.test(value)) return null
   return value
+}
+
+function workStatusLabel(s?: string | null): string | null {
+  if (!s) return null
+  if (s === 'working') return 'Работает'
+  if (s === 'fired') return 'Уволен'
+  return s
+}
+
+function pointsTypeRu(t: string) {
+  if (t === 'system') return 'Система'
+  if (t === 'park') return 'Парк'
+  return t
+}
+
+function operationRu(op: string) {
+  if (op === 'earn') return 'Начисление'
+  if (op === 'spend') return 'Списание'
+  return op
+}
+
+function taskStatusRu(s?: string | null) {
+  if (!s) return '—'
+  const map: Record<string, string> = {
+    completed: 'Выполнено',
+    active: 'Активно',
+    draft: 'Черновик',
+    scheduled: 'Запланировано',
+    cancelled: 'Отменено',
+  }
+  return map[s] || s
+}
+
+function pointsItemDate(item: DriverPointsHistoryItem) {
+  const d = item.created_at || item.date
+  return d ? dayjs(d).format('DD.MM.YYYY HH:mm') : '—'
+}
+
+function rideItemDate(item: DriverRidesHistoryItem) {
+  const d = item.ride_date || item.date
+  return d ? dayjs(d).format('DD.MM.YYYY HH:mm') : '—'
+}
+
+function taskItemDate(item: DriverTaskHistoryItem) {
+  const d = item.completed_at || item.created_at || item.joined_at
+  return d ? dayjs(d).format('DD.MM.YYYY') : '—'
 }
 
 const displayTitle = computed(() => {
@@ -142,9 +273,16 @@ const initials = computed(() => {
   return 'D'
 })
 
+// ── Load functions ────────────────────────────────────────────────────────────
 async function load() {
   pdnError.value = null
   activeTab.value = 'profile'
+  // Reset all history state on driver change
+  pointsItems.value = []
+  rhItems.value = []
+  rhSummary.value = null
+  thItems.value = []
+  tierHistItems.value = []
   try {
     await drivers.fetchById(driverId.value)
     if (drivers.current) {
@@ -192,29 +330,108 @@ function hidePdn() {
   pdnError.value = null
 }
 
-async function loadRides() {
+async function loadPoints() {
+  pointsLoading.value = true
   try {
-    await drivers.fetchRides(driverId.value, {
-      page: ridesPagination.current,
-      page_size: ridesPagination.pageSize,
+    const { data } = await driversApi.pointsHistory(driverId.value, {
+      points_type: pointsFilter.points_type !== 'all' ? pointsFilter.points_type : undefined,
+      operation: pointsFilter.operation !== 'all' ? pointsFilter.operation : undefined,
+      period: pointsFilter.period !== 'all' ? pointsFilter.period : undefined,
+      page: pointsPag.current,
+      page_size: pointsPag.pageSize,
     })
-    ridesPagination.total = drivers.ridesTotal
+    pointsItems.value = data.items
+    pointsPag.total = data.total
   } catch (e) {
     message.error(extractErrorMessage(e))
+  } finally {
+    pointsLoading.value = false
+  }
+}
+
+async function loadRidesHistory() {
+  rhLoading.value = true
+  try {
+    const { data } = await driversApi.ridesHistory(driverId.value, {
+      period: rhPeriod.value !== 'all' ? rhPeriod.value : undefined,
+      page: rhPag.current,
+      page_size: rhPag.pageSize,
+    })
+    rhItems.value = data.items
+    rhPag.total = data.total
+    rhSummary.value = data.summary ?? null
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  } finally {
+    rhLoading.value = false
+  }
+}
+
+async function loadTasksHistory() {
+  thLoading.value = true
+  try {
+    const { data } = await driversApi.tasksHistory(driverId.value, {
+      status: thStatus.value !== 'all' ? thStatus.value : undefined,
+      page: thPag.current,
+      page_size: thPag.pageSize,
+    })
+    thItems.value = data.items
+    thPag.total = data.total
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  } finally {
+    thLoading.value = false
+  }
+}
+
+async function loadTierHistory() {
+  tierHistLoading.value = true
+  try {
+    const { data } = await driversApi.tierHistory(driverId.value, {
+      page: tierHistPag.current,
+      page_size: tierHistPag.pageSize,
+    })
+    tierHistItems.value = data.items
+    tierHistPag.total = data.total
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  } finally {
+    tierHistLoading.value = false
+  }
+}
+
+async function exportPointsExcel() {
+  exportingPoints.value = true
+  try {
+    const resp = await driversApi.exportPoints(driverId.value)
+    const contentType =
+      (resp.headers['content-type'] as string) ||
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    const blob = new Blob([resp.data as BlobPart], { type: contentType })
+    const cd = resp.headers['content-disposition'] as string | undefined
+    const filename = filenameFromContentDisposition(cd, `points_export_${driverId.value}.xlsx`)
+    triggerBlobDownload(blob, filename)
+  } catch (e) {
+    message.error(await messageFromBlobError(e, 'Ошибка экспорта'))
+  } finally {
+    exportingPoints.value = false
   }
 }
 
 function onTabChange(key: string | number) {
-  if (key === 'rides' && !drivers.rides.length && !drivers.ridesLoading) {
-    ridesPagination.current = 1
-    void loadRides()
+  if (key === 'points' && !pointsItems.value.length && !pointsLoading.value) {
+    pointsPag.current = 1
+    void loadPoints()
+  } else if (key === 'rides' && !rhItems.value.length && !rhLoading.value) {
+    rhPag.current = 1
+    void loadRidesHistory()
+  } else if (key === 'tasks' && !thItems.value.length && !thLoading.value) {
+    thPag.current = 1
+    void loadTasksHistory()
+  } else if (key === 'tier' && !tierHistItems.value.length && !tierHistLoading.value) {
+    tierHistPag.current = 1
+    void loadTierHistory()
   }
-}
-
-function onRidesTableChange(pag: { current?: number; pageSize?: number }) {
-  ridesPagination.current = pag.current ?? 1
-  ridesPagination.pageSize = pag.pageSize ?? 20
-  void loadRides()
 }
 
 async function syncRidesFromDetail() {
@@ -223,7 +440,7 @@ async function syncRidesFromDetail() {
     const result = await drivers.syncRides(org.selectedParkId)
     message.success(result.message)
     window.setTimeout(() => {
-      void loadRides()
+      void loadRidesHistory()
     }, 4000)
   } catch (e) {
     message.error(extractErrorMessage(e, 'Не удалось запустить синхронизацию'))
@@ -286,9 +503,7 @@ async function saveTier() {
     await drivers.adjustTier(driverId.value, {
       tier: tierForm.tier,
       reason: tierForm.reason.trim(),
-      expires_at: tierExpiresAt.value
-        ? tierExpiresAt.value.toISOString()
-        : null,
+      expires_at: tierExpiresAt.value ? tierExpiresAt.value.toISOString() : null,
     })
     message.success('Уровень изменён')
     tierOpen.value = false
@@ -353,11 +568,33 @@ async function savePassword() {
   }
 }
 
-onMounted(load)
+// ── Watchers for filter-driven reload ────────────────────────────────────────
+watch(
+  [() => pointsFilter.points_type, () => pointsFilter.operation, () => pointsFilter.period],
+  () => {
+    if (activeTab.value === 'points') {
+      pointsPag.current = 1
+      void loadPoints()
+    }
+  },
+)
 
-watch(driverId, () => {
-  load()
+watch(rhPeriod, () => {
+  if (activeTab.value === 'rides') {
+    rhPag.current = 1
+    void loadRidesHistory()
+  }
 })
+
+watch(thStatus, () => {
+  if (activeTab.value === 'tasks') {
+    thPag.current = 1
+    void loadTasksHistory()
+  }
+})
+
+onMounted(load)
+watch(driverId, () => { load() })
 </script>
 
 <template>
@@ -457,6 +694,13 @@ watch(driverId, () => {
           <div class="summary-card__badges">
             <TierBadge :tier="drivers.current.tier" />
             <StatusBadge :status="drivers.current.status" />
+            <span
+              v-if="drivers.current.work_status"
+              class="yandex-work-badge"
+              :class="{ 'yandex-work-badge--fired': drivers.current.work_status === 'fired' }"
+            >
+              Яндекс: {{ workStatusLabel(drivers.current.work_status) }}
+            </span>
           </div>
         </div>
       </div>
@@ -489,7 +733,7 @@ watch(driverId, () => {
         </div>
       </div>
 
-      <!-- 4. Balance — same visual language as meta blocks -->
+      <!-- 4. Balance -->
       <div class="summary-balance">
         <div class="summary-balance__item">
           <div class="summary-balance__icon summary-balance__icon--system" aria-hidden="true">
@@ -517,8 +761,10 @@ watch(driverId, () => {
       </div>
     </section>
 
-    <!-- Tabs: profile / rides -->
+    <!-- Tabs: Профиль | Баллы | Поездки | Задания | Уровень -->
     <a-tabs v-model:activeKey="activeTab" class="driver-tabs" @change="onTabChange">
+
+      <!-- ── Профиль ──────────────────────────────────────────────────────── -->
       <a-tab-pane key="profile" tab="Профиль">
         <section class="driver-detail__section info-grid">
           <div class="detail-card lotax-card">
@@ -610,6 +856,10 @@ watch(driverId, () => {
                 label="Создан"
                 :value="dayjs(drivers.current.created_at).format('DD.MM.YYYY HH:mm')"
               />
+              <InfoField
+                label="Статус Яндекс"
+                :value="workStatusLabel(drivers.current.work_status) || '—'"
+              />
             </div>
           </div>
 
@@ -623,15 +873,142 @@ watch(driverId, () => {
         </section>
       </a-tab-pane>
 
+      <!-- ── Баллы ───────────────────────────────────────────────────────── -->
+      <a-tab-pane key="points" tab="Баллы">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="lotax-section-title">История баллов</h2>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <a-button
+                v-if="auth.isDirector"
+                class="lotax-btn-secondary"
+                :loading="exportingPoints"
+                @click="exportPointsExcel"
+              >
+                <template #icon><DownloadOutlined /></template>
+                Excel
+              </a-button>
+              <a-button
+                class="lotax-btn-secondary"
+                :loading="pointsLoading"
+                @click="() => { pointsPag.current = 1; loadPoints() }"
+              >
+                Обновить
+              </a-button>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="mb-4 flex flex-wrap gap-2">
+            <a-select
+              v-model:value="pointsFilter.points_type"
+              size="default"
+              class="!w-36"
+              :options="[
+                { value: 'all', label: 'Все типы' },
+                { value: 'system', label: 'Система' },
+                { value: 'park', label: 'Парк' },
+              ]"
+            />
+            <a-select
+              v-model:value="pointsFilter.operation"
+              size="default"
+              class="!w-44"
+              :options="[
+                { value: 'all', label: 'Все операции' },
+                { value: 'earn', label: 'Начисление' },
+                { value: 'spend', label: 'Списание' },
+              ]"
+            />
+            <a-select
+              v-model:value="pointsFilter.period"
+              size="default"
+              class="!w-40"
+              :options="periodOptions"
+            />
+          </div>
+
+          <a-table
+            row-key="id"
+            :columns="pointsColumns"
+            :data-source="pointsItems"
+            :loading="pointsLoading"
+            :pagination="pointsPag"
+            :scroll="{ x: 780 }"
+            :locale="{ emptyText: ' ' }"
+            @change="(pag: { current?: number; pageSize?: number }) => {
+              pointsPag.current = pag.current ?? 1
+              pointsPag.pageSize = pag.pageSize ?? 20
+              loadPoints()
+            }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-2 py-10">
+                <p class="text-[15px] font-medium text-ink">История баллов пуста</p>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'date'">
+                {{ pointsItemDate(record as DriverPointsHistoryItem) }}
+              </template>
+              <template v-else-if="column.key === 'points_type'">
+                {{ pointsTypeRu((record as DriverPointsHistoryItem).points_type) }}
+              </template>
+              <template v-else-if="column.key === 'operation'">
+                <span
+                  :class="[
+                    'tabular-nums font-medium',
+                    (record as DriverPointsHistoryItem).operation === 'earn' ? 'text-green-600' : 'text-red-500',
+                  ]"
+                >
+                  {{ operationRu((record as DriverPointsHistoryItem).operation) }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'amount'">
+                <span
+                  :class="[
+                    'tabular-nums font-semibold',
+                    (record as DriverPointsHistoryItem).operation === 'earn' ? 'text-green-600' : 'text-red-500',
+                  ]"
+                >
+                  {{ (record as DriverPointsHistoryItem).operation === 'earn' ? '+' : '−' }}{{ Math.abs((record as DriverPointsHistoryItem).amount) }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'balance_after'">
+                <span class="tabular-nums text-ink-muted">
+                  {{ (record as DriverPointsHistoryItem).balance_after ?? '—' }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'description'">
+                {{ (record as DriverPointsHistoryItem).description || (record as DriverPointsHistoryItem).source || '—' }}
+              </template>
+            </template>
+          </a-table>
+        </section>
+      </a-tab-pane>
+
+      <!-- ── Поездки ─────────────────────────────────────────────────────── -->
       <a-tab-pane key="rides" tab="Поездки">
         <section class="detail-card lotax-card">
           <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 class="lotax-section-title">Поездки</h2>
+              <h2 class="lotax-section-title">История поездок</h2>
               <p class="lotax-caption mt-1">Данные из Yandex после синхронизации</p>
             </div>
             <div class="flex flex-wrap gap-2">
-              <a-button class="lotax-btn-secondary" :loading="drivers.ridesLoading" @click="loadRides">
+              <a-select
+                v-model:value="rhPeriod"
+                size="default"
+                class="!w-40"
+                :options="periodOptions"
+              />
+              <a-button
+                class="lotax-btn-secondary"
+                :loading="rhLoading"
+                @click="() => { rhPag.current = 1; loadRidesHistory() }"
+              >
                 Обновить
               </a-button>
               <a-button
@@ -647,15 +1024,39 @@ watch(driverId, () => {
             </div>
           </div>
 
+          <!-- Summary cards (if API returns summary) -->
+          <div v-if="rhSummary" class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div v-if="rhSummary.total_rides != null" class="rounded-xl bg-gray-50 px-4 py-3">
+              <p class="text-[12px] text-ink-muted">Поездок</p>
+              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_rides }}</p>
+            </div>
+            <div v-if="rhSummary.total_fare != null" class="rounded-xl bg-gray-50 px-4 py-3">
+              <p class="text-[12px] text-ink-muted">Выручка</p>
+              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_fare }}</p>
+            </div>
+            <div v-if="rhSummary.total_system_points != null" class="rounded-xl bg-gray-50 px-4 py-3">
+              <p class="text-[12px] text-ink-muted">Сист. баллы</p>
+              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_system_points }}</p>
+            </div>
+            <div v-if="rhSummary.total_park_points != null" class="rounded-xl bg-gray-50 px-4 py-3">
+              <p class="text-[12px] text-ink-muted">Парк. баллы</p>
+              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_park_points }}</p>
+            </div>
+          </div>
+
           <a-table
             row-key="id"
-            :columns="rideColumns"
-            :data-source="drivers.rides"
-            :loading="drivers.ridesLoading"
-            :pagination="ridesPagination"
+            :columns="rhColumns"
+            :data-source="rhItems"
+            :loading="rhLoading"
+            :pagination="rhPag"
             :scroll="{ x: 720 }"
             :locale="{ emptyText: ' ' }"
-            @change="onRidesTableChange"
+            @change="(pag: { current?: number; pageSize?: number }) => {
+              rhPag.current = pag.current ?? 1
+              rhPag.pageSize = pag.pageSize ?? 20
+              loadRidesHistory()
+            }"
           >
             <template #emptyText>
               <div class="flex flex-col items-center gap-3 py-10">
@@ -677,35 +1078,177 @@ watch(driverId, () => {
             </template>
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'ride_date'">
-                {{ dayjs((record as DriverRideItem).ride_date).format('DD.MM.YYYY HH:mm') }}
+                {{ rideItemDate(record as DriverRidesHistoryItem) }}
               </template>
               <template v-else-if="column.key === 'pickup_address'">
-                {{ (record as DriverRideItem).pickup_address || '—' }}
+                {{ (record as DriverRidesHistoryItem).pickup_address || '—' }}
               </template>
               <template v-else-if="column.key === 'dropoff_address'">
-                {{ (record as DriverRideItem).dropoff_address || '—' }}
+                {{ (record as DriverRidesHistoryItem).dropoff_address || '—' }}
               </template>
               <template v-else-if="column.key === 'fare_amount'">
                 <span class="tabular-nums">
                   {{
-                    (record as DriverRideItem).fare_amount != null
-                      ? `${(record as DriverRideItem).fare_amount} ${(record as DriverRideItem).currency}`
+                    (record as DriverRidesHistoryItem).fare_amount != null
+                      ? `${(record as DriverRidesHistoryItem).fare_amount} ${(record as DriverRidesHistoryItem).currency || ''}`
                       : '—'
                   }}
                 </span>
               </template>
               <template v-else-if="column.key === 'points_system_earned'">
-                <span class="tabular-nums">{{ (record as DriverRideItem).points_system_earned }}</span>
+                <span class="tabular-nums">{{ (record as DriverRidesHistoryItem).points_system_earned ?? '—' }}</span>
               </template>
               <template v-else-if="column.key === 'points_park_earned'">
-                <span class="tabular-nums">{{ (record as DriverRideItem).points_park_earned }}</span>
+                <span class="tabular-nums">{{ (record as DriverRidesHistoryItem).points_park_earned ?? '—' }}</span>
               </template>
             </template>
           </a-table>
         </section>
       </a-tab-pane>
+
+      <!-- ── Задания ─────────────────────────────────────────────────────── -->
+      <a-tab-pane key="tasks" tab="Задания">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="lotax-section-title">История заданий</h2>
+            <div class="flex flex-wrap gap-2">
+              <a-select
+                v-model:value="thStatus"
+                size="default"
+                class="!w-44"
+                :options="taskStatusOptions"
+              />
+              <a-button
+                class="lotax-btn-secondary"
+                :loading="thLoading"
+                @click="() => { thPag.current = 1; loadTasksHistory() }"
+              >
+                Обновить
+              </a-button>
+            </div>
+          </div>
+
+          <a-table
+            row-key="id"
+            :columns="thColumns"
+            :data-source="thItems"
+            :loading="thLoading"
+            :pagination="thPag"
+            :scroll="{ x: 700 }"
+            :locale="{ emptyText: ' ' }"
+            @change="(pag: { current?: number; pageSize?: number }) => {
+              thPag.current = pag.current ?? 1
+              thPag.pageSize = pag.pageSize ?? 20
+              loadTasksHistory()
+            }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-2 py-10">
+                <p class="text-[15px] font-medium text-ink">История заданий пуста</p>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'title'">
+                {{ (record as DriverTaskHistoryItem).title || '—' }}
+              </template>
+              <template v-else-if="column.key === 'progress'">
+                <span class="tabular-nums text-[13px]">
+                  <template v-if="(record as DriverTaskHistoryItem).progress != null && (record as DriverTaskHistoryItem).target_value != null">
+                    {{ (record as DriverTaskHistoryItem).progress }} / {{ (record as DriverTaskHistoryItem).target_value }}
+                    <span class="text-ink-muted ml-1">
+                      ({{ Math.min(100, Math.round(((record as DriverTaskHistoryItem).progress! / (record as DriverTaskHistoryItem).target_value!) * 100)) }}%)
+                    </span>
+                  </template>
+                  <template v-else>—</template>
+                </span>
+              </template>
+              <template v-else-if="column.key === 'status'">
+                <span
+                  :class="[
+                    'text-[13px] font-medium',
+                    (record as DriverTaskHistoryItem).status === 'completed' ? 'text-green-600' :
+                    (record as DriverTaskHistoryItem).status === 'cancelled' ? 'text-red-500' :
+                    'text-ink-muted',
+                  ]"
+                >
+                  {{ taskStatusRu((record as DriverTaskHistoryItem).status) }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'reward'">
+                <span v-if="(record as DriverTaskHistoryItem).reward_points != null" class="tabular-nums font-semibold text-green-600">
+                  +{{ (record as DriverTaskHistoryItem).reward_points }}
+                  <span class="text-[11px] font-normal text-ink-muted">
+                    {{ (record as DriverTaskHistoryItem).reward_points_type === 'system' ? 'сист.' : 'парк.' }}
+                  </span>
+                </span>
+                <span v-else>—</span>
+              </template>
+              <template v-else-if="column.key === 'task_date'">
+                {{ taskItemDate(record as DriverTaskHistoryItem) }}
+              </template>
+            </template>
+          </a-table>
+        </section>
+      </a-tab-pane>
+
+      <!-- ── Уровень ─────────────────────────────────────────────────────── -->
+      <a-tab-pane key="tier" tab="Уровень">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex items-center justify-between">
+            <h2 class="lotax-section-title">История изменений уровня</h2>
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="tierHistLoading"
+              @click="() => { tierHistPag.current = 1; loadTierHistory() }"
+            >
+              Обновить
+            </a-button>
+          </div>
+
+          <a-table
+            row-key="id"
+            :columns="tierHistColumns"
+            :data-source="tierHistItems"
+            :loading="tierHistLoading"
+            :pagination="tierHistPag"
+            :scroll="{ x: 620 }"
+            :locale="{ emptyText: ' ' }"
+            @change="(pag: { current?: number; pageSize?: number }) => {
+              tierHistPag.current = pag.current ?? 1
+              tierHistPag.pageSize = pag.pageSize ?? 20
+              loadTierHistory()
+            }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-2 py-10">
+                <p class="text-[15px] font-medium text-ink">История уровней пуста</p>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'created_at'">
+                {{ (record as DriverTierHistoryItem).created_at
+                  ? dayjs((record as DriverTierHistoryItem).created_at!).format('DD.MM.YYYY HH:mm')
+                  : '—' }}
+              </template>
+              <template v-else-if="column.key === 'tier'">
+                <TierBadge :tier="(record as DriverTierHistoryItem).tier as 'bronze' | 'silver' | 'gold' | 'platinum'" />
+              </template>
+              <template v-else-if="column.key === 'reason'">
+                {{ (record as DriverTierHistoryItem).reason || '—' }}
+              </template>
+              <template v-else-if="column.key === 'expires_at'">
+                {{ (record as DriverTierHistoryItem).expires_at
+                  ? dayjs((record as DriverTierHistoryItem).expires_at!).format('DD.MM.YYYY HH:mm')
+                  : 'Без срока' }}
+              </template>
+            </template>
+          </a-table>
+        </section>
+      </a-tab-pane>
+
     </a-tabs>
 
+    <!-- Modals (unchanged) -->
     <a-modal
       v-model:open="balanceOpen"
       title="Корректировка баллов"
@@ -1170,5 +1713,25 @@ watch(driverId, () => {
   .profile-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Yandex work status badge */
+.yandex-work-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.yandex-work-badge--fired {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
 }
 </style>
