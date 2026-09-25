@@ -25,6 +25,7 @@ import { driversApi } from '@/api/drivers'
 import { extractErrorMessage, formatPhone, isForbiddenError, tierLabel } from '@/utils/labels'
 import { filenameFromContentDisposition, triggerBlobDownload, messageFromBlobError } from '@/utils/download'
 import type {
+  DriverPointsAccrualItem,
   DriverPointsHistoryItem,
   DriverRidesHistoryItem,
   DriverRidesHistorySummary,
@@ -32,6 +33,9 @@ import type {
   DriverTierHistoryItem,
   DriverStatus,
   DriverTier,
+  YandexLiveEarningsItem,
+  YandexLiveOrderItem,
+  YandexLiveStatementItem,
 } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import TierBadge from '@/components/TierBadge.vue'
@@ -59,7 +63,8 @@ const tierSaving = ref(false)
 const syncingRides = ref(false)
 
 // ── Points history ────────────────────────────────────────────────────────────
-const pointsFilter = reactive({ points_type: 'all', operation: 'all', period: 'all' })
+const pointsFilter = reactive({ points_type: 'all', operation: 'all', period: 'month' })
+const pointsRange = ref<[Dayjs, Dayjs] | null>(null)
 const pointsPag = reactive({
   current: 1,
   pageSize: 20,
@@ -81,8 +86,33 @@ const pointsColumns = [
   { title: 'Описание', key: 'description', ellipsis: true },
 ]
 
+// ── Points accruals ───────────────────────────────────────────────────────────
+const accrualsFilter = reactive({ points_type: 'all', period: 'month' })
+const accrualsRange = ref<[Dayjs, Dayjs] | null>(null)
+const accrualsPag = reactive({
+  current: 1,
+  pageSize: 20,
+  total: 0,
+  showSizeChanger: true,
+  pageSizeOptions: ['10', '20', '50'],
+  showTotal: (t: number) => `Всего: ${t}`,
+})
+const accrualsItems = ref<DriverPointsAccrualItem[]>([])
+const accrualsEarned = ref<number | null>(null)
+const accrualsLoading = ref(false)
+
+const accrualsColumns = [
+  { title: 'Дата', key: 'date', width: 170 },
+  { title: 'Тип', key: 'points_type', width: 100 },
+  { title: 'Сумма', key: 'amount', width: 90, align: 'right' as const },
+  { title: 'Источник', key: 'source', ellipsis: true },
+  { title: 'Баланс после', key: 'balance_after', width: 120, align: 'right' as const },
+  { title: 'Парк', key: 'park_name', width: 140 },
+]
+
 // ── Rides history ─────────────────────────────────────────────────────────────
-const rhPeriod = ref('all')
+const rhPeriod = ref('month')
+const rhRange = ref<[Dayjs, Dayjs] | null>(null)
 const rhPag = reactive({
   current: 1,
   pageSize: 20,
@@ -106,6 +136,8 @@ const rhColumns = [
 
 // ── Tasks history ─────────────────────────────────────────────────────────────
 const thStatus = ref('all')
+const thPeriod = ref('month')
+const thRange = ref<[Dayjs, Dayjs] | null>(null)
 const thPag = reactive({
   current: 1,
   pageSize: 20,
@@ -126,6 +158,8 @@ const thColumns = [
 ]
 
 // ── Tier history ──────────────────────────────────────────────────────────────
+const tierHistPeriod = ref('month')
+const tierHistRange = ref<[Dayjs, Dayjs] | null>(null)
 const tierHistPag = reactive({
   current: 1,
   pageSize: 20,
@@ -144,12 +178,54 @@ const tierHistColumns = [
   { title: 'Срок до', key: 'expires_at', width: 170 },
 ]
 
+// ── Yandex live ───────────────────────────────────────────────────────────────
+const yxPeriod = ref('week')
+const yxRange = ref<[Dayjs, Dayjs] | null>([
+  dayjs().subtract(6, 'day').startOf('day'),
+  dayjs().endOf('day'),
+])
+const yxOrders = ref<YandexLiveOrderItem[]>([])
+const yxStatement = ref<YandexLiveStatementItem[]>([])
+const yxEarnings = ref<YandexLiveEarningsItem[]>([])
+const yxOrdersCursor = ref<string | null>(null)
+const yxStatementCursor = ref<string | null>(null)
+const yxEarningsCursor = ref<string | null>(null)
+const yxOrdersLoading = ref(false)
+const yxStatementLoading = ref(false)
+const yxEarningsLoading = ref(false)
+const yxOrdersError = ref<string | null>(null)
+const yxStatementError = ref<string | null>(null)
+const yxEarningsError = ref<string | null>(null)
+
+const yxOrderColumns = [
+  { title: 'Дата', key: 'created_at', width: 160 },
+  { title: 'Статус', key: 'status', width: 120 },
+  { title: 'Откуда', key: 'address_from', ellipsis: true },
+  { title: 'Куда', key: 'address_to', ellipsis: true },
+  { title: 'Сумма', key: 'price', width: 110, align: 'right' as const },
+]
+
+const yxStatementColumns = [
+  { title: 'Дата', key: 'event_at', width: 160 },
+  { title: 'Категория', key: 'category', ellipsis: true },
+  { title: 'Сумма', key: 'amount', width: 110, align: 'right' as const },
+  { title: 'Описание', key: 'description', ellipsis: true },
+]
+
+const yxEarningsColumns = [
+  { title: 'Период', key: 'period', width: 200 },
+  { title: 'Брутто', key: 'gross', width: 110, align: 'right' as const },
+  { title: 'Комиссия', key: 'commission', width: 110, align: 'right' as const },
+  { title: 'Нетто', key: 'net', width: 110, align: 'right' as const },
+]
+
 // ── Filter option lists ───────────────────────────────────────────────────────
 const periodOptions = [
-  { value: 'all', label: 'Весь период' },
-  { value: 'day', label: 'День' },
   { value: 'week', label: 'Неделя' },
   { value: 'month', label: 'Месяц' },
+  { value: 'quarter', label: 'Квартал' },
+  { value: 'year', label: 'Год' },
+  { value: 'period', label: 'Период' },
 ]
 
 const taskStatusOptions = [
@@ -158,6 +234,9 @@ const taskStatusOptions = [
   { value: 'active', label: 'Активно' },
   { value: 'cancelled', label: 'Отменено' },
 ]
+
+const hasYandexDriverId = computed(() => Boolean(drivers.current?.yandex_driver_id))
+const tiersEnabled = computed(() => drivers.current?.tiers_enabled !== false)
 
 // ── Profile adjust forms ──────────────────────────────────────────────────────
 const adjustForm = reactive({ amount: 0, description: '' })
@@ -196,6 +275,30 @@ function operationRu(op: string) {
   if (op === 'earn') return 'Начисление'
   if (op === 'spend') return 'Списание'
   return op
+}
+
+function periodQuery(period: string, range: [Dayjs, Dayjs] | null) {
+  if (period === 'period' && range?.[0] && range?.[1]) {
+    return {
+      date_from: range[0].startOf('day').toISOString(),
+      date_to: range[1].endOf('day').toISOString(),
+    }
+  }
+  return { period }
+}
+
+function yandexQuery(cursor?: string | null) {
+  const base = periodQuery(yxPeriod.value, yxRange.value)
+  return {
+    ...base,
+    cursor: cursor || undefined,
+    limit: 50,
+  }
+}
+
+function accrualsItemDate(item: DriverPointsAccrualItem) {
+  const raw = item.date || item.created_at
+  return raw ? dayjs(raw).format('DD.MM.YYYY HH:mm') : '—'
 }
 
 function taskStatusRu(s?: string | null) {
@@ -336,7 +439,7 @@ async function loadPoints() {
     const { data } = await driversApi.pointsHistory(driverId.value, {
       points_type: pointsFilter.points_type !== 'all' ? pointsFilter.points_type : undefined,
       operation: pointsFilter.operation !== 'all' ? pointsFilter.operation : undefined,
-      period: pointsFilter.period !== 'all' ? pointsFilter.period : undefined,
+      ...periodQuery(pointsFilter.period, pointsRange.value),
       page: pointsPag.current,
       page_size: pointsPag.pageSize,
     })
@@ -349,11 +452,30 @@ async function loadPoints() {
   }
 }
 
+async function loadAccruals() {
+  accrualsLoading.value = true
+  try {
+    const { data } = await driversApi.pointsAccruals(driverId.value, {
+      points_type: accrualsFilter.points_type !== 'all' ? accrualsFilter.points_type : undefined,
+      ...periodQuery(accrualsFilter.period, accrualsRange.value),
+      page: accrualsPag.current,
+      page_size: accrualsPag.pageSize,
+    })
+    accrualsItems.value = data.items
+    accrualsPag.total = data.total
+    accrualsEarned.value = data.summary?.earned ?? null
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  } finally {
+    accrualsLoading.value = false
+  }
+}
+
 async function loadRidesHistory() {
   rhLoading.value = true
   try {
     const { data } = await driversApi.ridesHistory(driverId.value, {
-      period: rhPeriod.value !== 'all' ? rhPeriod.value : undefined,
+      ...periodQuery(rhPeriod.value, rhRange.value),
       page: rhPag.current,
       page_size: rhPag.pageSize,
     })
@@ -372,6 +494,7 @@ async function loadTasksHistory() {
   try {
     const { data } = await driversApi.tasksHistory(driverId.value, {
       status: thStatus.value !== 'all' ? thStatus.value : undefined,
+      ...periodQuery(thPeriod.value, thRange.value),
       page: thPag.current,
       page_size: thPag.pageSize,
     })
@@ -388,6 +511,7 @@ async function loadTierHistory() {
   tierHistLoading.value = true
   try {
     const { data } = await driversApi.tierHistory(driverId.value, {
+      ...periodQuery(tierHistPeriod.value, tierHistRange.value),
       page: tierHistPag.current,
       page_size: tierHistPag.pageSize,
     })
@@ -397,6 +521,78 @@ async function loadTierHistory() {
     message.error(extractErrorMessage(e))
   } finally {
     tierHistLoading.value = false
+  }
+}
+
+async function loadYandexOrders(append = false) {
+  if (!hasYandexDriverId.value) {
+    yxOrdersError.value = 'У водителя нет yandex_driver_id — живые заказы недоступны'
+    yxOrders.value = []
+    yxOrdersCursor.value = null
+    return
+  }
+  yxOrdersLoading.value = true
+  yxOrdersError.value = null
+  try {
+    const { data } = await driversApi.yandexOrders(
+      driverId.value,
+      yandexQuery(append ? yxOrdersCursor.value : null),
+    )
+    yxOrders.value = append ? [...yxOrders.value, ...data.items] : data.items
+    yxOrdersCursor.value = data.next_cursor ?? data.cursor ?? null
+  } catch (e) {
+    yxOrdersError.value = extractErrorMessage(e)
+    if (!append) yxOrders.value = []
+  } finally {
+    yxOrdersLoading.value = false
+  }
+}
+
+async function loadYandexStatement(append = false) {
+  if (!hasYandexDriverId.value) {
+    yxStatementError.value = 'У водителя нет yandex_driver_id — ведомость недоступна'
+    yxStatement.value = []
+    yxStatementCursor.value = null
+    return
+  }
+  yxStatementLoading.value = true
+  yxStatementError.value = null
+  try {
+    const { data } = await driversApi.yandexStatement(
+      driverId.value,
+      yandexQuery(append ? yxStatementCursor.value : null),
+    )
+    yxStatement.value = append ? [...yxStatement.value, ...data.items] : data.items
+    yxStatementCursor.value = data.next_cursor ?? data.cursor ?? null
+  } catch (e) {
+    yxStatementError.value = extractErrorMessage(e)
+    if (!append) yxStatement.value = []
+  } finally {
+    yxStatementLoading.value = false
+  }
+}
+
+async function loadYandexEarnings(append = false) {
+  if (!hasYandexDriverId.value) {
+    yxEarningsError.value = 'У водителя нет yandex_driver_id — заработок недоступен'
+    yxEarnings.value = []
+    yxEarningsCursor.value = null
+    return
+  }
+  yxEarningsLoading.value = true
+  yxEarningsError.value = null
+  try {
+    const { data } = await driversApi.yandexEarnings(
+      driverId.value,
+      yandexQuery(append ? yxEarningsCursor.value : null),
+    )
+    yxEarnings.value = append ? [...yxEarnings.value, ...data.items] : data.items
+    yxEarningsCursor.value = data.next_cursor ?? data.cursor ?? null
+  } catch (e) {
+    yxEarningsError.value = extractErrorMessage(e)
+    if (!append) yxEarnings.value = []
+  } finally {
+    yxEarningsLoading.value = false
   }
 }
 
@@ -422,6 +618,9 @@ function onTabChange(key: string | number) {
   if (key === 'points' && !pointsItems.value.length && !pointsLoading.value) {
     pointsPag.current = 1
     void loadPoints()
+  } else if (key === 'accruals' && !accrualsItems.value.length && !accrualsLoading.value) {
+    accrualsPag.current = 1
+    void loadAccruals()
   } else if (key === 'rides' && !rhItems.value.length && !rhLoading.value) {
     rhPag.current = 1
     void loadRidesHistory()
@@ -431,6 +630,12 @@ function onTabChange(key: string | number) {
   } else if (key === 'tier' && !tierHistItems.value.length && !tierHistLoading.value) {
     tierHistPag.current = 1
     void loadTierHistory()
+  } else if (key === 'yx-orders') {
+    void loadYandexOrders(false)
+  } else if (key === 'yx-statement') {
+    void loadYandexStatement(false)
+  } else if (key === 'yx-earnings') {
+    void loadYandexEarnings(false)
   }
 }
 
@@ -570,7 +775,7 @@ async function savePassword() {
 
 // ── Watchers for filter-driven reload ────────────────────────────────────────
 watch(
-  [() => pointsFilter.points_type, () => pointsFilter.operation, () => pointsFilter.period],
+  [() => pointsFilter.points_type, () => pointsFilter.operation, () => pointsFilter.period, pointsRange],
   () => {
     if (activeTab.value === 'points') {
       pointsPag.current = 1
@@ -579,18 +784,41 @@ watch(
   },
 )
 
-watch(rhPeriod, () => {
+watch(
+  [() => accrualsFilter.points_type, () => accrualsFilter.period, accrualsRange],
+  () => {
+    if (activeTab.value === 'accruals') {
+      accrualsPag.current = 1
+      void loadAccruals()
+    }
+  },
+)
+
+watch([rhPeriod, rhRange], () => {
   if (activeTab.value === 'rides') {
     rhPag.current = 1
     void loadRidesHistory()
   }
 })
 
-watch(thStatus, () => {
+watch([thStatus, thPeriod, thRange], () => {
   if (activeTab.value === 'tasks') {
     thPag.current = 1
     void loadTasksHistory()
   }
+})
+
+watch([tierHistPeriod, tierHistRange], () => {
+  if (activeTab.value === 'tier') {
+    tierHistPag.current = 1
+    void loadTierHistory()
+  }
+})
+
+watch([yxPeriod, yxRange], () => {
+  if (activeTab.value === 'yx-orders') void loadYandexOrders(false)
+  else if (activeTab.value === 'yx-statement') void loadYandexStatement(false)
+  else if (activeTab.value === 'yx-earnings') void loadYandexEarnings(false)
 })
 
 onMounted(load)
@@ -928,6 +1156,11 @@ watch(driverId, () => { load() })
               class="!w-40"
               :options="periodOptions"
             />
+            <a-range-picker
+              v-if="pointsFilter.period === 'period'"
+              v-model:value="pointsRange"
+              format="DD.MM.YYYY"
+            />
           </div>
 
           <a-table
@@ -989,6 +1222,108 @@ watch(driverId, () => { load() })
         </section>
       </a-tab-pane>
 
+      <!-- ── Начисления ──────────────────────────────────────────────────── -->
+      <a-tab-pane key="accruals" tab="Начисления">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="lotax-section-title">История начисления баллов</h2>
+              <p class="lotax-caption mt-1">Только плюсы (начисления)</p>
+            </div>
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="accrualsLoading"
+              @click="() => { accrualsPag.current = 1; loadAccruals() }"
+            >
+              Обновить
+            </a-button>
+          </div>
+
+          <div class="mb-4 flex flex-wrap gap-2">
+            <a-select
+              v-model:value="accrualsFilter.points_type"
+              size="default"
+              class="!w-36"
+              :options="[
+                { value: 'all', label: 'Все типы' },
+                { value: 'system', label: 'Система' },
+                { value: 'park', label: 'Парк' },
+              ]"
+            />
+            <a-select
+              v-model:value="accrualsFilter.period"
+              size="default"
+              class="!w-40"
+              :options="periodOptions"
+            />
+            <a-range-picker
+              v-if="accrualsFilter.period === 'period'"
+              v-model:value="accrualsRange"
+              format="DD.MM.YYYY"
+            />
+          </div>
+
+          <div v-if="accrualsEarned != null" class="mb-4">
+            <div class="inline-flex rounded-xl bg-green-50 px-4 py-3">
+              <div>
+                <p class="text-[12px] text-ink-muted">Начислено</p>
+                <p class="text-[20px] font-bold tabular-nums text-green-700">+{{ accrualsEarned }}</p>
+              </div>
+            </div>
+          </div>
+
+          <a-table
+            row-key="id"
+            :columns="accrualsColumns"
+            :data-source="accrualsItems"
+            :loading="accrualsLoading"
+            :pagination="accrualsPag"
+            :scroll="{ x: 780 }"
+            :locale="{ emptyText: ' ' }"
+            @change="(pag: { current?: number; pageSize?: number }) => {
+              accrualsPag.current = pag.current ?? 1
+              accrualsPag.pageSize = pag.pageSize ?? 20
+              loadAccruals()
+            }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-2 py-10">
+                <p class="text-[15px] font-medium text-ink">Начислений пока нет</p>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'date'">
+                {{ accrualsItemDate(record as DriverPointsAccrualItem) }}
+              </template>
+              <template v-else-if="column.key === 'points_type'">
+                {{ pointsTypeRu((record as DriverPointsAccrualItem).points_type) }}
+              </template>
+              <template v-else-if="column.key === 'amount'">
+                <span class="tabular-nums font-semibold text-green-600">
+                  +{{ Math.abs((record as DriverPointsAccrualItem).amount) }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'source'">
+                {{
+                  [
+                    (record as DriverPointsAccrualItem).source,
+                    (record as DriverPointsAccrualItem).tx_type,
+                  ].filter(Boolean).join(' · ') || (record as DriverPointsAccrualItem).description || '—'
+                }}
+              </template>
+              <template v-else-if="column.key === 'balance_after'">
+                <span class="tabular-nums text-ink-muted">
+                  {{ (record as DriverPointsAccrualItem).balance_after ?? '—' }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'park_name'">
+                {{ (record as DriverPointsAccrualItem).park_name || '—' }}
+              </template>
+            </template>
+          </a-table>
+        </section>
+      </a-tab-pane>
+
       <!-- ── Поездки ─────────────────────────────────────────────────────── -->
       <a-tab-pane key="rides" tab="Поездки">
         <section class="detail-card lotax-card">
@@ -1003,6 +1338,11 @@ watch(driverId, () => { load() })
                 size="default"
                 class="!w-40"
                 :options="periodOptions"
+              />
+              <a-range-picker
+                v-if="rhPeriod === 'period'"
+                v-model:value="rhRange"
+                format="DD.MM.YYYY"
               />
               <a-button
                 class="lotax-btn-secondary"
@@ -1118,6 +1458,17 @@ watch(driverId, () => { load() })
                 class="!w-44"
                 :options="taskStatusOptions"
               />
+              <a-select
+                v-model:value="thPeriod"
+                size="default"
+                class="!w-40"
+                :options="periodOptions"
+              />
+              <a-range-picker
+                v-if="thPeriod === 'period'"
+                v-model:value="thRange"
+                format="DD.MM.YYYY"
+              />
               <a-button
                 class="lotax-btn-secondary"
                 :loading="thLoading"
@@ -1149,7 +1500,7 @@ watch(driverId, () => { load() })
             </template>
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'title'">
-                {{ (record as DriverTaskHistoryItem).title || '—' }}
+                {{ (record as DriverTaskHistoryItem).title || (record as DriverTaskHistoryItem).task_title || '—' }}
               </template>
               <template v-else-if="column.key === 'progress'">
                 <span class="tabular-nums text-[13px]">
@@ -1192,17 +1543,30 @@ watch(driverId, () => { load() })
       </a-tab-pane>
 
       <!-- ── Уровень ─────────────────────────────────────────────────────── -->
-      <a-tab-pane key="tier" tab="Уровень">
+      <a-tab-pane v-if="tiersEnabled" key="tier" tab="Уровень">
         <section class="detail-card lotax-card">
-          <div class="mb-4 flex items-center justify-between">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="lotax-section-title">История изменений уровня</h2>
-            <a-button
-              class="lotax-btn-secondary"
-              :loading="tierHistLoading"
-              @click="() => { tierHistPag.current = 1; loadTierHistory() }"
-            >
-              Обновить
-            </a-button>
+            <div class="flex flex-wrap gap-2">
+              <a-select
+                v-model:value="tierHistPeriod"
+                size="default"
+                class="!w-40"
+                :options="periodOptions"
+              />
+              <a-range-picker
+                v-if="tierHistPeriod === 'period'"
+                v-model:value="tierHistRange"
+                format="DD.MM.YYYY"
+              />
+              <a-button
+                class="lotax-btn-secondary"
+                :loading="tierHistLoading"
+                @click="() => { tierHistPag.current = 1; loadTierHistory() }"
+              >
+                Обновить
+              </a-button>
+            </div>
           </div>
 
           <a-table
@@ -1243,6 +1607,278 @@ watch(driverId, () => { load() })
               </template>
             </template>
           </a-table>
+        </section>
+      </a-tab-pane>
+
+      <!-- ── Yandex: Заказы ───────────────────────────────────────────────── -->
+      <a-tab-pane key="yx-orders" tab="Заказы">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="lotax-section-title">Заказы Yandex</h2>
+              <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <a-select v-model:value="yxPeriod" size="default" class="!w-40" :options="periodOptions" />
+              <a-range-picker
+                v-if="yxPeriod === 'period'"
+                v-model:value="yxRange"
+                format="DD.MM.YYYY"
+              />
+              <a-button
+                class="lotax-btn-secondary"
+                :loading="yxOrdersLoading"
+                @click="loadYandexOrders(false)"
+              >
+                Обновить
+              </a-button>
+            </div>
+          </div>
+
+          <div
+            v-if="yxOrdersError"
+            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
+          >
+            {{ yxOrdersError }}
+          </div>
+
+          <a-table
+            v-else
+            row-key="id"
+            :columns="yxOrderColumns"
+            :data-source="yxOrders"
+            :loading="yxOrdersLoading"
+            :pagination="false"
+            :scroll="{ x: 720 }"
+            :locale="{ emptyText: ' ' }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-2 py-10">
+                <p class="text-[15px] font-medium text-ink">Заказов за период нет</p>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'created_at'">
+                {{
+                  (record as YandexLiveOrderItem).created_at
+                    ? dayjs((record as YandexLiveOrderItem).created_at as string).format('DD.MM.YYYY HH:mm')
+                    : '—'
+                }}
+              </template>
+              <template v-else-if="column.key === 'status'">
+                {{ (record as YandexLiveOrderItem).status || '—' }}
+              </template>
+              <template v-else-if="column.key === 'address_from'">
+                {{ (record as YandexLiveOrderItem).address_from || '—' }}
+              </template>
+              <template v-else-if="column.key === 'address_to'">
+                {{ (record as YandexLiveOrderItem).address_to || '—' }}
+              </template>
+              <template v-else-if="column.key === 'price'">
+                <span class="tabular-nums">
+                  {{
+                    (record as YandexLiveOrderItem).price != null
+                      ? `${(record as YandexLiveOrderItem).price} ${(record as YandexLiveOrderItem).currency || ''}`
+                      : '—'
+                  }}
+                </span>
+              </template>
+            </template>
+          </a-table>
+
+          <div v-if="yxOrdersCursor && !yxOrdersError" class="mt-4 flex justify-center">
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="yxOrdersLoading"
+              @click="loadYandexOrders(true)"
+            >
+              Загрузить ещё
+            </a-button>
+          </div>
+        </section>
+      </a-tab-pane>
+
+      <!-- ── Yandex: Ведомость ────────────────────────────────────────────── -->
+      <a-tab-pane key="yx-statement" tab="Ведомость">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="lotax-section-title">Ведомость Yandex</h2>
+              <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <a-select v-model:value="yxPeriod" size="default" class="!w-40" :options="periodOptions" />
+              <a-range-picker
+                v-if="yxPeriod === 'period'"
+                v-model:value="yxRange"
+                format="DD.MM.YYYY"
+              />
+              <a-button
+                class="lotax-btn-secondary"
+                :loading="yxStatementLoading"
+                @click="loadYandexStatement(false)"
+              >
+                Обновить
+              </a-button>
+            </div>
+          </div>
+
+          <div
+            v-if="yxStatementError"
+            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
+          >
+            {{ yxStatementError }}
+          </div>
+
+          <a-table
+            v-else
+            row-key="id"
+            :columns="yxStatementColumns"
+            :data-source="yxStatement"
+            :loading="yxStatementLoading"
+            :pagination="false"
+            :scroll="{ x: 700 }"
+            :locale="{ emptyText: ' ' }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-2 py-10">
+                <p class="text-[15px] font-medium text-ink">Записей в ведомости нет</p>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'event_at'">
+                {{
+                  ((record as YandexLiveStatementItem).event_at ||
+                    (record as YandexLiveStatementItem).created_at)
+                    ? dayjs(
+                        ((record as YandexLiveStatementItem).event_at ||
+                          (record as YandexLiveStatementItem).created_at) as string,
+                      ).format('DD.MM.YYYY HH:mm')
+                    : '—'
+                }}
+              </template>
+              <template v-else-if="column.key === 'category'">
+                {{
+                  (record as YandexLiveStatementItem).category_name ||
+                  (record as YandexLiveStatementItem).category_id ||
+                  '—'
+                }}
+              </template>
+              <template v-else-if="column.key === 'amount'">
+                <span class="tabular-nums">
+                  {{
+                    (record as YandexLiveStatementItem).amount != null
+                      ? `${(record as YandexLiveStatementItem).amount} ${(record as YandexLiveStatementItem).currency || ''}`
+                      : '—'
+                  }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'description'">
+                {{ (record as YandexLiveStatementItem).description || '—' }}
+              </template>
+            </template>
+          </a-table>
+
+          <div v-if="yxStatementCursor && !yxStatementError" class="mt-4 flex justify-center">
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="yxStatementLoading"
+              @click="loadYandexStatement(true)"
+            >
+              Загрузить ещё
+            </a-button>
+          </div>
+        </section>
+      </a-tab-pane>
+
+      <!-- ── Yandex: Заработок ────────────────────────────────────────────── -->
+      <a-tab-pane key="yx-earnings" tab="Заработок">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="lotax-section-title">Заработок Yandex</h2>
+              <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <a-select v-model:value="yxPeriod" size="default" class="!w-40" :options="periodOptions" />
+              <a-range-picker
+                v-if="yxPeriod === 'period'"
+                v-model:value="yxRange"
+                format="DD.MM.YYYY"
+              />
+              <a-button
+                class="lotax-btn-secondary"
+                :loading="yxEarningsLoading"
+                @click="loadYandexEarnings(false)"
+              >
+                Обновить
+              </a-button>
+            </div>
+          </div>
+
+          <div
+            v-if="yxEarningsError"
+            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
+          >
+            {{ yxEarningsError }}
+          </div>
+
+          <a-table
+            v-else
+            row-key="id"
+            :columns="yxEarningsColumns"
+            :data-source="yxEarnings"
+            :loading="yxEarningsLoading"
+            :pagination="false"
+            :scroll="{ x: 620 }"
+            :locale="{ emptyText: ' ' }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-2 py-10">
+                <p class="text-[15px] font-medium text-ink">Данных о заработке нет</p>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'period'">
+                {{
+                  (record as YandexLiveEarningsItem).date
+                    ? dayjs((record as YandexLiveEarningsItem).date as string).format('DD.MM.YYYY')
+                    : [
+                        (record as YandexLiveEarningsItem).period_from
+                          ? dayjs((record as YandexLiveEarningsItem).period_from as string).format('DD.MM')
+                          : null,
+                        (record as YandexLiveEarningsItem).period_to
+                          ? dayjs((record as YandexLiveEarningsItem).period_to as string).format('DD.MM.YYYY')
+                          : null,
+                      ].filter(Boolean).join(' – ') || '—'
+                }}
+              </template>
+              <template v-else-if="column.key === 'gross'">
+                <span class="tabular-nums">{{ (record as YandexLiveEarningsItem).gross ?? '—' }}</span>
+              </template>
+              <template v-else-if="column.key === 'commission'">
+                <span class="tabular-nums">{{ (record as YandexLiveEarningsItem).commission ?? '—' }}</span>
+              </template>
+              <template v-else-if="column.key === 'net'">
+                <span class="tabular-nums font-semibold">
+                  {{ (record as YandexLiveEarningsItem).net ?? '—' }}
+                  <span class="text-[11px] font-normal text-ink-muted">
+                    {{ (record as YandexLiveEarningsItem).currency || '' }}
+                  </span>
+                </span>
+              </template>
+            </template>
+          </a-table>
+
+          <div v-if="yxEarningsCursor && !yxEarningsError" class="mt-4 flex justify-center">
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="yxEarningsLoading"
+              @click="loadYandexEarnings(true)"
+            >
+              Загрузить ещё
+            </a-button>
+          </div>
         </section>
       </a-tab-pane>
 

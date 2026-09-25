@@ -86,8 +86,9 @@ function typeLabel(type: string) {
   return rewardTypeLabel[type as RewardType] ?? type
 }
 
-function iconUrl(item: RewardAdminItem) {
-  return item.icon?.image_url || null
+/** Card preview: always API `image_url` (backend may copy icon file into it). */
+function cardImageUrl(item: RewardAdminItem) {
+  return item.image_url || null
 }
 
 function iconTitle(item: RewardAdminItem) {
@@ -331,17 +332,11 @@ onMounted(async () => {
       >
         <div class="flex min-w-0 items-start gap-3">
           <div
-            class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-line"
+            class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-line sm:h-24 sm:w-24"
           >
             <img
-              v-if="iconUrl(item)"
-              :src="iconUrl(item)!"
-              alt=""
-              class="h-full w-full object-contain p-1"
-            />
-            <img
-              v-else-if="item.image_url"
-              :src="item.image_url"
+              v-if="cardImageUrl(item)"
+              :src="cardImageUrl(item)!"
               alt=""
               class="h-full w-full object-cover"
             />

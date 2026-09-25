@@ -227,6 +227,7 @@ export interface DriverListItem {
   status: DriverStatus
   /** Yandex employment status: working | fired */
   work_status?: string | null
+  tiers_enabled?: boolean | null
   referral_code?: string | null
   created_at: string
 }
@@ -310,15 +311,25 @@ export interface DriverRideListResponse {
 /* ── Driver history tabs (B1) ── */
 
 export type PointsOperation = 'earn' | 'spend'
-export type HistoryPeriod = 'day' | 'week' | 'month' | 'all'
+export type HistoryPeriod = 'week' | 'month' | 'quarter' | 'year' | 'period'
+
+export interface HistoryPeriodQuery {
+  period?: string | null
+  date_from?: string | null
+  date_to?: string | null
+  page?: number
+  page_size?: number
+}
 
 export interface DriverPointsHistoryItem {
   id?: string | null
   amount: number
   description?: string | null
   source?: string | null
+  tx_type?: string | null
   balance_after?: number | null
   points_type: PointsType | string
+  park_name?: string | null
   created_at?: string | null
   date?: string | null
   operation: PointsOperation | string
@@ -329,6 +340,29 @@ export interface DriverPointsHistoryResponse {
   total: number
   page: number
   page_size: number
+  summary?: { earned?: number | null; spent?: number | null; [key: string]: unknown } | null
+}
+
+/** Только начисления (плюсы) — `GET .../points-accruals`. */
+export interface DriverPointsAccrualItem {
+  id?: string | null
+  amount: number
+  description?: string | null
+  source?: string | null
+  tx_type?: string | null
+  balance_after?: number | null
+  points_type: PointsType | string
+  park_name?: string | null
+  created_at?: string | null
+  date?: string | null
+}
+
+export interface DriverPointsAccrualsResponse {
+  items: DriverPointsAccrualItem[]
+  total: number
+  page: number
+  page_size: number
+  summary?: { earned?: number | null; [key: string]: unknown } | null
 }
 
 export interface DriverRidesHistoryItem {
@@ -363,12 +397,17 @@ export interface DriverTaskHistoryItem {
   id?: string | null
   task_id?: string | null
   title?: string | null
+  task_title?: string | null
   task_type?: string | null
   progress?: number | null
   target_value?: number | null
   status?: string | null
   reward_points?: number | null
   reward_points_type?: PointsType | string | null
+  reward_type?: PointsType | string | null
+  park_name?: string | null
+  period_start?: string | null
+  period_end?: string | null
   completed_at?: string | null
   created_at?: string | null
   joined_at?: string | null
@@ -379,6 +418,14 @@ export interface DriverTaskHistoryResponse {
   total: number
   page: number
   page_size: number
+  summary?: {
+    total_tasks?: number | null
+    completed?: number | null
+    failed?: number | null
+    active?: number | null
+    total_points_earned?: number | null
+    [key: string]: unknown
+  } | null
 }
 
 export interface DriverTierHistoryItem {
@@ -395,6 +442,53 @@ export interface DriverTierHistoryResponse {
   total: number
   page: number
   page_size: number
+}
+
+/* ── Yandex live (admin driver detail) ── */
+
+export interface YandexCursorPage<T> {
+  items: T[]
+  next_cursor?: string | null
+  cursor?: string | null
+  limit?: number | null
+  [key: string]: unknown
+}
+
+export interface YandexLiveOrderItem {
+  id?: string | null
+  order_id?: string | null
+  status?: string | null
+  created_at?: string | null
+  ended_at?: string | null
+  address_from?: string | null
+  address_to?: string | null
+  price?: number | null
+  currency?: string | null
+  [key: string]: unknown
+}
+
+export interface YandexLiveStatementItem {
+  id?: string | null
+  event_at?: string | null
+  created_at?: string | null
+  category_id?: string | null
+  category_name?: string | null
+  amount?: number | null
+  currency?: string | null
+  description?: string | null
+  [key: string]: unknown
+}
+
+export interface YandexLiveEarningsItem {
+  id?: string | null
+  date?: string | null
+  period_from?: string | null
+  period_to?: string | null
+  gross?: number | null
+  net?: number | null
+  commission?: number | null
+  currency?: string | null
+  [key: string]: unknown
 }
 
 export interface AdminLoginPayload {

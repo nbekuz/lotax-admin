@@ -6,6 +6,7 @@ import type {
   DriverListItem,
   DriverListResponse,
   DriverPersonalData,
+  DriverPointsAccrualsResponse,
   DriverPointsHistoryResponse,
   DriverRideListResponse,
   DriverRidesHistoryResponse,
@@ -15,10 +16,15 @@ import type {
   DriverTierHistoryResponse,
   DriverBulkStatusPayload,
   DriverLaunchResetPayload,
+  HistoryPeriodQuery,
   ManualDriverCreatePayload,
   MessageResponse,
   StatusUpdatePayload,
   SyncTaskResponse,
+  YandexCursorPage,
+  YandexLiveEarningsItem,
+  YandexLiveOrderItem,
+  YandexLiveStatementItem,
 } from '@/types/api'
 
 export interface DriversQuery {
@@ -28,6 +34,43 @@ export interface DriversQuery {
   status?: DriverStatus | null
   tier?: DriverTier | null
   park_id?: string | null
+}
+
+export interface DriverHistoryQuery extends HistoryPeriodQuery {
+  points_type?: string | null
+  operation?: string | null
+  status?: string | null
+}
+
+export interface YandexLiveQuery {
+  period?: string | null
+  date_from?: string | null
+  date_to?: string | null
+  cursor?: string | null
+  limit?: number
+}
+
+function periodParams(params: HistoryPeriodQuery = {}) {
+  const useRange = Boolean(params.date_from && params.date_to)
+  return {
+    // date_from/date_to take precedence over period
+    period: useRange ? undefined : params.period || undefined,
+    date_from: useRange ? params.date_from || undefined : undefined,
+    date_to: useRange ? params.date_to || undefined : undefined,
+    page: params.page ?? 1,
+    page_size: params.page_size ?? 20,
+  }
+}
+
+function yandexParams(params: YandexLiveQuery = {}) {
+  const useRange = Boolean(params.date_from && params.date_to)
+  return {
+    period: useRange ? undefined : params.period || undefined,
+    date_from: useRange ? params.date_from || undefined : undefined,
+    date_to: useRange ? params.date_to || undefined : undefined,
+    cursor: params.cursor || undefined,
+    limit: params.limit ?? 50,
+  }
 }
 
 export const driversApi = {
@@ -89,74 +132,76 @@ export const driversApi = {
   },
 
   // ── History tabs (B1) ──────────────────────────────────────────────────────
-  pointsHistory(
-    driverId: string,
-    params: {
-      points_type?: string | null
-      operation?: string | null
-      period?: string | null
-      page?: number
-      page_size?: number
-    } = {},
-  ) {
+  pointsHistory(driverId: string, params: DriverHistoryQuery = {}) {
     return http.get<DriverPointsHistoryResponse>(
       `/admin/drivers/${driverId}/points-history`,
       {
         params: {
+          ...periodParams(params),
           points_type: params.points_type || undefined,
           operation: params.operation || undefined,
-          period: params.period || undefined,
-          page: params.page ?? 1,
-          page_size: params.page_size ?? 20,
         },
       },
     )
   },
 
-  ridesHistory(
-    driverId: string,
-    params: { period?: string | null; page?: number; page_size?: number } = {},
-  ) {
-    return http.get<DriverRidesHistoryResponse>(
-      `/admin/drivers/${driverId}/rides-history`,
+  pointsAccruals(driverId: string, params: DriverHistoryQuery = {}) {
+    return http.get<DriverPointsAccrualsResponse>(
+      `/admin/drivers/${driverId}/points-accruals`,
       {
         params: {
-          period: params.period || undefined,
-          page: params.page ?? 1,
-          page_size: params.page_size ?? 20,
+          ...periodParams(params),
+          points_type: params.points_type || undefined,
         },
       },
     )
   },
 
-  tasksHistory(
-    driverId: string,
-    params: { status?: string | null; page?: number; page_size?: number } = {},
-  ) {
+  ridesHistory(driverId: string, params: HistoryPeriodQuery = {}) {
+    return http.get<DriverRidesHistoryResponse>(
+      `/admin/drivers/${driverId}/rides-history`,
+      { params: periodParams(params) },
+    )
+  },
+
+  tasksHistory(driverId: string, params: DriverHistoryQuery = {}) {
     return http.get<DriverTaskHistoryResponse>(
       `/admin/drivers/${driverId}/tasks-history`,
       {
         params: {
+          ...periodParams(params),
           status: params.status || undefined,
-          page: params.page ?? 1,
-          page_size: params.page_size ?? 20,
         },
       },
     )
   },
 
-  tierHistory(
-    driverId: string,
-    params: { page?: number; page_size?: number } = {},
-  ) {
+  tierHistory(driverId: string, params: HistoryPeriodQuery = {}) {
     return http.get<DriverTierHistoryResponse>(
       `/admin/drivers/${driverId}/tier-history`,
-      {
-        params: {
-          page: params.page ?? 1,
-          page_size: params.page_size ?? 20,
-        },
-      },
+      { params: periodParams(params) },
+    )
+  },
+
+  // ── Yandex live ────────────────────────────────────────────────────────────
+  yandexOrders(driverId: string, params: YandexLiveQuery = {}) {
+    return http.get<YandexCursorPage<YandexLiveOrderItem>>(
+      `/admin/drivers/${driverId}/yandex/orders`,
+      { params: yandexParams(params) },
+    )
+  },
+
+  yandexStatement(driverId: string, params: YandexLiveQuery = {}) {
+    return http.get<YandexCursorPage<YandexLiveStatementItem>>(
+      `/admin/drivers/${driverId}/yandex/statement`,
+      { params: yandexParams(params) },
+    )
+  },
+
+  yandexEarnings(driverId: string, params: YandexLiveQuery = {}) {
+    return http.get<YandexCursorPage<YandexLiveEarningsItem>>(
+      `/admin/drivers/${driverId}/yandex/earnings`,
+      { params: yandexParams(params) },
     )
   },
 

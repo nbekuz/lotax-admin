@@ -452,7 +452,7 @@ onMounted(async () => {
           allow-clear
           class="sm:!w-64 sm:!flex-none"
           size="large"
-          placeholder="Поиск: имя, телефон, ID…"
+          placeholder="Поиск: имя, фамилия, телефон, ID…"
         />
         <a-select
           v-model:value="statusFilter"
