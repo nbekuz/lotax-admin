@@ -39,6 +39,7 @@ declare module 'vue' {
     ATabPane: typeof import('ant-design-vue/es')['TabPane']
     ATabs: typeof import('ant-design-vue/es')['Tabs']
     ATextarea: typeof import('ant-design-vue/es')['Textarea']
+    ATimePicker: typeof import('ant-design-vue/es/time-picker/dayjs')['TimePicker']
     ATooltip: typeof import('ant-design-vue/es')['Tooltip']
     AUpload: typeof import('ant-design-vue/es')['Upload']
     BrandMark: typeof import('./components/BrandMark.vue')['default']

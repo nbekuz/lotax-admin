@@ -285,7 +285,6 @@ const yxPaymentOptions = [
 ]
 
 const hasYandexDriverId = computed(() => Boolean(drivers.current?.yandex_driver_id))
-const tiersEnabled = computed(() => drivers.current?.tiers_enabled !== false)
 
 // ── Profile adjust forms ──────────────────────────────────────────────────────
 const adjustForm = reactive({ amount: 0, description: '' })
@@ -1140,7 +1139,7 @@ watch(driverId, () => { load() })
       </div>
     </section>
 
-    <!-- Профиль, Баллы, Начисления, Поездки, Задания, Уровень, Заказы, Ведомость, Заработок -->
+    <!-- Профиль, Поездки, Заказы, Заработок, Ведомость, Баллы, Начисления, Задания -->
     <a-tabs v-model:activeKey="activeTab" class="driver-tabs" @change="onTabChange">
 
       <!-- ── Профиль ──────────────────────────────────────────────────────── -->
@@ -1248,6 +1247,578 @@ watch(driverId, () => { load() })
               <CopyableId label="ID водителя" :value="drivers.current.yandex_driver_id" />
               <CopyableId label="ID парка" :value="drivers.current.yandex_park_id" />
             </div>
+          </div>
+        </section>
+      </a-tab-pane>
+
+      <!-- ── Поездки ─────────────────────────────────────────────────────── -->
+      <a-tab-pane key="rides" tab="Поездки">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="lotax-section-title">История поездок</h2>
+              <p class="lotax-caption mt-1">Данные из Yandex после синхронизации</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <a-select
+                v-model:value="rhPeriod"
+                size="middle"
+                class="!w-40"
+                :options="periodOptions"
+              />
+              <a-range-picker
+                v-model:value="rhRange"
+                allow-clear
+                format="DD.MM.YYYY"
+                class="!w-[260px]"
+                :placeholder="['Дата с', 'Дата по']"
+                @change="(v) => syncPeriod(v, (p) => { rhPeriod = p }, rhPeriod, 'month')"
+              />
+              <a-button
+                class="lotax-btn-secondary"
+                :loading="rhLoading"
+                @click="() => { rhPag.current = 1; loadRidesHistory() }"
+              >
+                Обновить
+              </a-button>
+              <a-button
+                v-if="auth.canSync"
+                type="primary"
+                class="lotax-btn-primary"
+                :loading="syncingRides"
+                @click="syncRidesFromDetail"
+              >
+                <template #icon><CloudSyncOutlined /></template>
+                Синхронизировать поездки
+              </a-button>
+            </div>
+          </div>
+
+          <!-- Summary cards (if API returns summary) -->
+          <div v-if="rhSummary" class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div v-if="rhSummary.total_rides != null" class="rounded-xl bg-gray-50 px-4 py-3">
+              <p class="text-[12px] text-ink-muted">Поездок</p>
+              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_rides }}</p>
+            </div>
+            <div v-if="rhSummary.total_fare != null" class="rounded-xl bg-gray-50 px-4 py-3">
+              <p class="text-[12px] text-ink-muted">Выручка</p>
+              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_fare }}</p>
+            </div>
+            <div v-if="rhSummary.total_system_points != null" class="rounded-xl bg-gray-50 px-4 py-3">
+              <p class="text-[12px] text-ink-muted">Сист. баллы</p>
+              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_system_points }}</p>
+            </div>
+            <div v-if="rhSummary.total_park_points != null" class="rounded-xl bg-gray-50 px-4 py-3">
+              <p class="text-[12px] text-ink-muted">Парк. баллы</p>
+              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_park_points }}</p>
+            </div>
+          </div>
+
+          <a-table
+            row-key="id"
+            :columns="rhColumns"
+            :data-source="rhItems"
+            :loading="rhLoading"
+            :pagination="rhPag"
+            :scroll="{ x: 720 }"
+            :locale="{ emptyText: ' ' }"
+            @change="(pag: { current?: number; pageSize?: number }) => {
+              rhPag.current = pag.current ?? 1
+              rhPag.pageSize = pag.pageSize ?? 20
+              loadRidesHistory()
+            }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-3 py-10">
+                <p class="text-[15px] font-medium text-ink">Поездок пока нет</p>
+                <p class="lotax-caption max-w-sm text-center">
+                  Сначала нажмите «Синхронизировать поездки»
+                </p>
+                <a-button
+                  v-if="auth.canSync"
+                  type="primary"
+                  class="lotax-btn-primary"
+                  :loading="syncingRides"
+                  @click="syncRidesFromDetail"
+                >
+                  <template #icon><CloudSyncOutlined /></template>
+                  Синхронизировать поездки
+                </a-button>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'ride_date'">
+                {{ rideItemDate(record as DriverRidesHistoryItem) }}
+              </template>
+              <template v-else-if="column.key === 'pickup_address'">
+                {{ (record as DriverRidesHistoryItem).pickup_address || '—' }}
+              </template>
+              <template v-else-if="column.key === 'dropoff_address'">
+                {{ (record as DriverRidesHistoryItem).dropoff_address || '—' }}
+              </template>
+              <template v-else-if="column.key === 'fare_amount'">
+                <span class="tabular-nums">
+                  {{
+                    (record as DriverRidesHistoryItem).fare_amount != null
+                      ? `${(record as DriverRidesHistoryItem).fare_amount} ${(record as DriverRidesHistoryItem).currency || ''}`
+                      : '—'
+                  }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'points_system_earned'">
+                <span class="tabular-nums">{{ (record as DriverRidesHistoryItem).points_system_earned ?? '—' }}</span>
+              </template>
+              <template v-else-if="column.key === 'points_park_earned'">
+                <span class="tabular-nums">{{ (record as DriverRidesHistoryItem).points_park_earned ?? '—' }}</span>
+              </template>
+            </template>
+          </a-table>
+        </section>
+      </a-tab-pane>
+
+      <!-- ── Yandex: Заказы ───────────────────────────────────────────────── -->
+      <a-tab-pane key="yx-orders" tab="Заказы">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="lotax-section-title">Заказы Yandex</h2>
+              <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
+            </div>
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="yxOrdersLoading"
+              @click="loadYandexOrders(false)"
+            >
+              Обновить
+            </a-button>
+          </div>
+
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <a-select v-model:value="yxPeriod" size="middle" class="!w-36" :options="periodOptions" />
+            <a-range-picker
+              v-model:value="yxRange"
+              allow-clear
+              format="DD.MM.YYYY"
+              class="!w-[260px]"
+              :placeholder="['Дата с', 'Дата по']"
+              @change="(v) => syncPeriod(v, (p) => { yxPeriod = p }, yxPeriod, 'week')"
+            />
+            <a-time-picker
+              v-model:value="yxTimeFrom"
+              format="HH:mm"
+              placeholder="Время с"
+              class="!w-28"
+            />
+            <a-time-picker
+              v-model:value="yxTimeTo"
+              format="HH:mm"
+              placeholder="Время по"
+              class="!w-28"
+            />
+            <a-select
+              v-model:value="yxOrdersFilter.timeField"
+              size="middle"
+              class="!w-44"
+              :options="yxTimeFieldOptions"
+            />
+            <a-select
+              v-model:value="yxOrdersFilter.statuses"
+              mode="multiple"
+              allow-clear
+              size="middle"
+              class="!min-w-40"
+              placeholder="Статусы"
+              :options="yxOrderStatusOptions"
+            />
+            <a-select
+              v-model:value="yxOrdersFilter.paymentMethods"
+              mode="multiple"
+              allow-clear
+              size="middle"
+              class="!min-w-36"
+              placeholder="Оплата"
+              :options="yxPaymentOptions"
+            />
+            <a-select
+              v-model:value="yxOrdersFilter.categories"
+              mode="tags"
+              size="middle"
+              class="!min-w-36"
+              placeholder="Категории"
+            />
+            <a-select
+              v-model:value="yxOrdersFilter.orderTypes"
+              mode="tags"
+              size="middle"
+              class="!min-w-32"
+              placeholder="Тип заказа"
+            />
+          </div>
+
+          <div
+            v-if="yxOrdersError"
+            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
+          >
+            {{ yxOrdersError }}
+          </div>
+
+          <a-table
+            v-else
+            row-key="id"
+            :columns="yxOrderColumns"
+            :data-source="yxOrders"
+            :loading="yxOrdersLoading"
+            :pagination="false"
+            :scroll="{ x: 720 }"
+            :locale="{ emptyText: ' ' }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-2 py-10">
+                <p class="text-[15px] font-medium text-ink">Заказов за период нет</p>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'short_id'">
+                {{ yxField(record, 'short_id', 'order_id', 'id') }}
+              </template>
+              <template v-else-if="column.key === 'status'">
+                {{ yxField(record, 'status') }}
+              </template>
+              <template v-else-if="column.key === 'booked_at'">
+                {{ yxWhen(record, 'booked_at', 'created_at') }}
+              </template>
+              <template v-else-if="column.key === 'ended_at'">
+                {{ yxWhen(record, 'ended_at') }}
+              </template>
+              <template v-else-if="column.key === 'category'">
+                {{ yxField(record, 'category') }}
+              </template>
+              <template v-else-if="column.key === 'payment_method'">
+                {{ yxField(record, 'payment_method') }}
+              </template>
+              <template v-else-if="column.key === 'order_type'">
+                {{ yxField(record, 'order_type') }}
+              </template>
+              <template v-else-if="column.key === 'pickup'">
+                {{ yxField(record, 'pickup', 'address_from') }}
+              </template>
+              <template v-else-if="column.key === 'dropoff'">
+                {{ yxField(record, 'dropoff', 'address_to') }}
+              </template>
+              <template v-else-if="column.key === 'car'">
+                {{
+                  [yxField(record, 'car'), yxField(record, 'car_number')]
+                    .filter((part) => part !== '—')
+                    .join(' · ') || '—'
+                }}
+              </template>
+              <template v-else-if="column.key === 'price'">
+                <span class="tabular-nums">
+                  {{
+                    (record as YandexLiveOrderItem).price != null
+                      ? `${(record as YandexLiveOrderItem).price} ${(record as YandexLiveOrderItem).currency || ''}`
+                      : '—'
+                  }}
+                </span>
+              </template>
+            </template>
+          </a-table>
+
+          <div v-if="yxOrdersCursor && !yxOrdersError" class="mt-4 flex justify-center">
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="yxOrdersLoading"
+              @click="loadYandexOrders(true)"
+            >
+              Загрузить ещё
+            </a-button>
+          </div>
+        </section>
+      </a-tab-pane>
+
+      <!-- ── Yandex: Заработок ────────────────────────────────────────────── -->
+      <a-tab-pane key="yx-earnings" tab="Заработок">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="lotax-section-title">Заработок Yandex</h2>
+              <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
+            </div>
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="yxEarningsLoading"
+              @click="loadYandexEarnings(false)"
+            >
+              Обновить
+            </a-button>
+          </div>
+
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <a-select v-model:value="yxPeriod" size="middle" class="!w-36" :options="periodOptions" />
+            <a-range-picker
+              v-model:value="yxRange"
+              allow-clear
+              format="DD.MM.YYYY"
+              class="!w-[260px]"
+              :placeholder="['Дата с', 'Дата по']"
+              @change="(v) => syncPeriod(v, (p) => { yxPeriod = p }, yxPeriod, 'week')"
+            />
+            <a-time-picker v-model:value="yxTimeFrom" format="HH:mm" placeholder="Время с" class="!w-28" />
+            <a-time-picker v-model:value="yxTimeTo" format="HH:mm" placeholder="Время по" class="!w-28" />
+            <a-select
+              v-model:value="yxEarningsFilter.timeField"
+              size="middle"
+              class="!w-44"
+              :options="yxTimeFieldOptions"
+            />
+            <a-select
+              v-model:value="yxEarningsFilter.statuses"
+              mode="multiple"
+              allow-clear
+              size="middle"
+              class="!min-w-40"
+              placeholder="Статусы"
+              :options="yxOrderStatusOptions"
+            />
+          </div>
+
+          <div
+            v-if="yxEarningsError"
+            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
+          >
+            {{ yxEarningsError }}
+          </div>
+
+          <div v-if="yxEarningsSummary && !yxEarningsError" class="mb-4 grid grid-cols-2 gap-2 md:grid-cols-3">
+            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
+              <p class="text-[12px] text-ink-muted">Заказы</p>
+              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.orders_total ?? '—' }}</p>
+            </div>
+            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
+              <p class="text-[12px] text-ink-muted">Завершено</p>
+              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.completed_orders ?? '—' }}</p>
+            </div>
+            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
+              <p class="text-[12px] text-ink-muted">Отменено</p>
+              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.cancelled_orders ?? '—' }}</p>
+            </div>
+            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
+              <p class="text-[12px] text-ink-muted">Сумма поездок</p>
+              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.fare_sum ?? '—' }}</p>
+            </div>
+            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
+              <p class="text-[12px] text-ink-muted">Операции</p>
+              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.transactions_total ?? '—' }}</p>
+            </div>
+            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
+              <p class="text-[12px] text-ink-muted">Сумма операций</p>
+              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.transactions_sum ?? '—' }}</p>
+            </div>
+          </div>
+
+          <a-table
+            v-if="yxEarningsSummary?.by_category?.length && !yxEarningsError"
+            class="mb-4"
+            row-key="category_id"
+            :pagination="false"
+            :data-source="yxEarningsSummary.by_category"
+            :columns="[
+              { title: 'Категория', dataIndex: 'category_name', key: 'category_name' },
+              { title: 'Сумма', dataIndex: 'amount', key: 'amount', width: 120 },
+              { title: 'Кол-во', dataIndex: 'count', key: 'count', width: 100 },
+            ]"
+          />
+
+          <a-table
+            v-if="!yxEarningsError"
+            row-key="id"
+            :columns="yxEarningsColumns"
+            :data-source="yxEarnings"
+            :loading="yxEarningsLoading"
+            :pagination="false"
+            :scroll="{ x: 620 }"
+            :locale="{ emptyText: ' ' }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-2 py-10">
+                <p class="text-[15px] font-medium text-ink">Данных о заработке нет</p>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'period'">
+                {{
+                  (record as YandexLiveEarningsItem).date
+                    ? dayjs((record as YandexLiveEarningsItem).date as string).format('DD.MM.YYYY')
+                    : [
+                        (record as YandexLiveEarningsItem).period_from
+                          ? dayjs((record as YandexLiveEarningsItem).period_from as string).format('DD.MM')
+                          : null,
+                        (record as YandexLiveEarningsItem).period_to
+                          ? dayjs((record as YandexLiveEarningsItem).period_to as string).format('DD.MM.YYYY')
+                          : null,
+                      ].filter(Boolean).join(' – ') || '—'
+                }}
+              </template>
+              <template v-else-if="column.key === 'gross'">
+                <span class="tabular-nums">{{ (record as YandexLiveEarningsItem).gross ?? '—' }}</span>
+              </template>
+              <template v-else-if="column.key === 'commission'">
+                <span class="tabular-nums">{{ (record as YandexLiveEarningsItem).commission ?? '—' }}</span>
+              </template>
+              <template v-else-if="column.key === 'net'">
+                <span class="tabular-nums font-semibold">
+                  {{ (record as YandexLiveEarningsItem).net ?? '—' }}
+                  <span class="text-[11px] font-normal text-ink-muted">
+                    {{ (record as YandexLiveEarningsItem).currency || '' }}
+                  </span>
+                </span>
+              </template>
+            </template>
+          </a-table>
+
+          <div v-if="yxEarningsCursor && !yxEarningsError" class="mt-4 flex justify-center">
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="yxEarningsLoading"
+              @click="loadYandexEarnings(true)"
+            >
+              Загрузить ещё
+            </a-button>
+          </div>
+        </section>
+      </a-tab-pane>
+
+      <!-- ── Yandex: Ведомость ────────────────────────────────────────────── -->
+      <a-tab-pane key="yx-statement" tab="Ведомость">
+        <section class="detail-card lotax-card">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="lotax-section-title">Ведомость Yandex</h2>
+              <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
+            </div>
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="yxStatementLoading"
+              @click="loadYandexStatement(false)"
+            >
+              Обновить
+            </a-button>
+          </div>
+
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <a-select v-model:value="yxPeriod" size="middle" class="!w-36" :options="periodOptions" />
+            <a-range-picker
+              v-model:value="yxRange"
+              allow-clear
+              format="DD.MM.YYYY"
+              class="!w-[260px]"
+              :placeholder="['Дата с', 'Дата по']"
+              @change="(v) => syncPeriod(v, (p) => { yxPeriod = p }, yxPeriod, 'week')"
+            />
+            <a-time-picker v-model:value="yxTimeFrom" format="HH:mm" placeholder="Время с" class="!w-28" />
+            <a-time-picker v-model:value="yxTimeTo" format="HH:mm" placeholder="Время по" class="!w-28" />
+            <a-select
+              v-model:value="yxStatementFilter.categoryIds"
+              mode="tags"
+              size="middle"
+              class="!min-w-40"
+              placeholder="ID категорий"
+            />
+            <a-input
+              v-model:value="yxStatementFilter.order"
+              allow-clear
+              size="middle"
+              class="!w-36"
+              placeholder="№ заказа"
+            />
+            <label class="flex items-center gap-2 text-[13px] text-ink-muted">
+              <a-switch v-model:checked="yxStatementFilter.exceptCash" size="small" />
+              Без наличных и ожидания
+            </label>
+          </div>
+
+          <div
+            v-if="yxStatementError"
+            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
+          >
+            {{ yxStatementError }}
+          </div>
+
+          <div v-if="yxStatementSummary && !yxStatementError" class="mb-4 flex flex-wrap gap-2">
+            <div class="rounded-xl bg-green-50 px-4 py-3">
+              <p class="text-[12px] text-ink-muted">Начислено</p>
+              <p class="text-[18px] font-bold tabular-nums text-green-700">{{ yxStatementSummary.earned ?? '—' }}</p>
+            </div>
+            <div class="rounded-xl bg-red-50 px-4 py-3">
+              <p class="text-[12px] text-ink-muted">Списано</p>
+              <p class="text-[18px] font-bold tabular-nums text-red-700">{{ yxStatementSummary.spent ?? '—' }}</p>
+            </div>
+            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
+              <p class="text-[12px] text-ink-muted">Итого</p>
+              <p class="text-[18px] font-bold tabular-nums">{{ yxStatementSummary.net ?? '—' }}</p>
+            </div>
+          </div>
+
+          <a-table
+            v-if="!yxStatementError"
+            row-key="id"
+            :columns="yxStatementColumns"
+            :data-source="yxStatement"
+            :loading="yxStatementLoading"
+            :pagination="false"
+            :scroll="{ x: 700 }"
+            :locale="{ emptyText: ' ' }"
+          >
+            <template #emptyText>
+              <div class="flex flex-col items-center gap-2 py-10">
+                <p class="text-[15px] font-medium text-ink">Записей в ведомости нет</p>
+              </div>
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'event_at'">
+                {{
+                  ((record as YandexLiveStatementItem).event_at ||
+                    (record as YandexLiveStatementItem).created_at)
+                    ? dayjs(
+                        ((record as YandexLiveStatementItem).event_at ||
+                          (record as YandexLiveStatementItem).created_at) as string,
+                      ).format('DD.MM.YYYY HH:mm')
+                    : '—'
+                }}
+              </template>
+              <template v-else-if="column.key === 'category'">
+                {{
+                  (record as YandexLiveStatementItem).category_name ||
+                  (record as YandexLiveStatementItem).category_id ||
+                  '—'
+                }}
+              </template>
+              <template v-else-if="column.key === 'amount'">
+                <span class="tabular-nums">
+                  {{
+                    (record as YandexLiveStatementItem).amount != null
+                      ? `${(record as YandexLiveStatementItem).amount} ${(record as YandexLiveStatementItem).currency || ''}`
+                      : '—'
+                  }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'order_short_id'">
+                {{ yxField(record, 'order_short_id') }}
+              </template>
+              <template v-else-if="column.key === 'description'">
+                {{ (record as YandexLiveStatementItem).description || '—' }}
+              </template>
+            </template>
+          </a-table>
+
+          <div v-if="yxStatementCursor && !yxStatementError" class="mt-4 flex justify-center">
+            <a-button
+              class="lotax-btn-secondary"
+              :loading="yxStatementLoading"
+              @click="loadYandexStatement(true)"
+            >
+              Загрузить ещё
+            </a-button>
           </div>
         </section>
       </a-tab-pane>
@@ -1481,131 +2052,6 @@ watch(driverId, () => { load() })
         </section>
       </a-tab-pane>
 
-      <!-- ── Поездки ─────────────────────────────────────────────────────── -->
-      <a-tab-pane key="rides" tab="Поездки">
-        <section class="detail-card lotax-card">
-          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 class="lotax-section-title">История поездок</h2>
-              <p class="lotax-caption mt-1">Данные из Yandex после синхронизации</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <a-select
-                v-model:value="rhPeriod"
-                size="middle"
-                class="!w-40"
-                :options="periodOptions"
-              />
-              <a-range-picker
-                v-model:value="rhRange"
-                allow-clear
-                format="DD.MM.YYYY"
-                class="!w-[260px]"
-                :placeholder="['Дата с', 'Дата по']"
-                @change="(v) => syncPeriod(v, (p) => { rhPeriod = p }, rhPeriod, 'month')"
-              />
-              <a-button
-                class="lotax-btn-secondary"
-                :loading="rhLoading"
-                @click="() => { rhPag.current = 1; loadRidesHistory() }"
-              >
-                Обновить
-              </a-button>
-              <a-button
-                v-if="auth.canSync"
-                type="primary"
-                class="lotax-btn-primary"
-                :loading="syncingRides"
-                @click="syncRidesFromDetail"
-              >
-                <template #icon><CloudSyncOutlined /></template>
-                Синхронизировать поездки
-              </a-button>
-            </div>
-          </div>
-
-          <!-- Summary cards (if API returns summary) -->
-          <div v-if="rhSummary" class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div v-if="rhSummary.total_rides != null" class="rounded-xl bg-gray-50 px-4 py-3">
-              <p class="text-[12px] text-ink-muted">Поездок</p>
-              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_rides }}</p>
-            </div>
-            <div v-if="rhSummary.total_fare != null" class="rounded-xl bg-gray-50 px-4 py-3">
-              <p class="text-[12px] text-ink-muted">Выручка</p>
-              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_fare }}</p>
-            </div>
-            <div v-if="rhSummary.total_system_points != null" class="rounded-xl bg-gray-50 px-4 py-3">
-              <p class="text-[12px] text-ink-muted">Сист. баллы</p>
-              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_system_points }}</p>
-            </div>
-            <div v-if="rhSummary.total_park_points != null" class="rounded-xl bg-gray-50 px-4 py-3">
-              <p class="text-[12px] text-ink-muted">Парк. баллы</p>
-              <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_park_points }}</p>
-            </div>
-          </div>
-
-          <a-table
-            row-key="id"
-            :columns="rhColumns"
-            :data-source="rhItems"
-            :loading="rhLoading"
-            :pagination="rhPag"
-            :scroll="{ x: 720 }"
-            :locale="{ emptyText: ' ' }"
-            @change="(pag: { current?: number; pageSize?: number }) => {
-              rhPag.current = pag.current ?? 1
-              rhPag.pageSize = pag.pageSize ?? 20
-              loadRidesHistory()
-            }"
-          >
-            <template #emptyText>
-              <div class="flex flex-col items-center gap-3 py-10">
-                <p class="text-[15px] font-medium text-ink">Поездок пока нет</p>
-                <p class="lotax-caption max-w-sm text-center">
-                  Сначала нажмите «Синхронизировать поездки»
-                </p>
-                <a-button
-                  v-if="auth.canSync"
-                  type="primary"
-                  class="lotax-btn-primary"
-                  :loading="syncingRides"
-                  @click="syncRidesFromDetail"
-                >
-                  <template #icon><CloudSyncOutlined /></template>
-                  Синхронизировать поездки
-                </a-button>
-              </div>
-            </template>
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'ride_date'">
-                {{ rideItemDate(record as DriverRidesHistoryItem) }}
-              </template>
-              <template v-else-if="column.key === 'pickup_address'">
-                {{ (record as DriverRidesHistoryItem).pickup_address || '—' }}
-              </template>
-              <template v-else-if="column.key === 'dropoff_address'">
-                {{ (record as DriverRidesHistoryItem).dropoff_address || '—' }}
-              </template>
-              <template v-else-if="column.key === 'fare_amount'">
-                <span class="tabular-nums">
-                  {{
-                    (record as DriverRidesHistoryItem).fare_amount != null
-                      ? `${(record as DriverRidesHistoryItem).fare_amount} ${(record as DriverRidesHistoryItem).currency || ''}`
-                      : '—'
-                  }}
-                </span>
-              </template>
-              <template v-else-if="column.key === 'points_system_earned'">
-                <span class="tabular-nums">{{ (record as DriverRidesHistoryItem).points_system_earned ?? '—' }}</span>
-              </template>
-              <template v-else-if="column.key === 'points_park_earned'">
-                <span class="tabular-nums">{{ (record as DriverRidesHistoryItem).points_park_earned ?? '—' }}</span>
-              </template>
-            </template>
-          </a-table>
-        </section>
-      </a-tab-pane>
-
       <!-- ── Задания ─────────────────────────────────────────────────────── -->
       <a-tab-pane key="tasks" tab="Задания">
         <section class="detail-card lotax-card">
@@ -1702,524 +2148,6 @@ watch(driverId, () => { load() })
               </template>
             </template>
           </a-table>
-        </section>
-      </a-tab-pane>
-
-      <!-- ── Уровень ─────────────────────────────────────────────────────── -->
-      <a-tab-pane v-if="tiersEnabled" key="tier" tab="Уровень">
-        <section class="detail-card lotax-card">
-          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 class="lotax-section-title">История изменений уровня</h2>
-            <div class="flex flex-wrap gap-2">
-              <a-select
-                v-model:value="tierHistPeriod"
-                size="middle"
-                class="!w-40"
-                :options="periodOptions"
-              />
-              <a-range-picker
-                v-model:value="tierHistRange"
-                allow-clear
-                format="DD.MM.YYYY"
-                class="!w-[260px]"
-                :placeholder="['Дата с', 'Дата по']"
-                @change="(v) => syncPeriod(v, (p) => { tierHistPeriod = p }, tierHistPeriod, 'month')"
-              />
-              <a-button
-                class="lotax-btn-secondary"
-                :loading="tierHistLoading"
-                @click="() => { tierHistPag.current = 1; loadTierHistory() }"
-              >
-                Обновить
-              </a-button>
-            </div>
-          </div>
-
-          <a-table
-            row-key="id"
-            :columns="tierHistColumns"
-            :data-source="tierHistItems"
-            :loading="tierHistLoading"
-            :pagination="tierHistPag"
-            :scroll="{ x: 620 }"
-            :locale="{ emptyText: ' ' }"
-            @change="(pag: { current?: number; pageSize?: number }) => {
-              tierHistPag.current = pag.current ?? 1
-              tierHistPag.pageSize = pag.pageSize ?? 20
-              loadTierHistory()
-            }"
-          >
-            <template #emptyText>
-              <div class="flex flex-col items-center gap-2 py-10">
-                <p class="text-[15px] font-medium text-ink">История уровней пуста</p>
-              </div>
-            </template>
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'created_at'">
-                {{ (record as DriverTierHistoryItem).created_at
-                  ? dayjs((record as DriverTierHistoryItem).created_at!).format('DD.MM.YYYY HH:mm')
-                  : '—' }}
-              </template>
-              <template v-else-if="column.key === 'tier'">
-                <TierBadge :tier="(record as DriverTierHistoryItem).tier as 'bronze' | 'silver' | 'gold' | 'platinum'" />
-              </template>
-              <template v-else-if="column.key === 'reason'">
-                {{ (record as DriverTierHistoryItem).reason || '—' }}
-              </template>
-              <template v-else-if="column.key === 'expires_at'">
-                {{ (record as DriverTierHistoryItem).expires_at
-                  ? dayjs((record as DriverTierHistoryItem).expires_at!).format('DD.MM.YYYY HH:mm')
-                  : 'Без срока' }}
-              </template>
-            </template>
-          </a-table>
-        </section>
-      </a-tab-pane>
-
-      <!-- ── Yandex: Заказы ───────────────────────────────────────────────── -->
-      <a-tab-pane key="yx-orders" tab="Заказы">
-        <section class="detail-card lotax-card">
-          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 class="lotax-section-title">Заказы Yandex</h2>
-              <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
-            </div>
-            <a-button
-              class="lotax-btn-secondary"
-              :loading="yxOrdersLoading"
-              @click="loadYandexOrders(false)"
-            >
-              Обновить
-            </a-button>
-          </div>
-
-          <div class="mb-4 flex flex-wrap items-center gap-2">
-            <a-select v-model:value="yxPeriod" size="middle" class="!w-36" :options="periodOptions" />
-            <a-range-picker
-              v-model:value="yxRange"
-              allow-clear
-              format="DD.MM.YYYY"
-              class="!w-[260px]"
-              :placeholder="['Дата с', 'Дата по']"
-              @change="(v) => syncPeriod(v, (p) => { yxPeriod = p }, yxPeriod, 'week')"
-            />
-            <a-time-picker
-              v-model:value="yxTimeFrom"
-              format="HH:mm"
-              placeholder="Время с"
-              class="!w-28"
-            />
-            <a-time-picker
-              v-model:value="yxTimeTo"
-              format="HH:mm"
-              placeholder="Время по"
-              class="!w-28"
-            />
-            <a-select
-              v-model:value="yxOrdersFilter.timeField"
-              size="middle"
-              class="!w-44"
-              :options="yxTimeFieldOptions"
-            />
-            <a-select
-              v-model:value="yxOrdersFilter.statuses"
-              mode="multiple"
-              allow-clear
-              size="middle"
-              class="!min-w-40"
-              placeholder="Статусы"
-              :options="yxOrderStatusOptions"
-            />
-            <a-select
-              v-model:value="yxOrdersFilter.paymentMethods"
-              mode="multiple"
-              allow-clear
-              size="middle"
-              class="!min-w-36"
-              placeholder="Оплата"
-              :options="yxPaymentOptions"
-            />
-            <a-select
-              v-model:value="yxOrdersFilter.categories"
-              mode="tags"
-              size="middle"
-              class="!min-w-36"
-              placeholder="Категории"
-            />
-            <a-select
-              v-model:value="yxOrdersFilter.orderTypes"
-              mode="tags"
-              size="middle"
-              class="!min-w-32"
-              placeholder="Тип заказа"
-            />
-          </div>
-
-          <div
-            v-if="yxOrdersError"
-            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
-          >
-            {{ yxOrdersError }}
-          </div>
-
-          <a-table
-            v-else
-            row-key="id"
-            :columns="yxOrderColumns"
-            :data-source="yxOrders"
-            :loading="yxOrdersLoading"
-            :pagination="false"
-            :scroll="{ x: 720 }"
-            :locale="{ emptyText: ' ' }"
-          >
-            <template #emptyText>
-              <div class="flex flex-col items-center gap-2 py-10">
-                <p class="text-[15px] font-medium text-ink">Заказов за период нет</p>
-              </div>
-            </template>
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'short_id'">
-                {{ yxField(record, 'short_id', 'order_id', 'id') }}
-              </template>
-              <template v-else-if="column.key === 'status'">
-                {{ yxField(record, 'status') }}
-              </template>
-              <template v-else-if="column.key === 'booked_at'">
-                {{ yxWhen(record, 'booked_at', 'created_at') }}
-              </template>
-              <template v-else-if="column.key === 'ended_at'">
-                {{ yxWhen(record, 'ended_at') }}
-              </template>
-              <template v-else-if="column.key === 'category'">
-                {{ yxField(record, 'category') }}
-              </template>
-              <template v-else-if="column.key === 'payment_method'">
-                {{ yxField(record, 'payment_method') }}
-              </template>
-              <template v-else-if="column.key === 'order_type'">
-                {{ yxField(record, 'order_type') }}
-              </template>
-              <template v-else-if="column.key === 'pickup'">
-                {{ yxField(record, 'pickup', 'address_from') }}
-              </template>
-              <template v-else-if="column.key === 'dropoff'">
-                {{ yxField(record, 'dropoff', 'address_to') }}
-              </template>
-              <template v-else-if="column.key === 'car'">
-                {{
-                  [yxField(record, 'car'), yxField(record, 'car_number')]
-                    .filter((part) => part !== '—')
-                    .join(' · ') || '—'
-                }}
-              </template>
-              <template v-else-if="column.key === 'price'">
-                <span class="tabular-nums">
-                  {{
-                    (record as YandexLiveOrderItem).price != null
-                      ? `${(record as YandexLiveOrderItem).price} ${(record as YandexLiveOrderItem).currency || ''}`
-                      : '—'
-                  }}
-                </span>
-              </template>
-            </template>
-          </a-table>
-
-          <div v-if="yxOrdersCursor && !yxOrdersError" class="mt-4 flex justify-center">
-            <a-button
-              class="lotax-btn-secondary"
-              :loading="yxOrdersLoading"
-              @click="loadYandexOrders(true)"
-            >
-              Загрузить ещё
-            </a-button>
-          </div>
-        </section>
-      </a-tab-pane>
-
-      <!-- ── Yandex: Ведомость ────────────────────────────────────────────── -->
-      <a-tab-pane key="yx-statement" tab="Ведомость">
-        <section class="detail-card lotax-card">
-          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 class="lotax-section-title">Ведомость Yandex</h2>
-              <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
-            </div>
-            <a-button
-              class="lotax-btn-secondary"
-              :loading="yxStatementLoading"
-              @click="loadYandexStatement(false)"
-            >
-              Обновить
-            </a-button>
-          </div>
-
-          <div class="mb-4 flex flex-wrap items-center gap-2">
-            <a-select v-model:value="yxPeriod" size="middle" class="!w-36" :options="periodOptions" />
-            <a-range-picker
-              v-model:value="yxRange"
-              allow-clear
-              format="DD.MM.YYYY"
-              class="!w-[260px]"
-              :placeholder="['Дата с', 'Дата по']"
-              @change="(v) => syncPeriod(v, (p) => { yxPeriod = p }, yxPeriod, 'week')"
-            />
-            <a-time-picker v-model:value="yxTimeFrom" format="HH:mm" placeholder="Время с" class="!w-28" />
-            <a-time-picker v-model:value="yxTimeTo" format="HH:mm" placeholder="Время по" class="!w-28" />
-            <a-select
-              v-model:value="yxStatementFilter.categoryIds"
-              mode="tags"
-              size="middle"
-              class="!min-w-40"
-              placeholder="ID категорий"
-            />
-            <a-input
-              v-model:value="yxStatementFilter.order"
-              allow-clear
-              size="middle"
-              class="!w-36"
-              placeholder="№ заказа"
-            />
-            <label class="flex items-center gap-2 text-[13px] text-ink-muted">
-              <a-switch v-model:checked="yxStatementFilter.exceptCash" size="small" />
-              Без наличных и ожидания
-            </label>
-          </div>
-
-          <div
-            v-if="yxStatementError"
-            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
-          >
-            {{ yxStatementError }}
-          </div>
-
-          <div v-if="yxStatementSummary && !yxStatementError" class="mb-4 flex flex-wrap gap-2">
-            <div class="rounded-xl bg-green-50 px-4 py-3">
-              <p class="text-[12px] text-ink-muted">Начислено</p>
-              <p class="text-[18px] font-bold tabular-nums text-green-700">{{ yxStatementSummary.earned ?? '—' }}</p>
-            </div>
-            <div class="rounded-xl bg-red-50 px-4 py-3">
-              <p class="text-[12px] text-ink-muted">Списано</p>
-              <p class="text-[18px] font-bold tabular-nums text-red-700">{{ yxStatementSummary.spent ?? '—' }}</p>
-            </div>
-            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
-              <p class="text-[12px] text-ink-muted">Итого</p>
-              <p class="text-[18px] font-bold tabular-nums">{{ yxStatementSummary.net ?? '—' }}</p>
-            </div>
-          </div>
-
-          <a-table
-            v-if="!yxStatementError"
-            row-key="id"
-            :columns="yxStatementColumns"
-            :data-source="yxStatement"
-            :loading="yxStatementLoading"
-            :pagination="false"
-            :scroll="{ x: 700 }"
-            :locale="{ emptyText: ' ' }"
-          >
-            <template #emptyText>
-              <div class="flex flex-col items-center gap-2 py-10">
-                <p class="text-[15px] font-medium text-ink">Записей в ведомости нет</p>
-              </div>
-            </template>
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'event_at'">
-                {{
-                  ((record as YandexLiveStatementItem).event_at ||
-                    (record as YandexLiveStatementItem).created_at)
-                    ? dayjs(
-                        ((record as YandexLiveStatementItem).event_at ||
-                          (record as YandexLiveStatementItem).created_at) as string,
-                      ).format('DD.MM.YYYY HH:mm')
-                    : '—'
-                }}
-              </template>
-              <template v-else-if="column.key === 'category'">
-                {{
-                  (record as YandexLiveStatementItem).category_name ||
-                  (record as YandexLiveStatementItem).category_id ||
-                  '—'
-                }}
-              </template>
-              <template v-else-if="column.key === 'amount'">
-                <span class="tabular-nums">
-                  {{
-                    (record as YandexLiveStatementItem).amount != null
-                      ? `${(record as YandexLiveStatementItem).amount} ${(record as YandexLiveStatementItem).currency || ''}`
-                      : '—'
-                  }}
-                </span>
-              </template>
-              <template v-else-if="column.key === 'order_short_id'">
-                {{ yxField(record, 'order_short_id') }}
-              </template>
-              <template v-else-if="column.key === 'description'">
-                {{ (record as YandexLiveStatementItem).description || '—' }}
-              </template>
-            </template>
-          </a-table>
-
-          <div v-if="yxStatementCursor && !yxStatementError" class="mt-4 flex justify-center">
-            <a-button
-              class="lotax-btn-secondary"
-              :loading="yxStatementLoading"
-              @click="loadYandexStatement(true)"
-            >
-              Загрузить ещё
-            </a-button>
-          </div>
-        </section>
-      </a-tab-pane>
-
-      <!-- ── Yandex: Заработок ────────────────────────────────────────────── -->
-      <a-tab-pane key="yx-earnings" tab="Заработок">
-        <section class="detail-card lotax-card">
-          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 class="lotax-section-title">Заработок Yandex</h2>
-              <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
-            </div>
-            <a-button
-              class="lotax-btn-secondary"
-              :loading="yxEarningsLoading"
-              @click="loadYandexEarnings(false)"
-            >
-              Обновить
-            </a-button>
-          </div>
-
-          <div class="mb-4 flex flex-wrap items-center gap-2">
-            <a-select v-model:value="yxPeriod" size="middle" class="!w-36" :options="periodOptions" />
-            <a-range-picker
-              v-model:value="yxRange"
-              allow-clear
-              format="DD.MM.YYYY"
-              class="!w-[260px]"
-              :placeholder="['Дата с', 'Дата по']"
-              @change="(v) => syncPeriod(v, (p) => { yxPeriod = p }, yxPeriod, 'week')"
-            />
-            <a-time-picker v-model:value="yxTimeFrom" format="HH:mm" placeholder="Время с" class="!w-28" />
-            <a-time-picker v-model:value="yxTimeTo" format="HH:mm" placeholder="Время по" class="!w-28" />
-            <a-select
-              v-model:value="yxEarningsFilter.timeField"
-              size="middle"
-              class="!w-44"
-              :options="yxTimeFieldOptions"
-            />
-            <a-select
-              v-model:value="yxEarningsFilter.statuses"
-              mode="multiple"
-              allow-clear
-              size="middle"
-              class="!min-w-40"
-              placeholder="Статусы"
-              :options="yxOrderStatusOptions"
-            />
-          </div>
-
-          <div
-            v-if="yxEarningsError"
-            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700"
-          >
-            {{ yxEarningsError }}
-          </div>
-
-          <div v-if="yxEarningsSummary && !yxEarningsError" class="mb-4 grid grid-cols-2 gap-2 md:grid-cols-3">
-            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
-              <p class="text-[12px] text-ink-muted">Заказы</p>
-              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.orders_total ?? '—' }}</p>
-            </div>
-            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
-              <p class="text-[12px] text-ink-muted">Завершено</p>
-              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.completed_orders ?? '—' }}</p>
-            </div>
-            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
-              <p class="text-[12px] text-ink-muted">Отменено</p>
-              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.cancelled_orders ?? '—' }}</p>
-            </div>
-            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
-              <p class="text-[12px] text-ink-muted">Сумма поездок</p>
-              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.fare_sum ?? '—' }}</p>
-            </div>
-            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
-              <p class="text-[12px] text-ink-muted">Операции</p>
-              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.transactions_total ?? '—' }}</p>
-            </div>
-            <div class="rounded-xl bg-surface px-4 py-3 ring-1 ring-line">
-              <p class="text-[12px] text-ink-muted">Сумма операций</p>
-              <p class="text-[18px] font-bold tabular-nums">{{ yxEarningsSummary.transactions_sum ?? '—' }}</p>
-            </div>
-          </div>
-
-          <a-table
-            v-if="yxEarningsSummary?.by_category?.length && !yxEarningsError"
-            class="mb-4"
-            row-key="category_id"
-            :pagination="false"
-            :data-source="yxEarningsSummary.by_category"
-            :columns="[
-              { title: 'Категория', dataIndex: 'category_name', key: 'category_name' },
-              { title: 'Сумма', dataIndex: 'amount', key: 'amount', width: 120 },
-              { title: 'Кол-во', dataIndex: 'count', key: 'count', width: 100 },
-            ]"
-          />
-
-          <a-table
-            v-if="!yxEarningsError"
-            row-key="id"
-            :columns="yxEarningsColumns"
-            :data-source="yxEarnings"
-            :loading="yxEarningsLoading"
-            :pagination="false"
-            :scroll="{ x: 620 }"
-            :locale="{ emptyText: ' ' }"
-          >
-            <template #emptyText>
-              <div class="flex flex-col items-center gap-2 py-10">
-                <p class="text-[15px] font-medium text-ink">Данных о заработке нет</p>
-              </div>
-            </template>
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'period'">
-                {{
-                  (record as YandexLiveEarningsItem).date
-                    ? dayjs((record as YandexLiveEarningsItem).date as string).format('DD.MM.YYYY')
-                    : [
-                        (record as YandexLiveEarningsItem).period_from
-                          ? dayjs((record as YandexLiveEarningsItem).period_from as string).format('DD.MM')
-                          : null,
-                        (record as YandexLiveEarningsItem).period_to
-                          ? dayjs((record as YandexLiveEarningsItem).period_to as string).format('DD.MM.YYYY')
-                          : null,
-                      ].filter(Boolean).join(' – ') || '—'
-                }}
-              </template>
-              <template v-else-if="column.key === 'gross'">
-                <span class="tabular-nums">{{ (record as YandexLiveEarningsItem).gross ?? '—' }}</span>
-              </template>
-              <template v-else-if="column.key === 'commission'">
-                <span class="tabular-nums">{{ (record as YandexLiveEarningsItem).commission ?? '—' }}</span>
-              </template>
-              <template v-else-if="column.key === 'net'">
-                <span class="tabular-nums font-semibold">
-                  {{ (record as YandexLiveEarningsItem).net ?? '—' }}
-                  <span class="text-[11px] font-normal text-ink-muted">
-                    {{ (record as YandexLiveEarningsItem).currency || '' }}
-                  </span>
-                </span>
-              </template>
-            </template>
-          </a-table>
-
-          <div v-if="yxEarningsCursor && !yxEarningsError" class="mt-4 flex justify-center">
-            <a-button
-              class="lotax-btn-secondary"
-              :loading="yxEarningsLoading"
-              @click="loadYandexEarnings(true)"
-            >
-              Загрузить ещё
-            </a-button>
-          </div>
         </section>
       </a-tab-pane>
 
