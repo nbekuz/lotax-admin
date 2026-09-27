@@ -511,33 +511,35 @@ onMounted(async () => {
     </div>
 
     <div class="drivers-toolbar lotax-card !p-3">
-      <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
         <a-input
           v-model:value="searchQ"
           allow-clear
-          class="sm:!w-64 sm:!flex-none"
+          class="w-full lg:!w-64 lg:!flex-none"
           size="large"
           placeholder="Поиск: имя, фамилия"
         />
-        <a-select
-          v-model:value="statusFilter"
-          class="sm:!w-40"
-          size="large"
-          :options="statusOptions"
-        />
-        <a-select
-          v-model:value="tierFilter"
-          class="sm:!w-40"
-          size="large"
-          :options="tierOptions"
-        />
-        <a-select
-          v-if="org.parks.length > 1"
-          v-model:value="parkFilter"
-          class="sm:!w-48"
-          size="large"
-          :options="parkOptions"
-        />
+        <div class="flex min-w-0 flex-1 flex-nowrap items-center gap-2">
+          <a-select
+            v-model:value="statusFilter"
+            class="min-w-0 flex-1"
+            size="large"
+            :options="statusOptions"
+          />
+          <a-select
+            v-model:value="tierFilter"
+            class="min-w-0 flex-1"
+            size="large"
+            :options="tierOptions"
+          />
+          <a-select
+            v-if="org.parks.length > 1"
+            v-model:value="parkFilter"
+            class="min-w-0 flex-1"
+            size="large"
+            :options="parkOptions"
+          />
+        </div>
       </div>
     </div>
 
@@ -545,9 +547,6 @@ onMounted(async () => {
       v-if="auth.canEditStatus"
       class="drivers-bulk flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-white px-3 py-2.5"
     >
-      <span class="mr-1 text-[12px] font-semibold uppercase tracking-wide text-ink-muted">
-        Массово
-      </span>
       <a-button
         class="lotax-btn-secondary !h-9"
         :loading="bulkBusy"
@@ -822,6 +821,11 @@ onMounted(async () => {
 .drivers-toolbar :deep(.ant-input-affix-wrapper),
 .drivers-toolbar :deep(.ant-select-selector) {
   border-radius: 12px !important;
+}
+
+.drivers-toolbar :deep(.ant-select) {
+  width: auto;
+  min-width: 0;
 }
 
 .drivers-bulk :deep(.ant-btn) {

@@ -64,7 +64,7 @@ const syncingRides = ref(false)
 
 // ── Points history ────────────────────────────────────────────────────────────
 const pointsFilter = reactive({ points_type: 'all', operation: 'all', period: 'month' })
-const pointsRange = ref<[Dayjs, Dayjs] | null>(null)
+const pointsRange = ref<[Dayjs, Dayjs] | undefined>()
 const pointsPag = reactive({
   current: 1,
   pageSize: 20,
@@ -88,7 +88,7 @@ const pointsColumns = [
 
 // ── Points accruals ───────────────────────────────────────────────────────────
 const accrualsFilter = reactive({ points_type: 'all', period: 'month' })
-const accrualsRange = ref<[Dayjs, Dayjs] | null>(null)
+const accrualsRange = ref<[Dayjs, Dayjs] | undefined>()
 const accrualsPag = reactive({
   current: 1,
   pageSize: 20,
@@ -112,7 +112,7 @@ const accrualsColumns = [
 
 // ── Rides history ─────────────────────────────────────────────────────────────
 const rhPeriod = ref('month')
-const rhRange = ref<[Dayjs, Dayjs] | null>(null)
+const rhRange = ref<[Dayjs, Dayjs] | undefined>()
 const rhPag = reactive({
   current: 1,
   pageSize: 20,
@@ -137,7 +137,7 @@ const rhColumns = [
 // ── Tasks history ─────────────────────────────────────────────────────────────
 const thStatus = ref('all')
 const thPeriod = ref('month')
-const thRange = ref<[Dayjs, Dayjs] | null>(null)
+const thRange = ref<[Dayjs, Dayjs] | undefined>()
 const thPag = reactive({
   current: 1,
   pageSize: 20,
@@ -159,7 +159,7 @@ const thColumns = [
 
 // ── Tier history ──────────────────────────────────────────────────────────────
 const tierHistPeriod = ref('month')
-const tierHistRange = ref<[Dayjs, Dayjs] | null>(null)
+const tierHistRange = ref<[Dayjs, Dayjs] | undefined>()
 const tierHistPag = reactive({
   current: 1,
   pageSize: 20,
@@ -180,7 +180,7 @@ const tierHistColumns = [
 
 // ── Yandex live ───────────────────────────────────────────────────────────────
 const yxPeriod = ref('week')
-const yxRange = ref<[Dayjs, Dayjs] | null>([
+const yxRange = ref<[Dayjs, Dayjs] | undefined>([
   dayjs().subtract(6, 'day').startOf('day'),
   dayjs().endOf('day'),
 ])
@@ -277,7 +277,7 @@ function operationRu(op: string) {
   return op
 }
 
-function periodQuery(period: string, range: [Dayjs, Dayjs] | null) {
+function periodQuery(period: string, range?: [Dayjs, Dayjs] | null) {
   if (period === 'period' && range?.[0] && range?.[1]) {
     return {
       date_from: range[0].startOf('day').toISOString(),
@@ -1132,7 +1132,7 @@ watch(driverId, () => { load() })
           <div class="mb-4 flex flex-wrap gap-2">
             <a-select
               v-model:value="pointsFilter.points_type"
-              size="default"
+              size="middle"
               class="!w-36"
               :options="[
                 { value: 'all', label: 'Все типы' },
@@ -1142,7 +1142,7 @@ watch(driverId, () => { load() })
             />
             <a-select
               v-model:value="pointsFilter.operation"
-              size="default"
+              size="middle"
               class="!w-44"
               :options="[
                 { value: 'all', label: 'Все операции' },
@@ -1152,7 +1152,7 @@ watch(driverId, () => { load() })
             />
             <a-select
               v-model:value="pointsFilter.period"
-              size="default"
+              size="middle"
               class="!w-40"
               :options="periodOptions"
             />
@@ -1242,7 +1242,7 @@ watch(driverId, () => { load() })
           <div class="mb-4 flex flex-wrap gap-2">
             <a-select
               v-model:value="accrualsFilter.points_type"
-              size="default"
+              size="middle"
               class="!w-36"
               :options="[
                 { value: 'all', label: 'Все типы' },
@@ -1252,7 +1252,7 @@ watch(driverId, () => { load() })
             />
             <a-select
               v-model:value="accrualsFilter.period"
-              size="default"
+              size="middle"
               class="!w-40"
               :options="periodOptions"
             />
@@ -1335,7 +1335,7 @@ watch(driverId, () => { load() })
             <div class="flex flex-wrap gap-2">
               <a-select
                 v-model:value="rhPeriod"
-                size="default"
+                size="middle"
                 class="!w-40"
                 :options="periodOptions"
               />
@@ -1454,13 +1454,13 @@ watch(driverId, () => { load() })
             <div class="flex flex-wrap gap-2">
               <a-select
                 v-model:value="thStatus"
-                size="default"
+                size="middle"
                 class="!w-44"
                 :options="taskStatusOptions"
               />
               <a-select
                 v-model:value="thPeriod"
-                size="default"
+                size="middle"
                 class="!w-40"
                 :options="periodOptions"
               />
@@ -1550,7 +1550,7 @@ watch(driverId, () => { load() })
             <div class="flex flex-wrap gap-2">
               <a-select
                 v-model:value="tierHistPeriod"
-                size="default"
+                size="middle"
                 class="!w-40"
                 :options="periodOptions"
               />
@@ -1619,7 +1619,7 @@ watch(driverId, () => { load() })
               <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
             </div>
             <div class="flex flex-wrap gap-2">
-              <a-select v-model:value="yxPeriod" size="default" class="!w-40" :options="periodOptions" />
+              <a-select v-model:value="yxPeriod" size="middle" class="!w-40" :options="periodOptions" />
               <a-range-picker
                 v-if="yxPeriod === 'period'"
                 v-model:value="yxRange"
@@ -1707,7 +1707,7 @@ watch(driverId, () => { load() })
               <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
             </div>
             <div class="flex flex-wrap gap-2">
-              <a-select v-model:value="yxPeriod" size="default" class="!w-40" :options="periodOptions" />
+              <a-select v-model:value="yxPeriod" size="middle" class="!w-40" :options="periodOptions" />
               <a-range-picker
                 v-if="yxPeriod === 'period'"
                 v-model:value="yxRange"
@@ -1800,7 +1800,7 @@ watch(driverId, () => { load() })
               <p class="lotax-caption mt-1">Живые данные · по умолчанию 7 дней</p>
             </div>
             <div class="flex flex-wrap gap-2">
-              <a-select v-model:value="yxPeriod" size="default" class="!w-40" :options="periodOptions" />
+              <a-select v-model:value="yxPeriod" size="middle" class="!w-40" :options="periodOptions" />
               <a-range-picker
                 v-if="yxPeriod === 'period'"
                 v-model:value="yxRange"

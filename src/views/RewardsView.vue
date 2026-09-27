@@ -86,9 +86,19 @@ function typeLabel(type: string) {
   return rewardTypeLabel[type as RewardType] ?? type
 }
 
-/** Card preview: always API `image_url` (backend may copy icon file into it). */
+/** Card art: uploaded photo, otherwise the catalog icon. */
 function cardImageUrl(item: RewardAdminItem) {
-  return item.image_url || null
+  return item.image_url || item.icon?.image_url || null
+}
+
+/** Catalog SVG/PNG icons sit in a padded canvas; photos should stay cover. */
+function cardImageIsIcon(item: RewardAdminItem) {
+  const src = cardImageUrl(item)
+  if (!src) return false
+  if (/\.svg(\?|#|$)/i.test(src) || src.includes('/reward-icons/')) return true
+  const iconUrl = item.icon?.image_url
+  if (!item.image_url) return Boolean(iconUrl)
+  return Boolean(iconUrl && iconUrl === item.image_url)
 }
 
 function iconTitle(item: RewardAdminItem) {
@@ -332,13 +342,13 @@ onMounted(async () => {
       >
         <div class="flex min-w-0 items-start gap-3">
           <div
-            class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-line sm:h-24 sm:w-24"
+            class="reward-thumb"
+            :class="{ 'reward-thumb--icon': cardImageIsIcon(item) }"
           >
             <img
               v-if="cardImageUrl(item)"
               :src="cardImageUrl(item)!"
               alt=""
-              class="h-full w-full object-cover"
             />
             <span v-else class="text-[12px] text-ink-muted">—</span>
           </div>
@@ -424,12 +434,15 @@ onMounted(async () => {
           >
             <template #option="{ value, label }">
               <div class="flex items-center gap-2 py-0.5">
-                <img
+                <span
                   v-if="icons.find((i) => i.id === value)?.image_url"
-                  :src="icons.find((i) => i.id === value)!.image_url"
-                  alt=""
-                  class="h-7 w-7 rounded object-contain bg-white ring-1 ring-line"
-                />
+                  class="reward-thumb reward-thumb--icon reward-thumb--sm"
+                >
+                  <img
+                    :src="icons.find((i) => i.id === value)!.image_url"
+                    alt=""
+                  />
+                </span>
                 <span class="h-7 w-7 rounded bg-surface ring-1 ring-line" v-else />
                 <span>{{ label }}</span>
               </div>
@@ -445,12 +458,13 @@ onMounted(async () => {
             v-if="selectedIcon"
             class="mt-2 flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2"
           >
-            <img
-              v-if="selectedIcon.image_url"
-              :src="selectedIcon.image_url"
-              alt=""
-              class="h-12 w-12 rounded-lg object-contain bg-white ring-1 ring-line"
-            />
+            <div class="reward-thumb reward-thumb--icon">
+              <img
+                v-if="selectedIcon.image_url"
+                :src="selectedIcon.image_url"
+                alt=""
+              />
+            </div>
             <div class="min-w-0">
               <div class="truncate text-[14px] font-medium text-ink">
                 {{ selectedIcon.title }}
@@ -468,12 +482,9 @@ onMounted(async () => {
             <a-button class="lotax-btn-secondary">Выбрать файл</a-button>
           </a-upload>
           <p class="lotax-caption mt-1">Большое фото награды · JPEG / PNG / WEBP / GIF</p>
-          <img
-            v-if="imagePreview"
-            :src="imagePreview"
-            alt=""
-            class="mt-2 h-20 w-20 rounded-lg object-cover ring-1 ring-line"
-          />
+          <div v-if="imagePreview" class="reward-thumb mt-2">
+            <img :src="imagePreview" alt="" />
+          </div>
         </a-form-item>
         <div class="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
           <a-form-item label="Тип">
@@ -531,3 +542,44 @@ onMounted(async () => {
     </a-modal>
   </div>
 </template>
+
+<style scoped>
+.reward-thumb {
+  display: flex;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--lotax-border);
+}
+
+@media (min-width: 640px) {
+  .reward-thumb:not(.reward-thumb--sm) {
+    width: 96px;
+    height: 96px;
+  }
+}
+
+.reward-thumb--sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.reward-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Icon files often include empty padding, so scale them up inside the same frame. */
+.reward-thumb--icon img {
+  object-fit: contain;
+  transform: scale(1.55);
+}
+</style>

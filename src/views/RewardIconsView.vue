@@ -216,12 +216,12 @@ onMounted(load)
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'preview'">
-            <img
+            <span
               v-if="(record as RewardIconItem).image_url"
-              :src="(record as RewardIconItem).image_url"
-              alt=""
-              class="h-10 w-10 rounded-lg object-contain ring-1 ring-line bg-white"
-            />
+              class="icon-frame"
+            >
+              <img :src="(record as RewardIconItem).image_url" alt="" />
+            </span>
             <span v-else class="text-ink-muted">—</span>
           </template>
           <template v-else-if="column.key === 'actions'">
@@ -273,14 +273,39 @@ onMounted(load)
             <a-button class="lotax-btn-secondary">Выбрать файл</a-button>
           </a-upload>
           <p class="lotax-caption mt-1">SVG, PNG или JPG</p>
-          <img
-            v-if="preview"
-            :src="preview"
-            alt=""
-            class="mt-2 h-16 w-16 rounded-lg object-contain ring-1 ring-line bg-white"
-          />
+          <span v-if="preview" class="icon-frame icon-frame--lg mt-2">
+            <img :src="preview" alt="" />
+          </span>
         </a-form-item>
       </a-form>
     </a-modal>
   </div>
 </template>
+
+<style scoped>
+.icon-frame {
+  display: inline-flex;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--lotax-border);
+  vertical-align: middle;
+}
+
+.icon-frame--lg {
+  width: 80px;
+  height: 80px;
+}
+
+.icon-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: scale(1.55);
+}
+</style>
