@@ -5,6 +5,7 @@ import { message, Modal } from 'ant-design-vue'
 import type { TableColumnsType } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { CloudSyncOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons-vue'
+import { driversApi } from '@/api/drivers'
 import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
@@ -29,6 +30,9 @@ const creating = ref(false)
 const selectedRowKeys = ref<string[]>([])
 const bulkBusy = ref(false)
 const launchBusy = ref(false)
+const listLoading = ref(false)
+/** `null` — обычный список с сервера. Массив — поиск только по имени и фамилии. */
+const nameHits = ref<DriverListItem[] | null>(null)
 const createForm = reactive({
   phone: '',
   first_name: '',
@@ -67,6 +71,23 @@ function driverFullName(d: DriverListItem) {
     [driverFirstName(d), driverLastName(d)].filter((p) => p && p !== '—').join(' ') ||
     '—'
   )
+}
+
+/** Search matches only first and last name, not phone or Yandex ID. */
+function driverNameHaystack(d: DriverListItem) {
+  const first = unmasked(d.first_name) || unmasked(d.first_name_masked) || ''
+  const last = unmasked(d.last_name) || unmasked(d.last_name_masked) || ''
+  if (first || last) return `${first} ${last}`
+  const bits = (unmasked(d.display_name) || '').split(/\s+/).filter(Boolean)
+  if (bits.length >= 2) return `${bits[0]} ${bits[bits.length - 1]}`
+  return bits[0] || ''
+}
+
+function matchesNameSearch(d: DriverListItem, raw: string) {
+  const q = raw.trim().toLocaleLowerCase('ru').replace(/\s+/g, ' ')
+  if (!q) return true
+  const hay = driverNameHaystack(d).toLocaleLowerCase('ru').replace(/\s+/g, ' ')
+  return q.split(' ').every((part) => hay.includes(part))
 }
 
 /** Fixed columns + x-scroll only when viewport is tight (tablet). */
@@ -174,17 +195,56 @@ const parkOptions = computed(() => [
   ...org.parks.map((p) => ({ value: p.id, label: p.name })),
 ])
 
-async function load() {
-  try {
-    await drivers.fetchList({
-      page: pagination.current,
-      page_size: pagination.pageSize,
-      q: searchQ.value.trim() || null,
+const tableRows = computed(() => {
+  if (nameHits.value == null) return drivers.items
+  const start = (pagination.current - 1) * pagination.pageSize
+  return nameHits.value.slice(start, start + pagination.pageSize)
+})
+
+async function collectNameMatches(q: string) {
+  const pageSize = 100
+  const matched: DriverListItem[] = []
+  let page = 1
+  let total = Number.POSITIVE_INFINITY
+  while ((page - 1) * pageSize < total && page <= 30) {
+    const { data } = await driversApi.list({
+      page,
+      page_size: pageSize,
+      q,
       status: statusFilter.value === 'all' ? null : statusFilter.value,
       tier: tierFilter.value === 'all' ? null : tierFilter.value,
       park_id: parkFilter.value === 'all' ? null : parkFilter.value,
     })
-    pagination.total = drivers.total
+    total = data.total
+    matched.push(...data.items.filter((item) => matchesNameSearch(item, q)))
+    if (!data.items.length) break
+    page += 1
+  }
+  return matched
+}
+
+async function load() {
+  listLoading.value = true
+  try {
+    const q = searchQ.value.trim()
+    if (!q) {
+      nameHits.value = null
+      await drivers.fetchList({
+        page: pagination.current,
+        page_size: pagination.pageSize,
+        q: null,
+        status: statusFilter.value === 'all' ? null : statusFilter.value,
+        tier: tierFilter.value === 'all' ? null : tierFilter.value,
+        park_id: parkFilter.value === 'all' ? null : parkFilter.value,
+      })
+      pagination.total = drivers.total
+      return
+    }
+    const hits = await collectNameMatches(q)
+    nameHits.value = hits
+    pagination.total = hits.length
+    const maxPage = Math.max(1, Math.ceil(hits.length / pagination.pageSize) || 1)
+    if (pagination.current > maxPage) pagination.current = maxPage
   } catch (e) {
     if (isForbiddenError(e)) {
       message.error('Нет доступа к данным водителей')
@@ -192,6 +252,8 @@ async function load() {
       return
     }
     message.error(extractErrorMessage(e))
+  } finally {
+    listLoading.value = false
   }
 }
 
@@ -213,7 +275,8 @@ function confirmResetPoints() {
   let status: DriverStatus | null =
     statusFilter.value === 'all' ? null : statusFilter.value
   if (selectedRowKeys.value.length) {
-    const rows = drivers.items.filter((d) => selectedRowKeys.value.includes(d.id))
+    const pool = nameHits.value ?? drivers.items
+    const rows = pool.filter((d) => selectedRowKeys.value.includes(d.id))
     const statuses = new Set(rows.map((d) => d.status))
     if (statuses.size !== 1) {
       message.warning('Для сброса баллов выберите водителей с одним статусом')
@@ -325,6 +388,7 @@ function resetPageAndLoad() {
 function onTableChange(pag: { current?: number; pageSize?: number }) {
   pagination.current = pag.current ?? 1
   pagination.pageSize = pag.pageSize ?? 20
+  if (searchQ.value.trim()) return
   load()
 }
 
@@ -338,6 +402,7 @@ function onSelectChange(keys: (string | number)[]) {
 
 function onMobilePageChange(page: number) {
   pagination.current = page
+  if (searchQ.value.trim()) return
   load()
 }
 
@@ -452,7 +517,7 @@ onMounted(async () => {
           allow-clear
           class="sm:!w-64 sm:!flex-none"
           size="large"
-          placeholder="Поиск: имя, фамилия, телефон, ID…"
+          placeholder="Поиск: имя, фамилия"
         />
         <a-select
           v-model:value="statusFilter"
@@ -530,13 +595,13 @@ onMounted(async () => {
 
     <!-- Mobile: card list -->
     <div v-if="isMobile" class="flex flex-col gap-4">
-      <div v-if="drivers.loading" class="flex justify-center py-16">
+      <div v-if="listLoading || drivers.loading" class="flex justify-center py-16">
         <a-spin size="large" />
       </div>
 
-      <template v-else-if="drivers.items.length">
+      <template v-else-if="tableRows.length">
         <article
-          v-for="driver in drivers.items"
+          v-for="driver in tableRows"
           :key="driver.id"
           class="lotax-card driver-mobile-card p-4 active:scale-[0.99]"
           role="button"
@@ -605,9 +670,11 @@ onMounted(async () => {
         <p class="text-[15px] font-medium text-ink">Водители не найдены</p>
         <p class="lotax-caption max-w-sm">
           {{
-            statusFilter === 'pending'
-              ? 'Нет водителей в статусе «Ожидание». Они появляются после синхронизации с Яндекс.'
-              : 'Сначала нажмите «Синхронизировать водителей» или измените фильтр'
+            searchQ.trim()
+              ? 'Поиск только по имени и фамилии. Телефон и ID не ищутся.'
+              : statusFilter === 'pending'
+                ? 'Нет водителей в статусе «Ожидание». Они появляются после синхронизации с Яндекс.'
+                : 'Сначала нажмите «Синхронизировать водителей» или измените фильтр'
           }}
         </p>
         <a-button
@@ -632,8 +699,8 @@ onMounted(async () => {
         row-key="id"
         class="drivers-table"
         :columns="columns"
-        :data-source="drivers.items"
-        :loading="drivers.loading"
+        :data-source="tableRows"
+        :loading="listLoading || drivers.loading"
         :pagination="pagination"
         :scroll="tableScroll"
         :sticky="stickyConfig"
@@ -642,8 +709,9 @@ onMounted(async () => {
           onChange: onSelectChange,
         } : undefined"
         :locale="{
-          emptyText:
-            statusFilter === 'pending'
+          emptyText: searchQ.trim()
+            ? 'По имени и фамилии ничего не найдено'
+            : statusFilter === 'pending'
               ? 'Нет водителей в статусе «Ожидание»'
               : 'Водители не найдены',
         }"

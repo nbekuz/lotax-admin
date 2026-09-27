@@ -989,7 +989,7 @@ watch(driverId, () => { load() })
       </div>
     </section>
 
-    <!-- Tabs: Профиль | Баллы | Поездки | Задания | Уровень -->
+    <!-- Профиль, Баллы, Начисления, Поездки, Задания, Уровень, Заказы, Ведомость, Заработок -->
     <a-tabs v-model:activeKey="activeTab" class="driver-tabs" @change="onTabChange">
 
       <!-- ── Профиль ──────────────────────────────────────────────────────── -->
@@ -2369,5 +2369,18 @@ watch(driverId, () => { load() })
   background: #fee2e2;
   color: #dc2626;
   border-color: #fecaca;
+}
+
+.driver-tabs :deep(.ant-tabs-nav-wrap) {
+  overflow: visible;
+}
+
+.driver-tabs :deep(.ant-tabs-nav-list) {
+  flex-wrap: wrap;
+  transform: none !important;
+}
+
+.driver-tabs :deep(.ant-tabs-nav-operations) {
+  display: none;
 }
 </style>

@@ -516,16 +516,7 @@ function toggleNav() {
 
           <button
             type="button"
-            class="lotax-avatar-btn md:hidden"
-            aria-label="Профиль"
-            @click="router.push('/profile')"
-          >
-            {{ userInitial }}
-          </button>
-
-          <button
-            type="button"
-            class="lotax-avatar-btn hidden md:inline-flex"
+            class="lotax-avatar-btn"
             :title="auth.fullName || auth.admin?.email || 'Профиль'"
             aria-label="Профиль"
             @click="router.push('/profile')"
