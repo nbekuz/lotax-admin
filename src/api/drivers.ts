@@ -22,6 +22,7 @@ import type {
   StatusUpdatePayload,
   SyncTaskResponse,
   YandexCursorPage,
+  YandexEarningsSummary,
   YandexLiveEarningsItem,
   YandexLiveOrderItem,
   YandexLiveStatementItem,
@@ -46,6 +47,16 @@ export interface YandexLiveQuery {
   period?: string | null
   date_from?: string | null
   date_to?: string | null
+  time_from?: string | null
+  time_to?: string | null
+  time_field?: string | null
+  statuses?: string[] | null
+  payment_methods?: string[] | null
+  categories?: string[] | null
+  order_type?: string[] | null
+  category_ids?: string[] | null
+  order?: string | null
+  except_cash_and_pending?: boolean | null
   cursor?: string | null
   limit?: number
 }
@@ -62,16 +73,34 @@ function periodParams(params: HistoryPeriodQuery = {}) {
   }
 }
 
+function listParam(values?: string[] | null) {
+  const items = (values ?? []).map((v) => v.trim()).filter(Boolean)
+  return items.length ? items : undefined
+}
+
 function yandexParams(params: YandexLiveQuery = {}) {
   const useRange = Boolean(params.date_from && params.date_to)
   return {
     period: useRange ? undefined : params.period || undefined,
     date_from: useRange ? params.date_from || undefined : undefined,
     date_to: useRange ? params.date_to || undefined : undefined,
+    time_from: params.time_from || undefined,
+    time_to: params.time_to || undefined,
+    time_field: params.time_field || undefined,
+    statuses: listParam(params.statuses),
+    payment_methods: listParam(params.payment_methods),
+    categories: listParam(params.categories),
+    order_type: listParam(params.order_type),
+    category_ids: listParam(params.category_ids),
+    order: params.order?.trim() || undefined,
+    except_cash_and_pending:
+      params.except_cash_and_pending == null ? undefined : params.except_cash_and_pending,
     cursor: params.cursor || undefined,
     limit: params.limit ?? 50,
   }
 }
+
+const yandexRequest = { paramsSerializer: { indexes: null } }
 
 export const driversApi = {
   list(params: DriversQuery = {}) {
@@ -187,21 +216,21 @@ export const driversApi = {
   yandexOrders(driverId: string, params: YandexLiveQuery = {}) {
     return http.get<YandexCursorPage<YandexLiveOrderItem>>(
       `/admin/drivers/${driverId}/yandex/orders`,
-      { params: yandexParams(params) },
+      { params: yandexParams(params), ...yandexRequest },
     )
   },
 
   yandexStatement(driverId: string, params: YandexLiveQuery = {}) {
     return http.get<YandexCursorPage<YandexLiveStatementItem>>(
       `/admin/drivers/${driverId}/yandex/statement`,
-      { params: yandexParams(params) },
+      { params: yandexParams(params), ...yandexRequest },
     )
   },
 
   yandexEarnings(driverId: string, params: YandexLiveQuery = {}) {
-    return http.get<YandexCursorPage<YandexLiveEarningsItem>>(
+    return http.get<YandexCursorPage<YandexLiveEarningsItem> & YandexEarningsSummary>(
       `/admin/drivers/${driverId}/yandex/earnings`,
-      { params: yandexParams(params) },
+      { params: yandexParams(params), ...yandexRequest },
     )
   },
 

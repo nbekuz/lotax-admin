@@ -3,9 +3,12 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
+  AccountBookOutlined,
   CarOutlined,
   CloudSyncOutlined,
+  DollarOutlined,
   RocketOutlined,
+  ShoppingOutlined,
 } from '@ant-design/icons-vue'
 import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
@@ -172,6 +175,57 @@ onMounted(async () => {
         </a-button>
       </div>
     </div>
+
+    <section class="flex flex-col gap-3">
+      <div>
+        <h2 class="lotax-section-title">Живые данные Yandex</h2>
+        <p class="lotax-caption mt-1 max-w-2xl">
+          Заказы, ведомость и заработок в Celery не ставятся и в таблицу поездок не пишутся.
+          Карточка водителя запрашивает Yandex сразу, при открытии вкладки и смене фильтров.
+          По умолчанию — последние 7 дней. Кэш не используется.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <article class="lotax-card p-4">
+          <div class="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-soft text-brand">
+            <ShoppingOutlined class="text-lg" />
+          </div>
+          <h3 class="text-[15px] font-semibold text-ink">Заказы</h3>
+          <p class="lotax-caption mt-1">
+            Список заказов Fleet. Фильтры: даты, время, статус, оплата, категория, тип.
+          </p>
+        </article>
+        <article class="lotax-card p-4">
+          <div class="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-soft text-brand">
+            <AccountBookOutlined class="text-lg" />
+          </div>
+          <h3 class="text-[15px] font-semibold text-ink">Ведомость</h3>
+          <p class="lotax-caption mt-1">
+            Движения денег Yandex, не баллы LOTAX. Можно исключить наличные и ожидание.
+          </p>
+        </article>
+        <article class="lotax-card p-4">
+          <div class="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-soft text-brand">
+            <DollarOutlined class="text-lg" />
+          </div>
+          <h3 class="text-[15px] font-semibold text-ink">Заработок</h3>
+          <p class="lotax-caption mt-1">
+            Сводка за период: заказы, отмены, сумма поездок и операции. Не список поездок.
+          </p>
+        </article>
+      </div>
+
+      <div class="lotax-card flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+        <p class="lotax-caption max-w-xl">
+          Нужны ключи парка и <span class="font-medium text-ink">yandex_driver_id</span> у водителя.
+          Если ID нет — карточка показывает ошибку, а не пустой список.
+        </p>
+        <a-button class="lotax-btn-secondary shrink-0" @click="router.push('/drivers')">
+          Открыть водителей
+        </a-button>
+      </div>
+    </section>
 
     <div v-if="lastTask" class="lotax-card border-emerald-200 bg-emerald-50/40 p-4 md:p-6">
       <p class="break-words text-[14px] font-medium text-emerald-800 md:text-[15px]">

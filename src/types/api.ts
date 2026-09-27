@@ -457,11 +457,20 @@ export interface YandexCursorPage<T> {
 export interface YandexLiveOrderItem {
   id?: string | null
   order_id?: string | null
+  short_id?: string | null
   status?: string | null
   created_at?: string | null
+  booked_at?: string | null
   ended_at?: string | null
+  category?: string | null
+  payment_method?: string | null
+  order_type?: string | null
   address_from?: string | null
   address_to?: string | null
+  pickup?: string | null
+  dropoff?: string | null
+  car?: string | null
+  car_number?: string | null
   price?: number | null
   currency?: string | null
   [key: string]: unknown
@@ -476,7 +485,32 @@ export interface YandexLiveStatementItem {
   amount?: number | null
   currency?: string | null
   description?: string | null
+  order_short_id?: string | null
   [key: string]: unknown
+}
+
+export interface YandexStatementSummary {
+  earned?: number | null
+  spent?: number | null
+  net?: number | null
+}
+
+export interface YandexEarningsCategory {
+  category_id?: string | null
+  category_name?: string | null
+  amount?: number | null
+  count?: number | null
+}
+
+export interface YandexEarningsSummary {
+  orders_total?: number | null
+  completed_orders?: number | null
+  cancelled_orders?: number | null
+  fare_sum?: number | null
+  transactions_total?: number | null
+  transactions_sum?: number | null
+  by_category?: YandexEarningsCategory[] | null
+  summary?: YandexEarningsSummary | null
 }
 
 export interface YandexLiveEarningsItem {
