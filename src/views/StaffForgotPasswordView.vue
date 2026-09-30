@@ -167,7 +167,7 @@ onUnmounted(() => {
 
 <template>
   <div class="forgot-page">
-    <div class="forgot-top">
+    <div class="forgot-top shrink-0">
       <button type="button" class="forgot-back" @click="router.push('/login')">
         ← Ко входу
       </button>
@@ -225,12 +225,15 @@ onUnmounted(() => {
 <style scoped>
 .forgot-page {
   display: flex;
+  box-sizing: border-box;
   width: 100%;
   max-width: 32rem;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   margin: 0 auto;
   flex-direction: column;
   gap: 16px;
+  overflow: hidden;
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
 }
 
@@ -267,7 +270,9 @@ onUnmounted(() => {
   flex: 1;
   flex-direction: column;
   gap: 10px;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px;
 }
 
