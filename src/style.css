@@ -545,7 +545,8 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 0 !important;
+  /* Room for the focus ring so overflow does not slice the field. */
+  padding: 4px 4px 8px !important;
   margin: 0 !important;
 }
 
@@ -648,6 +649,7 @@ body {
 .ant-input-affix-wrapper {
   padding-left: 14px !important;
   padding-right: 12px !important;
+  overflow: visible !important;
 }
 
 .ant-input-affix-wrapper-lg {
@@ -656,19 +658,29 @@ body {
 }
 
 .ant-input-affix-wrapper > input.ant-input,
-.ant-input-affix-wrapper > input.ant-input-lg {
+.ant-input-affix-wrapper > input.ant-input-lg,
+.ant-input-affix-wrapper > input.ant-input:hover,
+.ant-input-affix-wrapper > input.ant-input:focus,
+.ant-input-affix-wrapper:hover > input.ant-input,
+.ant-input-affix-wrapper-focused > input.ant-input {
+  height: auto !important;
   border: none !important;
   border-radius: 0 !important;
+  outline: none !important;
   box-shadow: none !important;
   background: transparent !important;
   padding-left: 4px !important;
   padding-right: 4px !important;
-  overflow: visible !important;
+}
+
+.ant-form-item-control-input,
+.ant-form-item-control-input-content {
+  overflow: visible;
 }
 
 .ant-input-number {
   padding: 0 !important;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .ant-input-number .ant-input-number-input {
@@ -832,7 +844,27 @@ body {
   color: var(--lotax-text-secondary) !important;
 }
 
-/* Soften duplicate page titles when header also shows title */
+.ant-drawer.lotax-nav-drawer .ant-drawer-content,
+.ant-drawer.lotax-nav-drawer .ant-drawer-wrapper-body,
+.ant-drawer.lotax-nav-drawer .ant-drawer-body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.ant-drawer.lotax-nav-drawer .ant-drawer-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.ant-drawer.lotax-nav-drawer .ant-menu-item {
+  height: 44px !important;
+  line-height: 44px !important;
+  margin-block: 2px !important;
+}
+
+.ant-drawer.lotax-nav-drawer .ant-drawer-mask {
+  background: rgba(0, 0, 0, 0.45);
+}
 .lotax-page-title + .lotax-caption,
 .lotax-page-title + p.lotax-caption {
   margin-top: 6px;

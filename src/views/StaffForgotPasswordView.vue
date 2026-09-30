@@ -110,13 +110,14 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto flex min-h-full w-full max-w-lg flex-col gap-4 p-4 md:py-10">
-    <div class="flex items-center justify-between">
-    <button type="button" class="w-fit text-[14px] text-brand" @click="router.push('/login')">
-      ← Ко входу
-    </button>
+  <div class="forgot-page">
+    <div class="forgot-top">
+      <button type="button" class="forgot-back" @click="router.push('/login')">
+        ← Ко входу
+      </button>
       <ThemeMenuButton />
     </div>
+
     <BrandMark :size="56" layout="stack">
       <p class="mt-2 text-[14px] text-ink-muted">Восстановление пароля</p>
     </BrandMark>
@@ -143,17 +144,17 @@ onUnmounted(() => {
       </a-button>
     </div>
 
-    <div v-else class="lotax-card flex min-h-[420px] flex-col !p-0">
-      <div class="flex-1 space-y-3 overflow-y-auto p-4">
+    <div v-else class="forgot-chat lotax-card">
+      <div class="forgot-chat__messages">
         <div
           v-for="item in messages"
           :key="item.id"
-          class="max-w-[85%] rounded-2xl px-3 py-2"
-          :class="item.sender_admin_id === adminId ? 'ml-auto bg-brand-soft' : 'bg-chip'"
+          class="forgot-bubble"
+          :class="item.sender_admin_id === adminId ? 'forgot-bubble--mine' : 'forgot-bubble--theirs'"
         >
-          <p class="text-[12px] font-semibold text-ink-muted">{{ senderLabel(item) }}</p>
-          <p class="whitespace-pre-wrap text-[14px] text-ink">{{ item.body }}</p>
-          <p class="mt-1 text-[11px] text-ink-muted">{{ dayjs(item.created_at).format('DD.MM HH:mm') }}</p>
+          <p class="forgot-bubble__who">{{ senderLabel(item) }}</p>
+          <p class="forgot-bubble__body">{{ item.body }}</p>
+          <p class="forgot-bubble__time">{{ dayjs(item.created_at).format('DD.MM HH:mm') }}</p>
         </div>
         <p v-if="!messages.length" class="text-[14px] text-ink-muted">Напишите, что забыли пароль.</p>
       </div>
@@ -161,3 +162,92 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.forgot-page {
+  display: flex;
+  width: 100%;
+  max-width: 32rem;
+  min-height: 100dvh;
+  margin: 0 auto;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+.forgot-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.forgot-back {
+  border: 0;
+  background: transparent;
+  padding: 8px 0;
+  color: var(--lotax-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+}
+
+.forgot-chat {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.forgot-chat__messages {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.forgot-bubble {
+  max-width: 85%;
+  border-radius: 16px;
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
+}
+
+.forgot-bubble--mine {
+  margin-left: auto;
+  background: var(--lotax-primary-soft);
+}
+
+.forgot-bubble--theirs {
+  margin-right: auto;
+  background: var(--lotax-chip);
+}
+
+.forgot-bubble__who {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lotax-text-secondary);
+}
+
+.forgot-bubble__body {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--lotax-text);
+}
+
+.forgot-bubble__time {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--lotax-text-secondary);
+}
+</style>

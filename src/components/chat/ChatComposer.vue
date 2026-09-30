@@ -33,14 +33,14 @@ function submit() {
 </script>
 
 <template>
-  <div class="chat-composer border-t border-line bg-surface-card px-3 py-3 md:px-4">
-    <div class="flex items-end gap-2.5">
+  <div class="chat-composer shrink-0 border-t border-line bg-surface-card px-3 py-3 md:px-4">
+    <div class="flex min-w-0 items-end gap-2">
       <a-textarea
         v-model:value="text"
         :disabled="disabled || sending"
         :auto-size="{ minRows: 1, maxRows: 5 }"
         placeholder="Введите сообщение…"
-        class="chat-composer__input"
+        class="chat-composer__input min-w-0 flex-1"
         @press-enter.exact.prevent="submit"
       />
       <a-button
@@ -64,6 +64,12 @@ function submit() {
   line-height: 1.4 !important;
   resize: none !important;
   box-shadow: none !important;
+}
+
+@media (max-width: 767px) {
+  .chat-composer {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
 }
 
 .chat-composer__input :deep(.ant-input) {

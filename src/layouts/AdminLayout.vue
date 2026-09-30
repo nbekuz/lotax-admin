@@ -43,7 +43,8 @@ const staffPasswordReset = useStaffPasswordResetStore()
 const org = useOrgStore()
 const route = useRoute()
 const router = useRouter()
-const { isMobile, isLgUp } = useBreakpoint()
+const { isMobile, isLgUp, width } = useBreakpoint()
+const drawerWidth = computed(() => Math.min(Math.round(width.value * 0.85), 320))
 
 const collapsed = ref(false)
 const drawerOpen = ref(false)
@@ -350,6 +351,13 @@ const roleText = computed(() =>
 )
 
 const headerTitle = computed(() => String(route.meta.title || 'Lotax'))
+const fillsViewport = computed(
+  () =>
+    route.name === 'chat' ||
+    route.name === 'chat-conversation' ||
+    route.name === 'staff-password-reset' ||
+    route.name === 'password-reset',
+)
 
 onMounted(async () => {
   if (auth.isParkAdmin) {
@@ -501,15 +509,22 @@ function toggleNav() {
     <a-drawer
       v-model:open="drawerOpen"
       placement="left"
-      :width="288"
+      :width="drawerWidth"
+      :mask="true"
       :closable="false"
       class="lotax-nav-drawer"
-      :body-style="{ padding: 0 }"
+      :body-style="{
+        padding: 0,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }"
     >
-      <div class="flex h-14 items-center border-b border-line px-4">
+      <div class="flex h-14 shrink-0 items-center border-b border-line px-4">
         <BrandMark :size="36" layout="inline" />
       </div>
-      <div class="px-1 py-3">
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 py-2">
         <a-menu
           :theme="themeStore.resolved"
           mode="inline"
@@ -519,7 +534,7 @@ function toggleNav() {
           @click="onMenuClick"
         />
       </div>
-      <div class="absolute inset-x-0 bottom-0 border-t border-line bg-surface-card p-3">
+      <div class="lotax-drawer-foot shrink-0 border-t border-line bg-surface-card p-3">
         <button
           type="button"
           class="lotax-user-chip mb-2 w-full"
@@ -540,9 +555,12 @@ function toggleNav() {
       </div>
     </a-drawer>
 
-    <a-layout class="!min-w-0 !bg-surface">
+    <a-layout
+      class="!min-w-0 !bg-surface"
+      :class="fillsViewport ? 'h-dvh overflow-hidden' : ''"
+    >
       <a-layout-header class="lotax-topbar">
-        <div class="flex min-w-0 flex-1 items-center gap-3">
+        <div class="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
           <button
             type="button"
             class="lotax-icon-btn"
@@ -556,14 +574,16 @@ function toggleNav() {
 
           <div class="min-w-0 flex-1">
             <p class="truncate text-[12px] text-ink-muted">
-              Lotax
-              <span class="px-1 text-ink-tertiary">/</span>
+              <span class="lotax-crumb-prefix">
+                Lotax
+                <span class="px-1 text-ink-tertiary">/</span>
+              </span>
               <span class="font-medium text-ink">{{ headerTitle }}</span>
             </p>
           </div>
         </div>
 
-        <div class="flex shrink-0 items-center gap-2">
+        <div class="lotax-topbar__actions flex shrink-0 items-center gap-2">
           <a-select
             v-if="auth.isParkAdmin && org.hasMultipleOrgs"
             :value="org.organization?.id"
@@ -617,8 +637,18 @@ function toggleNav() {
         </div>
       </a-layout-header>
 
-      <a-layout-content class="lotax-page-pad">
-        <div class="mx-auto min-h-[calc(100vh-5rem)] w-full max-w-[1400px]">
+      <a-layout-content
+        class="lotax-page-pad"
+        :class="fillsViewport ? 'lotax-page-pad--fill flex min-h-0 flex-1 flex-col overflow-hidden !py-3' : ''"
+      >
+        <div
+          class="mx-auto w-full max-w-[1400px]"
+          :class="
+            fillsViewport
+              ? 'flex h-full min-h-0 flex-col'
+              : 'min-h-[calc(100vh-5rem)]'
+          "
+        >
           <router-view />
         </div>
       </a-layout-content>
@@ -693,19 +723,53 @@ function toggleNav() {
   z-index: 20;
   display: flex !important;
   height: 56px !important;
+  max-width: 100%;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 12px;
+  gap: 8px;
   padding-inline: 16px !important;
+  overflow: hidden;
   background: var(--lotax-topbar) !important;
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--lotax-border);
   line-height: 1.2 !important;
 }
 
+.lotax-crumb-prefix {
+  display: none;
+}
+
 @media (min-width: 768px) {
   .lotax-topbar {
+    gap: 12px;
     padding-inline: 24px !important;
+    overflow: visible;
+  }
+
+  .lotax-crumb-prefix {
+    display: inline;
+  }
+}
+
+@media (max-width: 767px) {
+  .lotax-topbar__actions {
+    gap: 4px;
+  }
+
+  .lotax-topbar__actions :deep(.ant-select) {
+    width: 4.75rem !important;
+    min-width: 0 !important;
+  }
+
+  .lotax-page-pad.lotax-page-pad--fill {
+    padding: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+
+  .lotax-page-pad--fill :deep(.lotax-card) {
+    width: 100%;
+    border-radius: 0;
+    border-inline: 0;
   }
 }
 
@@ -754,9 +818,12 @@ function toggleNav() {
   background: var(--lotax-primary);
 }
 
+.lotax-drawer-foot {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
 :deep(.ant-drawer-body) {
-  position: relative;
-  min-height: 100%;
-  padding-bottom: 132px !important;
+  height: 100%;
+  overflow: hidden;
 }
 </style>

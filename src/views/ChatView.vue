@@ -34,11 +34,6 @@ const managersLoading = ref(false)
 const openingSupport = ref(false)
 const openingStaff = ref(false)
 
-const pageTitle = computed(() => {
-  if (auth.isSuperAdmin) return 'Обращения директоров'
-  return 'Чаты'
-})
-
 const showSidebar = computed(() => {
   if (!isMobile.value) return true
   return !chat.activeConversationId
@@ -185,25 +180,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex h-[calc(100vh-7rem)] min-h-[560px] flex-col gap-3 md:gap-4">
+  <div class="flex h-full min-h-0 flex-col gap-2">
     <div
-      v-if="isMobile || auth.isSuperAdmin"
-      class="flex flex-wrap items-center justify-between gap-3"
+      v-if="isMobile && (auth.isDirector || (auth.isManager && !chat.conversations.length))"
+      class="flex shrink-0 flex-wrap items-center justify-end gap-2"
     >
-      <div>
-        <h1 class="text-[24px] font-semibold tracking-tight text-ink">
-          {{ pageTitle }}
-        </h1>
-        <p v-if="chat.totalUnread > 0" class="text-[14px] text-ink-muted">
-          Непрочитанных: {{ chat.totalUnread }}
-        </p>
-      </div>
-
-      <div v-if="isMobile" class="flex flex-wrap items-center gap-2">
-        <a-button size="small" @click="refreshAll">
-          <template #icon><ReloadOutlined /></template>
-        </a-button>
-
         <a-button
           v-if="auth.isDirector"
           type="primary"
@@ -233,13 +214,12 @@ onMounted(() => {
         >
           Чат
         </a-button>
-      </div>
     </div>
 
     <div class="lotax-card flex min-h-0 flex-1 overflow-hidden !p-0 !shadow-sm">
       <div
         v-if="showSidebar"
-        class="h-full min-h-0"
+        class="h-full min-h-0 overflow-hidden"
         :class="isMobile ? 'w-full' : 'w-[340px] shrink-0 xl:w-[380px]'"
       >
         <ConversationSidebar
@@ -295,7 +275,7 @@ onMounted(() => {
 
       <div
         v-if="showThread"
-        class="flex min-h-0 min-w-0 flex-1 flex-col bg-surface"
+        class="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface"
       >
         <div
           v-if="chat.activeConversation"
@@ -304,9 +284,13 @@ onMounted(() => {
           <a-button
             v-if="isMobile"
             type="text"
+            class="!h-9 !w-9 !px-0"
+            aria-label="Назад"
             @click="backToList"
           >
-            Назад
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
           </a-button>
 
           <div

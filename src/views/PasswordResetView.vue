@@ -201,24 +201,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex h-[calc(100vh-7rem)] min-h-[560px] flex-col gap-3 md:gap-4">
-    <div
-      v-if="isMobile"
-      class="flex flex-wrap items-center justify-between gap-3"
-    >
-      <div>
-        <h1 class="text-[24px] font-semibold tracking-tight text-ink">
-          Восстановление пароля
-        </h1>
-        <p class="text-[14px] text-ink-muted">
-          Заявки водителей на смену пароля
-        </p>
-      </div>
-      <a-button size="small" @click="refreshAll">
-        <template #icon><ReloadOutlined /></template>
-      </a-button>
-    </div>
-
+  <div class="flex h-full min-h-0 flex-col gap-2">
     <div class="lotax-card flex min-h-0 flex-1 overflow-hidden !p-0 !shadow-sm">
       <div
         v-if="showSidebar"
@@ -320,14 +303,22 @@ watch(
 
       <div
         v-if="showThread"
-        class="flex min-h-0 min-w-0 flex-1 flex-col bg-surface"
+        class="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface"
       >
         <div
           v-if="store.activeRoom"
-          class="flex min-h-[64px] items-center gap-3 border-b border-line bg-surface-card px-4 py-3"
+          class="flex min-h-[64px] shrink-0 items-center gap-3 border-b border-line bg-surface-card px-4 py-3"
         >
-          <a-button v-if="isMobile" type="text" @click="backToList">
-            Назад
+          <a-button
+            v-if="isMobile"
+            type="text"
+            class="!h-9 !w-9 !px-0"
+            aria-label="Назад"
+            @click="backToList"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
           </a-button>
 
           <div
