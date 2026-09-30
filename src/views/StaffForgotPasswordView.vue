@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import dayjs from 'dayjs'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
 import BrandMark from '@/components/BrandMark.vue'
 import ThemeMenuButton from '@/components/ThemeMenuButton.vue'
@@ -11,6 +10,7 @@ import {
   staffGhostToken,
   staffPasswordResetApi,
 } from '@/api/staffPasswordReset'
+import { formatChatTime, groupMessagesByDate } from '@/utils/chatDate'
 import { extractErrorMessage } from '@/utils/labels'
 import type { StaffPasswordResetMessage } from '@/types/staffPasswordReset'
 
@@ -21,6 +21,7 @@ const sending = ref(false)
 const roomId = ref<string | null>(sessionStorage.getItem('lotax_staff_ghost_room'))
 const adminId = ref<string | null>(sessionStorage.getItem('lotax_staff_ghost_admin'))
 const messages = ref<StaffPasswordResetMessage[]>([])
+const groupedMessages = computed(() => groupMessagesByDate(messages.value))
 let socket: WebSocket | null = null
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let disposed = false
@@ -201,16 +202,19 @@ onUnmounted(() => {
 
     <div v-else class="forgot-chat lotax-card">
       <div class="forgot-chat__messages">
-        <div
-          v-for="item in messages"
-          :key="item.id"
-          class="forgot-bubble"
-          :class="item.sender_admin_id === adminId ? 'forgot-bubble--mine' : 'forgot-bubble--theirs'"
-        >
-          <p class="forgot-bubble__who">{{ senderLabel(item) }}</p>
-          <p class="forgot-bubble__body">{{ item.body }}</p>
-          <p class="forgot-bubble__time">{{ dayjs(item.created_at).format('DD.MM HH:mm') }}</p>
-        </div>
+        <template v-for="group in groupedMessages" :key="group.key">
+          <div class="chat-day">{{ group.label }}</div>
+          <div
+            v-for="item in group.items"
+            :key="item.id"
+            class="forgot-bubble"
+            :class="item.sender_admin_id === adminId ? 'forgot-bubble--mine' : 'forgot-bubble--theirs'"
+          >
+            <p class="forgot-bubble__who">{{ senderLabel(item) }}</p>
+            <p class="forgot-bubble__body">{{ item.body }}</p>
+            <p class="forgot-bubble__time">{{ formatChatTime(item.created_at) }}</p>
+          </div>
+        </template>
         <p v-if="!messages.length" class="text-[14px] text-ink-muted">Напишите, что забыли пароль.</p>
       </div>
       <ChatComposer :sending="sending" @send="send" />
@@ -265,6 +269,17 @@ onUnmounted(() => {
   gap: 10px;
   overflow-y: auto;
   padding: 16px;
+}
+
+.chat-day {
+  margin: 2px auto 2px;
+  width: fit-content;
+  border-radius: 999px;
+  background: var(--lotax-chip);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lotax-text-secondary);
 }
 
 .forgot-bubble {

@@ -3,7 +3,6 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { KeyOutlined, ReloadOutlined } from '@ant-design/icons-vue'
-import dayjs from 'dayjs'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
 import SetStaffPasswordModal from '@/components/SetStaffPasswordModal.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -12,6 +11,7 @@ import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAuthStore } from '@/stores/auth'
 import { useStaffPasswordResetStore } from '@/stores/staffPasswordReset'
 import { tokenStorage } from '@/utils/tokenStorage'
+import { formatChatTime, groupMessagesByDate } from '@/utils/chatDate'
 import { extractErrorMessage, roleLabel } from '@/utils/labels'
 import type { AdminRole } from '@/types/api'
 import type { StaffPasswordResetMessage, StaffPasswordResetRoom } from '@/types/staffPasswordReset'
@@ -77,6 +77,7 @@ function isMine(item: StaffPasswordResetMessage) {
   return item.sender_admin_id === auth.admin?.id
 }
 
+const groupedMessages = computed(() => groupMessagesByDate(store.messages))
 const showList = computed(() => !isMobile.value || !store.activeRoomId)
 const showThread = computed(() => !isMobile.value || Boolean(store.activeRoomId))
 
@@ -251,16 +252,19 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="staff-thread__messages">
-          <div
-            v-for="item in store.messages"
-            :key="item.id"
-            class="staff-msg"
-            :class="isMine(item) ? 'staff-msg--mine' : 'staff-msg--theirs'"
-          >
-            <p class="staff-msg__who">{{ senderLabel(item) }}</p>
-            <p class="staff-msg__body">{{ item.body }}</p>
-            <p class="staff-msg__time">{{ dayjs(item.created_at).format('DD.MM HH:mm') }}</p>
-          </div>
+          <template v-for="group in groupedMessages" :key="group.key">
+            <div class="chat-day">{{ group.label }}</div>
+            <div
+              v-for="item in group.items"
+              :key="item.id"
+              class="staff-msg"
+              :class="isMine(item) ? 'staff-msg--mine' : 'staff-msg--theirs'"
+            >
+              <p class="staff-msg__who">{{ senderLabel(item) }}</p>
+              <p class="staff-msg__body">{{ item.body }}</p>
+              <p class="staff-msg__time">{{ formatChatTime(item.created_at) }}</p>
+            </div>
+          </template>
           <p v-if="store.activeRoom && !store.messages.length" class="staff-thread__hint">
             Сообщений пока нет
           </p>
@@ -447,6 +451,17 @@ onUnmounted(() => {
   gap: 10px;
   overflow-y: auto;
   padding: 12px;
+}
+
+.chat-day {
+  margin: 2px auto 2px;
+  width: fit-content;
+  border-radius: 999px;
+  background: var(--lotax-chip);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lotax-text-secondary);
 }
 
 .staff-msg {
