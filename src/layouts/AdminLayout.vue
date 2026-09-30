@@ -27,6 +27,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useOrgStore } from '@/stores/org'
 import { usePasswordResetStore } from '@/stores/passwordReset'
+import { useStaffPasswordResetStore } from '@/stores/staffPasswordReset'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { extractErrorMessage } from '@/utils/labels'
 import BrandMark from '@/components/BrandMark.vue'
@@ -34,6 +35,7 @@ import BrandMark from '@/components/BrandMark.vue'
 const auth = useAuthStore()
 const chat = useChatStore()
 const passwordReset = usePasswordResetStore()
+const staffPasswordReset = useStaffPasswordResetStore()
 const org = useOrgStore()
 const route = useRoute()
 const router = useRouter()
@@ -78,7 +80,9 @@ const selectedKeys = computed(() => {
     return ['staff']
   }
   if (route.path.startsWith('/chat')) return ['chat']
+  if (route.path.startsWith('/staff-password-reset')) return ['staff-password-reset']
   if (route.path.startsWith('/password-reset')) return ['password-reset']
+  if (route.path.startsWith('/system-raffles')) return ['system-raffles']
   if (route.path === '/organization' || route.path.startsWith('/organization/')) {
     return ['organization']
   }
@@ -164,6 +168,15 @@ const menuItems = computed(() => {
         title: 'Обращения директоров',
       })
       items.push({
+        key: 'staff-password-reset',
+        icon: () => h(LockOutlined),
+        label: chatMenuLabel(
+          'Пароли ЛК',
+          staffPasswordReset.openCount,
+        ) as unknown as string,
+        title: 'Пароли сотрудников',
+      })
+      items.push({
         key: 'system-rewards',
         icon: () => h(GiftOutlined),
         label: 'Каталог LOTAX',
@@ -221,6 +234,12 @@ const menuItems = computed(() => {
       icon: () => h(GiftOutlined),
       label: 'Награды',
       title: 'Награды',
+    },
+    {
+      key: 'system-raffles',
+      icon: () => h(GiftOutlined),
+      label: 'Купоны LOTAX',
+      title: 'Системные купоны',
     },
     {
       key: 'reward-icons',
@@ -341,6 +360,13 @@ onMounted(async () => {
       /* ignore */
     }
   }
+  if (auth.isSuperAdmin) {
+    try {
+      await staffPasswordReset.fetchOpenCount()
+    } catch {
+      /* ignore */
+    }
+  }
 })
 
 watch(isLgUp, (lg) => {
@@ -383,6 +409,7 @@ async function onOrgChange(id: string) {
 function logout() {
   chat.reset()
   passwordReset.reset()
+  staffPasswordReset.reset()
   auth.logout()
   router.push({ name: 'login' })
 }

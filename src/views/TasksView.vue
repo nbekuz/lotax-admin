@@ -61,6 +61,7 @@ const enableTarget = ref<TaskTemplateItem | null>(null)
 const enableForm = reactive({
   target_value: 1,
   reward_points: 50,
+  period_days: undefined as number | undefined,
 })
 
 const form = reactive({
@@ -81,12 +82,7 @@ const scope = ref<ScopeFieldsValue>(defaultSpecificScope())
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageTasks)
 
-const periodOptions = [
-  { value: 7, label: '7 дней' },
-  { value: 14, label: '14 дней' },
-  { value: 30, label: '30 дней' },
-  { value: 365, label: '365 дней' },
-]
+const periodChips = [7, 14, 30, 365]
 
 const taskTypeOptions = [
   { value: 'ride_count', label: taskTypeLabel.ride_count },
@@ -144,6 +140,7 @@ function openEnable(item: TaskTemplateItem) {
   enableTarget.value = item
   enableForm.target_value = item.target_value || item.default_target_value || 1
   enableForm.reward_points = tplPoints(item)
+  enableForm.period_days = item.period_days ?? undefined
   enableOpen.value = true
 }
 
@@ -157,6 +154,7 @@ async function confirmEnable() {
       reward_points: number
       reward_points_type: 'park'
       target_value?: number
+      period_days?: number
     } = {
       park_id: parkId.value,
       reward_points: enableForm.reward_points,
@@ -164,6 +162,9 @@ async function confirmEnable() {
     }
     if (enableTarget.value.editable_target !== false && !enableTarget.value.is_claimable) {
       payload.target_value = enableForm.target_value
+    }
+    if (enableTarget.value.editable_period && enableForm.period_days) {
+      payload.period_days = enableForm.period_days
     }
     await adminTaskTemplatesApi.enable(enableTarget.value.key, payload)
     message.success('Задание включено')
@@ -553,6 +554,26 @@ onMounted(async () => {
             addon-after="б."
           />
         </a-form-item>
+        <a-form-item v-if="enableTarget?.editable_period" label="Период, дней">
+          <a-input-number
+            v-model:value="enableForm.period_days"
+            class="!w-full"
+            :min="1"
+            :max="3650"
+            placeholder="Например 21"
+          />
+          <div class="mt-2 flex flex-wrap gap-2">
+            <a-button
+              v-for="days in periodChips"
+              :key="days"
+              size="small"
+              class="lotax-btn-secondary"
+              @click="enableForm.period_days = days"
+            >
+              {{ days }}
+            </a-button>
+          </div>
+        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -584,14 +605,25 @@ onMounted(async () => {
             addon-after="б."
           />
         </a-form-item>
-        <a-form-item v-if="editTplTarget?.editable_period" label="Период">
-          <a-select
+        <a-form-item v-if="editTplTarget?.editable_period" label="Период, дней">
+          <a-input-number
             v-model:value="editTplForm.period_days"
             class="!w-full"
-            :options="periodOptions"
-            allow-clear
-            placeholder="Не менять"
+            :min="1"
+            :max="3650"
+            placeholder="Любое число от 1 до 3650"
           />
+          <div class="mt-2 flex flex-wrap gap-2">
+            <a-button
+              v-for="days in periodChips"
+              :key="days"
+              size="small"
+              class="lotax-btn-secondary"
+              @click="editTplForm.period_days = days"
+            >
+              {{ days }}
+            </a-button>
+          </div>
         </a-form-item>
       </a-form>
     </a-modal>

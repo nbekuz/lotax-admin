@@ -13,6 +13,12 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true, title: 'Вход' },
   },
   {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: () => import('@/views/StaffForgotPasswordView.vue'),
+    meta: { public: true, title: 'Забыли пароль' },
+  },
+  {
     path: '/privacy',
     name: 'privacy',
     component: () => import('@/views/PrivacyView.vue'),
@@ -271,6 +277,24 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'staff-password-reset',
+        name: 'staff-password-reset',
+        component: () => import('@/views/StaffPasswordResetView.vue'),
+        meta: {
+          title: 'Пароли сотрудников',
+          roles: ['super_admin'],
+        },
+      },
+      {
+        path: 'system-raffles',
+        name: 'system-raffles',
+        component: () => import('@/views/SystemRafflesView.vue'),
+        meta: {
+          title: 'Купоны LOTAX',
+          roles: ['director', 'manager'],
+        },
+      },
+      {
         path: 'password-reset',
         name: 'password-reset',
         component: () => import('@/views/PasswordResetView.vue'),
@@ -360,6 +384,7 @@ function homeForRole(auth: ReturnType<typeof useAuthStore>) {
 
 const PUBLIC_PATHS = new Set([
   '/login',
+  '/forgot-password',
   '/privacy',
   '/termofuse',
   '/delete-account',

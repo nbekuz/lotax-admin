@@ -5,6 +5,7 @@ import dayjs, { type Dayjs } from 'dayjs'
 import { DownloadOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { adminRewardIconsApi } from '@/api/adminRewardIcons'
 import { adminRewardsApi } from '@/api/adminRewards'
+import RafflePrizeFields from '@/components/RafflePrizeFields.vue'
 import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -15,6 +16,7 @@ import {
   triggerBlobDownload,
 } from '@/utils/download'
 import { extractErrorMessage, rewardTypeLabel, tierLabel } from '@/utils/labels'
+import { emptyPrizeRows, rafflePrizePayload, type PrizeRow } from '@/utils/rafflePrizes'
 import {
   defaultSpecificScope,
   scopeFromApi,
@@ -52,6 +54,20 @@ const form = reactive({
 
 const scope = ref<ScopeFieldsValue>(defaultSpecificScope())
 const raffleDate = ref<Dayjs | undefined>(undefined)
+const prizeMode = ref<'list' | 'identical'>('list')
+const prizeRows = ref<PrizeRow[]>(emptyPrizeRows())
+const identicalCount = ref<number | undefined>(undefined)
+const identicalPrize = ref('')
+
+function resetPrizes(item?: RewardAdminItem | null) {
+  prizeMode.value = 'list'
+  identicalCount.value = undefined
+  identicalPrize.value = ''
+  const places = item?.prize_places ?? []
+  prizeRows.value = places.length
+    ? places.map((row) => ({ place: row.place, prize: row.prize }))
+    : emptyPrizeRows()
+}
 
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
@@ -143,6 +159,7 @@ function openCreate() {
   form.one_per_driver = false
   form.icon_id = undefined
   raffleDate.value = undefined
+  resetPrizes()
   scope.value = defaultSpecificScope(parkId.value)
   imageFile.value = null
   imagePreview.value = null
@@ -163,6 +180,7 @@ function openEdit(item: RewardAdminItem) {
   form.one_per_driver = Boolean(item.one_per_driver)
   form.icon_id = item.icon_id || item.icon?.id || undefined
   raffleDate.value = item.raffle_date ? dayjs(item.raffle_date) : undefined
+  resetPrizes(item)
   scope.value = scopeFromApi(item.scope, item.park_id)
   imageFile.value = null
   imagePreview.value = item.image_url || null
@@ -199,6 +217,13 @@ async function save() {
     // Raffle: backend forces one_per_driver=false; never send true from UI.
     const one_per_driver =
       form.type === 'raffle_coupon' ? false : form.one_per_driver
+    const prizes = rafflePrizePayload({
+      isRaffle: form.type === 'raffle_coupon',
+      mode: prizeMode.value,
+      rows: prizeRows.value,
+      identicalCount: identicalCount.value,
+      identicalPrize: identicalPrize.value,
+    })
     if (editing.value) {
       const hadIcon = Boolean(editing.value.icon_id || editing.value.icon?.id)
       const clear_icon = hadIcon && !form.icon_id
@@ -210,8 +235,10 @@ async function save() {
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
+        type: form.type,
         one_per_driver,
         raffle_date,
+        ...prizes,
         icon_id: form.icon_id || null,
         clear_icon: clear_icon || undefined,
         scope_type: scope.value.scope_type,
@@ -235,6 +262,7 @@ async function save() {
         is_active: form.is_active,
         one_per_driver,
         raffle_date,
+        ...prizes,
         icon_id: form.icon_id || null,
         scope_type: scope.value.scope_type,
         park_group_id: scope.value.park_group_id,
@@ -491,7 +519,6 @@ onMounted(async () => {
             <a-select
               v-model:value="form.type"
               :options="typeOptions"
-              :disabled="Boolean(editing)"
             />
           </a-form-item>
           <a-form-item :label="isRaffle ? 'Стоимость билета' : 'Стоимость'">
@@ -528,6 +555,14 @@ onMounted(async () => {
           <p class="lotax-caption mt-1">
             Водитель может купить несколько билетов · победитель выбирается вне приложения
           </p>
+        </a-form-item>
+        <a-form-item v-if="isRaffle" label="Места призов">
+          <RafflePrizeFields
+            v-model:mode="prizeMode"
+            v-model:rows="prizeRows"
+            v-model:identical-count="identicalCount"
+            v-model:identical-prize="identicalPrize"
+          />
         </a-form-item>
         <ScopeFields v-model="scope" />
         <a-form-item label="Статус">

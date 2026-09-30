@@ -52,9 +52,11 @@ declare module 'vue' {
     InfoField: typeof import('./components/InfoField.vue')['default']
     KpiCard: typeof import('./components/KpiCard.vue')['default']
     PageHeader: typeof import('./components/PageHeader.vue')['default']
+    RafflePrizeFields: typeof import('./components/RafflePrizeFields.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ScopeFields: typeof import('./components/ScopeFields.vue')['default']
+    SetStaffPasswordModal: typeof import('./components/SetStaffPasswordModal.vue')['default']
     StatusBadge: typeof import('./components/StatusBadge.vue')['default']
     TierBadge: typeof import('./components/TierBadge.vue')['default']
   }

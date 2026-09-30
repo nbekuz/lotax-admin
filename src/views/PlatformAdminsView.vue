@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { KeyOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import SetStaffPasswordModal from '@/components/SetStaffPasswordModal.vue'
+import { useAuthStore } from '@/stores/auth'
 import { superAdminApi } from '@/api/superAdmin'
 import { extractErrorMessage, roleLabel } from '@/utils/labels'
 import type { AdminListItem } from '@/types/api'
 
+const auth = useAuthStore()
 const loading = ref(false)
+const passwordOpen = ref(false)
+const passwordTarget = ref<AdminListItem | null>(null)
 const saving = ref(false)
 const createOpen = ref(false)
 const items = ref<AdminListItem[]>([])
@@ -119,11 +124,21 @@ onMounted(load)
           </p>
           <p class="text-[13px] text-ink-muted">{{ item.email }}</p>
         </div>
-        <span
-          class="inline-flex w-fit items-center rounded-full bg-brand-soft px-2.5 py-1 text-[13px] font-medium text-brand ring-1 ring-inset ring-orange-200"
-        >
-          {{ roleLabel[item.role] ?? item.role }}
-        </span>
+        <div class="flex items-center gap-3">
+          <a-button
+            v-if="item.role !== 'super_admin' && item.id !== auth.admin?.id"
+            class="lotax-btn-secondary"
+            @click="passwordTarget = item; passwordOpen = true"
+          >
+            <template #icon><KeyOutlined /></template>
+            Пароль
+          </a-button>
+          <span
+            class="inline-flex w-fit items-center rounded-full bg-brand-soft px-2.5 py-1 text-[13px] font-medium text-brand ring-1 ring-inset ring-orange-200"
+          >
+            {{ roleLabel[item.role] ?? item.role }}
+          </span>
+        </div>
       </article>
 
       <div v-if="!items.length && !loading" class="lotax-card p-8 text-center lotax-caption">
@@ -166,5 +181,11 @@ onMounted(load)
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <SetStaffPasswordModal
+      v-model:open="passwordOpen"
+      :admin-id="passwordTarget?.id ?? null"
+      :label="passwordTarget ? `${passwordTarget.first_name} ${passwordTarget.last_name} · ${passwordTarget.email}` : ''"
+    />
   </div>
 </template>

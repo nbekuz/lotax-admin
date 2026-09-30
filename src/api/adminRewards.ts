@@ -42,6 +42,9 @@ export const adminRewardsApi = {
         is_active: rest.is_active,
         one_per_driver: rest.one_per_driver,
         raffle_date: rest.raffle_date,
+        prize_places: rest.prize_places,
+        prize_identical_count: rest.prize_identical_count,
+        prize_identical_prize: rest.prize_identical_prize,
         icon_id: rest.icon_id || undefined,
         ...scopeToFormFields({
           scope_type: rest.scope_type,
@@ -65,6 +68,7 @@ export const adminRewardsApi = {
       `/admin/rewards/${rewardId}`,
       toFormData({
         title: rest.title,
+        type: rest.type,
         description: rest.description,
         points_cost: rest.points_cost,
         stock_total: rest.stock_total,
@@ -73,6 +77,9 @@ export const adminRewardsApi = {
         is_active: rest.is_active,
         one_per_driver: rest.one_per_driver,
         raffle_date: rest.raffle_date,
+        prize_places: rest.prize_places,
+        prize_identical_count: rest.prize_identical_count,
+        prize_identical_prize: rest.prize_identical_prize,
         icon_id: rest.clear_icon ? undefined : rest.icon_id || undefined,
         clear_icon: rest.clear_icon || undefined,
         ...scopeToFormFields({

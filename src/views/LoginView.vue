@@ -120,6 +120,12 @@ async function onSubmit() {
           >
             Войти
           </a-button>
+          <router-link
+            to="/forgot-password"
+            class="mt-3 block text-center text-[14px] text-brand"
+          >
+            Забыли пароль?
+          </router-link>
         </a-form>
       </div>
     </div>

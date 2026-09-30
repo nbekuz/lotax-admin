@@ -10,6 +10,9 @@ export type ChatStreamEventType =
   | 'password_reset_opened'
   | 'password_reset_message'
   | 'password_reset_closed'
+  | 'staff_password_reset_opened'
+  | 'staff_password_reset_message'
+  | 'staff_password_reset_closed'
 
 export interface ChatParticipant {
   id: string
@@ -51,7 +54,8 @@ export interface ChatMessagesResponse {
 
 export interface ChatNotificationItem {
   conversation_id: string
-  conversation_type: ChatConversationType
+  conversation_type: ChatConversationType | 'staff_password_reset'
+  type?: string
   unread_count: number
   last_message_preview: string | null
   last_message_at: string | null

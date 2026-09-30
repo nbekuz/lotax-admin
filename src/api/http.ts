@@ -16,6 +16,7 @@ const PUBLIC_API_PATHS = [
 /** SPA routes that must never force a login redirect (legal / auth pages). */
 const PUBLIC_PAGE_PATHS = new Set([
   '/login',
+  '/forgot-password',
   '/privacy',
   '/termofuse',
   '/delete-account',

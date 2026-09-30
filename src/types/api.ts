@@ -753,6 +753,7 @@ export interface RewardAdminItem {
   sort_order: number
   one_per_driver?: boolean
   raffle_date?: string | null
+  prize_places?: { place: number; prize: string }[] | null
   scope_id?: string | null
   scope?: ParkScopeInfo | null
   created_at: string
@@ -779,6 +780,9 @@ export interface RewardAdminCreatePayload {
   is_active?: boolean
   one_per_driver?: boolean
   raffle_date?: string | null
+  prize_places?: string | null
+  prize_identical_count?: number | null
+  prize_identical_prize?: string | null
   icon_id?: string | null
   scope_type?: ScopeType
   park_group_id?: string | null
@@ -788,6 +792,7 @@ export interface RewardAdminCreatePayload {
 export interface RewardAdminUpdatePayload {
   title?: string | null
   description?: string | null
+  type?: string | null
   points_cost?: number | null
   stock_total?: number | null
   min_tier?: DriverTier | null
@@ -795,6 +800,9 @@ export interface RewardAdminUpdatePayload {
   is_active?: boolean | null
   one_per_driver?: boolean | null
   raffle_date?: string | null
+  prize_places?: string | null
+  prize_identical_count?: number | null
+  prize_identical_prize?: string | null
   icon_id?: string | null
   clear_icon?: boolean
   scope_type?: ScopeType | null
@@ -1196,6 +1204,7 @@ export interface TaskTemplateEnablePayload {
   target_value?: number | null
   reward_points?: number | null
   reward_points_type?: PointsType
+  period_days?: number | null
 }
 
 export interface TaskTemplateUpdatePayload {

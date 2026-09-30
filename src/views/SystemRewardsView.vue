@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons-vue'
 import { superAdminApi } from '@/api/superAdmin'
 import PageHeader from '@/components/PageHeader.vue'
+import RafflePrizeFields from '@/components/RafflePrizeFields.vue'
 import TierBadge from '@/components/TierBadge.vue'
 import {
   filenameFromContentDisposition,
@@ -18,6 +19,7 @@ import {
   triggerBlobDownload,
 } from '@/utils/download'
 import { extractErrorMessage, rewardTypeLabel, tierLabel } from '@/utils/labels'
+import { emptyPrizeRows, rafflePrizePayload, type PrizeRow } from '@/utils/rafflePrizes'
 import type { DriverTier, RewardAdminItem, RewardType } from '@/types/api'
 
 const loading = ref(false)
@@ -41,6 +43,20 @@ const form = reactive({
 })
 
 const raffleDate = ref<Dayjs | undefined>(undefined)
+const prizeMode = ref<'list' | 'identical'>('list')
+const prizeRows = ref<PrizeRow[]>(emptyPrizeRows())
+const identicalCount = ref<number | undefined>(undefined)
+const identicalPrize = ref('')
+
+function resetPrizes(item?: RewardAdminItem | null) {
+  prizeMode.value = 'list'
+  identicalCount.value = undefined
+  identicalPrize.value = ''
+  const places = item?.prize_places ?? []
+  prizeRows.value = places.length
+    ? places.map((row) => ({ place: row.place, prize: row.prize }))
+    : emptyPrizeRows()
+}
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
 
@@ -101,6 +117,7 @@ function openCreate() {
   form.is_active = true
   form.one_per_driver = false
   raffleDate.value = undefined
+  resetPrizes()
   imageFile.value = null
   imagePreview.value = null
   modalOpen.value = true
@@ -118,6 +135,7 @@ function openEdit(item: RewardAdminItem) {
   form.is_active = item.is_active
   form.one_per_driver = Boolean(item.one_per_driver)
   raffleDate.value = item.raffle_date ? dayjs(item.raffle_date) : undefined
+  resetPrizes(item)
   imageFile.value = null
   imagePreview.value = item.image_url || null
   modalOpen.value = true
@@ -146,6 +164,13 @@ async function save() {
         : null
     const one_per_driver =
       form.type === 'raffle_coupon' ? false : form.one_per_driver
+    const prizes = rafflePrizePayload({
+      isRaffle: form.type === 'raffle_coupon',
+      mode: prizeMode.value,
+      rows: prizeRows.value,
+      identicalCount: identicalCount.value,
+      identicalPrize: identicalPrize.value,
+    })
     if (editing.value) {
       await superAdminApi.updateReward(editing.value.id, {
         title: form.title.trim(),
@@ -155,8 +180,10 @@ async function save() {
         min_tier: form.min_tier,
         sort_order: form.sort_order,
         is_active: form.is_active,
+        type: form.type,
         one_per_driver,
         raffle_date,
+        ...prizes,
         image: imageFile.value,
       })
       message.success('Обновлено')
@@ -174,6 +201,7 @@ async function save() {
         is_active: form.is_active,
         one_per_driver,
         raffle_date,
+        ...prizes,
         image: imageFile.value,
       })
       message.success('Создано')
@@ -444,7 +472,6 @@ onMounted(load)
             <a-select
               v-model:value="form.type"
               :options="typeOptions"
-              :disabled="Boolean(editing)"
             />
           </a-form-item>
           <a-form-item label="Тип баллов">
@@ -485,8 +512,16 @@ onMounted(load)
             format="DD.MM.YYYY HH:mm"
           />
           <p class="lotax-caption mt-1">
-            Без лимита на водителя · системные баллы · экспорт для рандомайзера
+            Без лимита на водителя · системные баллы · Excel без ФИО и телефона
           </p>
+        </a-form-item>
+        <a-form-item v-if="isRaffle" label="Места призов">
+          <RafflePrizeFields
+            v-model:mode="prizeMode"
+            v-model:rows="prizeRows"
+            v-model:identical-count="identicalCount"
+            v-model:identical-prize="identicalPrize"
+          />
         </a-form-item>
         <a-form-item label="Статус">
           <div class="flex items-center gap-2">

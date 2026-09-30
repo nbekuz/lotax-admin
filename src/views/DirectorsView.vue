@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { ReloadOutlined } from '@ant-design/icons-vue'
+import { KeyOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { superAdminApi } from '@/api/superAdmin'
 import { extractErrorMessage } from '@/utils/labels'
 import type { AdminListItem } from '@/types/api'
 import PageHeader from '@/components/PageHeader.vue'
+import SetStaffPasswordModal from '@/components/SetStaffPasswordModal.vue'
+import { useAuthStore } from '@/stores/auth'
 
+const auth = useAuthStore()
 const loading = ref(false)
+const passwordOpen = ref(false)
+const passwordTarget = ref<AdminListItem | null>(null)
 const items = ref<AdminListItem[]>([])
 const total = ref(0)
 
@@ -71,6 +76,15 @@ onMounted(load)
           </p>
           <p class="text-[13px] text-ink-muted">{{ item.email }}</p>
         </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <a-button
+            v-if="auth.isSuperAdmin"
+            class="lotax-btn-secondary"
+            @click="passwordTarget = item; passwordOpen = true"
+          >
+            <template #icon><KeyOutlined /></template>
+            Пароль
+          </a-button>
         <div class="text-[13px] text-ink-muted">
           Org:
           <span class="font-mono text-ink">
@@ -80,6 +94,7 @@ onMounted(load)
                 .join(', ') || item.organization_id?.slice(0, 8) || '—'
             }}
           </span>
+        </div>
         </div>
       </article>
 
@@ -97,5 +112,11 @@ onMounted(load)
         />
       </div>
     </div>
+
+    <SetStaffPasswordModal
+      v-model:open="passwordOpen"
+      :admin-id="passwordTarget?.id ?? null"
+      :label="passwordTarget ? `${passwordTarget.first_name} ${passwordTarget.last_name} · ${passwordTarget.email}` : ''"
+    />
   </div>
 </template>

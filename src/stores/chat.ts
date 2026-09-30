@@ -248,6 +248,18 @@ export const useChatStore = defineStore('chat', {
       const name = event.type ?? event.event
 
       if (
+        name === 'staff_password_reset_opened' ||
+        name === 'staff_password_reset_message' ||
+        name === 'staff_password_reset_closed'
+      ) {
+        void import('@/stores/staffPasswordReset').then(({ useStaffPasswordResetStore }) => {
+          useStaffPasswordResetStore().handleStreamEvent(event)
+        })
+        void this.fetchNotifications()
+        return
+      }
+
+      if (
         name === 'password_reset_opened' ||
         name === 'password_reset_message' ||
         name === 'password_reset_closed'

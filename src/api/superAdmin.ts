@@ -197,6 +197,9 @@ export const superAdminApi = {
         is_active: rest.is_active,
         one_per_driver: rest.one_per_driver,
         raffle_date: rest.raffle_date,
+        prize_places: rest.prize_places,
+        prize_identical_count: rest.prize_identical_count,
+        prize_identical_prize: rest.prize_identical_prize,
         image: image ?? undefined,
       }),
     )
@@ -214,6 +217,7 @@ export const superAdminApi = {
       `/super-admin/rewards/${rewardId}`,
       toFormData({
         title: rest.title,
+        type: rest.type,
         description: rest.description,
         points_cost: rest.points_cost,
         stock_total: rest.stock_total,
@@ -222,6 +226,9 @@ export const superAdminApi = {
         is_active: rest.is_active,
         one_per_driver: rest.one_per_driver,
         raffle_date: rest.raffle_date,
+        prize_places: rest.prize_places,
+        prize_identical_count: rest.prize_identical_count,
+        prize_identical_prize: rest.prize_identical_prize,
         clear_image,
         image: image ?? undefined,
       }),
@@ -251,6 +258,17 @@ export const superAdminApi = {
       ...payload,
       role: 'admin',
     })
+  },
+
+  setStaffPassword(
+    adminId: string,
+    payload: { password: string; message?: string | null },
+  ) {
+    return http.patch<{
+      message: string
+      admin_id: string
+      room_id: string
+    }>(`/super-admin/admins/${adminId}/password`, payload)
   },
 
   raffleExport(rewardId: string, format: 'csv' | 'xlsx') {
