@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 import {
   DownloadOutlined,
@@ -32,7 +32,7 @@ const exportingId = ref<string | null>(null)
 const form = reactive({
   title: '',
   description: '',
-  type: 'merchandise' as RewardType,
+  type: 'raffle_coupon' as RewardType,
   points_type: 'system' as const,
   points_cost: 500,
   stock_total: undefined as number | undefined,
@@ -61,12 +61,12 @@ const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
 
 const typeOptions = [
+  { value: 'raffle_coupon', label: rewardTypeLabel.raffle_coupon },
   { value: 'free_shift', label: rewardTypeLabel.free_shift },
   { value: 'certificate', label: rewardTypeLabel.certificate },
   { value: 'fuel_card', label: rewardTypeLabel.fuel_card },
   { value: 'car_wash', label: rewardTypeLabel.car_wash },
   { value: 'merchandise', label: rewardTypeLabel.merchandise },
-  { value: 'raffle_coupon', label: rewardTypeLabel.raffle_coupon },
   { value: 'other', label: rewardTypeLabel.other },
 ]
 
@@ -109,7 +109,7 @@ function openCreate() {
   editing.value = null
   form.title = ''
   form.description = ''
-  form.type = 'merchandise'
+  form.type = 'raffle_coupon'
   form.points_cost = 500
   form.stock_total = undefined
   form.min_tier = 'bronze'
@@ -157,6 +157,7 @@ async function save() {
     return
   }
   saving.value = true
+  const created = !editing.value
   try {
     const raffle_date =
       form.type === 'raffle_coupon' && raffleDate.value
@@ -171,43 +172,58 @@ async function save() {
       identicalCount: identicalCount.value,
       identicalPrize: identicalPrize.value,
     })
-    if (editing.value) {
-      await superAdminApi.updateReward(editing.value.id, {
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        points_cost: form.points_cost,
-        stock_total: form.stock_total ?? null,
-        min_tier: form.min_tier,
-        sort_order: form.sort_order,
-        is_active: form.is_active,
-        type: form.type,
-        one_per_driver,
-        raffle_date,
-        ...prizes,
-        image: imageFile.value,
-      })
-      message.success('Обновлено')
-    } else {
-      await superAdminApi.createReward({
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        type: form.type,
-        // Backend forces system for super-admin raffle.
-        points_type: 'system',
-        points_cost: form.points_cost,
-        stock_total: form.stock_total ?? null,
-        min_tier: form.min_tier,
-        sort_order: form.sort_order,
-        is_active: form.is_active,
-        one_per_driver,
-        raffle_date,
-        ...prizes,
-        image: imageFile.value,
-      })
-      message.success('Создано')
-    }
+    const saved = editing.value
+      ? (
+          await superAdminApi.updateReward(editing.value.id, {
+            title: form.title.trim(),
+            description: form.description.trim() || null,
+            points_cost: form.points_cost,
+            stock_total: form.stock_total ?? null,
+            min_tier: form.min_tier,
+            sort_order: form.sort_order,
+            is_active: form.is_active,
+            type: form.type,
+            one_per_driver,
+            raffle_date,
+            ...prizes,
+            image: imageFile.value,
+          })
+        ).data
+      : (
+          await superAdminApi.createReward({
+            title: form.title.trim(),
+            description: form.description.trim() || null,
+            type: form.type,
+            points_type: 'system',
+            points_cost: form.points_cost,
+            stock_total: form.stock_total ?? null,
+            min_tier: form.min_tier,
+            sort_order: form.sort_order,
+            is_active: form.is_active,
+            one_per_driver,
+            raffle_date,
+            ...prizes,
+            image: imageFile.value,
+          })
+        ).data
+    message.success(created ? 'Создано' : 'Обновлено')
     modalOpen.value = false
     await load()
+    if ((saved.type ?? form.type) === 'raffle_coupon') {
+      const pushNote = created
+        ? saved.is_active
+          ? ' Активный купон: пуш водителям уже отправил сервер.'
+          : ' Купон неактивен — пуш не отправлялся.'
+        : ''
+      Modal.confirm({
+        title: 'Скачать для рандомайзера',
+        content: `В файле номер купона, дата, баллы, организация и парк. ФИО и телефона нет.${pushNote}`,
+        okText: 'Скачать для рандомайзера',
+        cancelText: 'Позже',
+        centered: true,
+        onOk: () => downloadRaffle(saved, 'xlsx'),
+      })
+    }
   } catch (e) {
     message.error(extractErrorMessage(e))
   } finally {
@@ -306,7 +322,7 @@ onMounted(load)
         </div>
         <p class="text-[16px] font-semibold text-ink">Каталог пуст</p>
         <p class="lotax-caption mt-1 max-w-sm">
-          Добавьте первую системную награду — мерч, сертификат или розыгрыш.
+          Добавьте купон на розыгрыш — его увидят водители всех парков.
         </p>
         <a-button
           type="primary"
@@ -404,7 +420,7 @@ onMounted(load)
                   :loading="exportingId?.startsWith(item.id)"
                 >
                   <template #icon><DownloadOutlined /></template>
-                  <span class="hidden sm:inline">Скачать</span>
+                  <span>Скачать для рандомайзера</span>
                 </a-button>
                 <template #overlay>
                   <a-menu
@@ -431,7 +447,7 @@ onMounted(load)
 
     <a-modal
       v-model:open="modalOpen"
-      :title="editing ? 'Редактировать' : 'Новая системная награда'"
+      :title="editing ? 'Редактировать' : 'Новый купон LOTAX'"
       ok-text="Сохранить"
       cancel-text="Отмена"
       :confirm-loading="saving"
@@ -442,13 +458,17 @@ onMounted(load)
     >
       <a-form layout="vertical" class="reward-modal-form">
         <a-form-item label="Название" required>
-          <a-input v-model:value="form.title" placeholder="Например: Футболка LOTAX" />
+          <a-input
+            v-model:value="form.title"
+            :placeholder="isRaffle ? 'Скоро розыгрыш 300 000 ₽' : 'Название награды'"
+          />
         </a-form-item>
         <a-form-item label="Описание">
           <a-textarea
             v-model:value="form.description"
             :rows="2"
             :auto-size="{ minRows: 2, maxRows: 4 }"
+            :placeholder="isRaffle ? 'Условия, ссылка Zoom' : ''"
           />
         </a-form-item>
         <a-form-item label="Изображение">
@@ -504,7 +524,7 @@ onMounted(load)
             <a-input-number v-model:value="form.sort_order" class="!w-full" :min="0" />
           </a-form-item>
         </div>
-        <a-form-item v-if="isRaffle" label="Дата розыгрыша">
+        <a-form-item v-if="isRaffle" label="Дата розыгрыша" required>
           <a-date-picker
             v-model:value="raffleDate"
             class="!w-full"
@@ -527,7 +547,11 @@ onMounted(load)
           <div class="flex items-center gap-2">
             <a-switch v-model:checked="form.is_active" />
             <span class="text-[13px] text-ink-muted">
-              {{ form.is_active ? 'Активна' : 'Неактивна' }}
+              {{
+                form.is_active
+                  ? 'Активна · видна водителям, пуш отправит сервер'
+                  : 'Неактивна · пуш не уйдёт'
+              }}
             </span>
           </div>
         </a-form-item>

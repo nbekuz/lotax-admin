@@ -47,9 +47,12 @@ function connectWs() {
         type?: string
         event?: string
         room_id?: string
+        conversation_id?: string
       }
       const name = payload.type ?? payload.event
-      if (name === 'staff_password_reset_message' && payload.room_id === roomId.value) {
+      const room = payload.room_id || payload.conversation_id
+      if (!room || room !== roomId.value) return
+      if (name === 'staff_password_reset_message' || name === 'staff_password_reset_closed') {
         void loadMessages()
       }
     } catch {

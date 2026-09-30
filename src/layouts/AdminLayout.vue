@@ -31,6 +31,7 @@ import { usePasswordResetStore } from '@/stores/passwordReset'
 import { useStaffPasswordResetStore } from '@/stores/staffPasswordReset'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { extractErrorMessage, roleLabel } from '@/utils/labels'
+import type { ChatNotificationItem } from '@/types/chat'
 import BrandMark from '@/components/BrandMark.vue'
 import ThemeMenuButton from '@/components/ThemeMenuButton.vue'
 import { useThemeStore } from '@/stores/theme'
@@ -414,6 +415,24 @@ function onMenuClick(info: { key: string | number }) {
   }
 }
 
+function isStaffPasswordNotice(item: ChatNotificationItem) {
+  return item.conversation_type === 'staff_password_reset' || item.type === 'staff_password_reset'
+}
+
+function openNotification(item: ChatNotificationItem) {
+  if (isStaffPasswordNotice(item)) {
+    router.push({
+      name: 'staff-password-reset',
+      query: { room: item.conversation_id },
+    })
+    return
+  }
+  router.push({
+    name: 'chat-conversation',
+    params: { id: item.conversation_id },
+  })
+}
+
 function onParkChange(id: string) {
   org.selectPark(id)
 }
@@ -609,19 +628,53 @@ function toggleNav() {
             {{ roleText }}
           </span>
 
-          <button
+          <a-popover
             v-if="auth.canViewChat"
-            type="button"
-            class="lotax-icon-btn relative"
-            aria-label="Уведомления"
-            title="Уведомления"
-            @click="router.push({ name: 'chat' })"
+            trigger="click"
+            placement="bottomRight"
+            overlay-class-name="lotax-notify-pop"
           >
-            <BellOutlined />
-            <span v-if="chat.totalUnread" class="lotax-notify-count">
-              {{ chat.totalUnread > 99 ? '99+' : chat.totalUnread }}
-            </span>
-          </button>
+            <button
+              type="button"
+              class="lotax-icon-btn relative"
+              aria-label="Уведомления"
+              title="Уведомления"
+            >
+              <BellOutlined />
+              <span v-if="chat.totalUnread" class="lotax-notify-count">
+                {{ chat.totalUnread > 99 ? '99+' : chat.totalUnread }}
+              </span>
+            </button>
+            <template #content>
+              <div class="w-[min(100vw-32px,280px)]">
+                <p class="mb-2 text-[13px] font-semibold text-ink">Уведомления</p>
+                <p v-if="!chat.notifications.length" class="py-2 text-[13px] text-ink-muted">
+                  Нет новых
+                </p>
+                <button
+                  v-for="item in chat.notifications"
+                  :key="`${item.conversation_type}-${item.conversation_id}`"
+                  type="button"
+                  class="lotax-notify-item"
+                  @click="openNotification(item)"
+                >
+                  <span class="block truncate text-[13px] font-semibold text-ink">
+                    {{ item.peer_name || 'Сообщение' }}
+                  </span>
+                  <span class="mt-0.5 block truncate text-[12px] text-ink-muted">
+                    {{
+                      isStaffPasswordNotice(item)
+                        ? 'Восстановление пароля'
+                        : 'Чат'
+                    }}
+                    <template v-if="item.last_message_preview">
+                      · {{ item.last_message_preview }}
+                    </template>
+                  </span>
+                </button>
+              </div>
+            </template>
+          </a-popover>
 
           <ThemeMenuButton />
 
@@ -711,6 +764,25 @@ function toggleNav() {
   font-size: 10px;
   font-weight: 700;
   line-height: 16px;
+}
+
+.lotax-notify-item {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  padding: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lotax-notify-item + .lotax-notify-item {
+  margin-top: 4px;
+}
+
+.lotax-notify-item:hover {
+  background: var(--lotax-hover);
 }
 
 .lotax-sider__menu {

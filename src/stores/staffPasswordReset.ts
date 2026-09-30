@@ -68,12 +68,18 @@ export const useStaffPasswordResetStore = defineStore('staffPasswordReset', {
       await this.fetchRooms()
     },
 
-    handleStreamEvent(event: { room_id?: string; event?: string; type?: string }) {
+    handleStreamEvent(event: {
+      room_id?: string
+      conversation_id?: string
+      event?: string
+      type?: string
+    }) {
       const name = event.type ?? event.event
       if (!name?.startsWith('staff_password_reset')) return
+      const roomId = event.room_id || event.conversation_id
       void this.fetchRooms()
-      if (event.room_id && event.room_id === this.activeRoomId) {
-        void this.loadMessages(event.room_id)
+      if (roomId && roomId === this.activeRoomId) {
+        void this.loadMessages(roomId)
       }
     },
 

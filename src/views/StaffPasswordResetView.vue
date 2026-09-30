@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { KeyOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
@@ -16,6 +17,7 @@ import type { AdminRole } from '@/types/api'
 import type { StaffPasswordResetMessage, StaffPasswordResetRoom } from '@/types/staffPasswordReset'
 
 const auth = useAuthStore()
+const route = useRoute()
 const { isMobile } = useBreakpoint()
 const store = useStaffPasswordResetStore()
 const sending = ref(false)
@@ -74,7 +76,12 @@ function connectWs() {
   socket = new WebSocket(url)
   socket.onmessage = (event) => {
     try {
-      const payload = JSON.parse(String(event.data)) as { type?: string; event?: string; room_id?: string }
+      const payload = JSON.parse(String(event.data)) as {
+        type?: string
+        event?: string
+        room_id?: string
+        conversation_id?: string
+      }
       store.handleStreamEvent(payload)
     } catch {
       /* ignore */
@@ -85,13 +92,21 @@ function connectWs() {
 async function bootstrap() {
   try {
     await store.fetchRooms()
-    if (!isMobile.value && store.rooms[0] && !store.activeRoomId) {
+    const requested = route.query.room
+    if (typeof requested === 'string' && requested) {
+      await store.selectRoom(requested)
+    } else if (!isMobile.value && store.rooms[0] && !store.activeRoomId) {
       await store.selectRoom(store.rooms[0].id)
     }
     connectWs()
   } catch (e) {
     message.error(extractErrorMessage(e))
   }
+}
+
+async function onPasswordSaved(roomId: string) {
+  await store.fetchRooms()
+  if (roomId) await store.selectRoom(roomId)
 }
 
 async function send(body: string) {
@@ -113,6 +128,15 @@ async function closeRoom() {
     message.error(extractErrorMessage(e))
   }
 }
+
+watch(
+  () => route.query.room,
+  (room) => {
+    if (typeof room === 'string' && room && room !== store.activeRoomId) {
+      void store.selectRoom(room)
+    }
+  },
+)
 
 onMounted(bootstrap)
 onUnmounted(() => socket?.close())
@@ -213,7 +237,7 @@ onUnmounted(() => socket?.close())
       v-model:open="passwordOpen"
       :admin-id="store.activeRoom?.target_admin_id ?? null"
       :label="roomTitle"
-      @saved="store.fetchRooms()"
+      @saved="onPasswordSaved"
     />
   </div>
 </template>
