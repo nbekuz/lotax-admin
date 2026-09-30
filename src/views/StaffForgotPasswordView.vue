@@ -22,6 +22,23 @@ const roomId = ref<string | null>(sessionStorage.getItem('lotax_staff_ghost_room
 const adminId = ref<string | null>(sessionStorage.getItem('lotax_staff_ghost_admin'))
 const messages = ref<StaffPasswordResetMessage[]>([])
 let socket: WebSocket | null = null
+let pollTimer: ReturnType<typeof setInterval> | null = null
+let disposed = false
+
+function stopPolling() {
+  if (pollTimer != null) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+function startPolling() {
+  if (disposed || pollTimer != null || !roomId.value) return
+  void loadMessages()
+  pollTimer = setInterval(() => {
+    void loadMessages()
+  }, 2000)
+}
 
 function senderLabel(item: StaffPasswordResetMessage) {
   const name = item.sender_name?.trim() || 'Сотрудник'
@@ -31,17 +48,29 @@ function senderLabel(item: StaffPasswordResetMessage) {
 
 async function loadMessages() {
   if (!roomId.value || !staffGhostToken.get()) return
-  const { data } = await staffPasswordResetApi.ghostMessages(roomId.value)
-  messages.value = data.items ?? []
+  try {
+    const { data } = await staffPasswordResetApi.ghostMessages(roomId.value)
+    const incoming = data.items ?? []
+    const known = new Set(incoming.map((item) => item.id))
+    const pending = messages.value.filter((item) => !known.has(item.id))
+    messages.value = pending.length ? [...incoming, ...pending] : incoming
+  } catch {
+    /* next poll retries; a failed GET must not clear the tape */
+  }
 }
 
 function connectWs() {
   const token = staffGhostToken.get()
+  startPolling()
   if (!token) return
   const url = `${API_BASE_URL.replace(/^http/, 'ws')}/chat/ws?token=${encodeURIComponent(token)}`
-  socket?.close()
-  socket = new WebSocket(url)
-  socket.onmessage = (event) => {
+  const previous = socket
+  socket = null
+  previous?.close()
+  const next = new WebSocket(url)
+  socket = next
+  next.onmessage = (event) => {
+    if (socket !== next) return
     try {
       const payload = JSON.parse(String(event.data)) as {
         type?: string
@@ -50,6 +79,12 @@ function connectWs() {
         conversation_id?: string
       }
       const name = payload.type ?? payload.event
+      if (name === 'ping') return
+      if (name === 'connected') {
+        stopPolling()
+        void loadMessages()
+        return
+      }
       const room = payload.room_id || payload.conversation_id
       if (!room || room !== roomId.value) return
       if (name === 'staff_password_reset_message' || name === 'staff_password_reset_closed') {
@@ -58,6 +93,14 @@ function connectWs() {
     } catch {
       /* ignore */
     }
+  }
+  next.onerror = () => {
+    if (socket !== next) return
+    startPolling()
+  }
+  next.onclose = () => {
+    if (disposed || socket !== next) return
+    startPolling()
   }
 }
 
@@ -100,15 +143,24 @@ async function send(body: string) {
 }
 
 onMounted(() => {
-  if (roomId.value && staffGhostToken.get()) {
-    void loadMessages().then(connectWs).catch(() => {
+  if (!roomId.value || !staffGhostToken.get()) return
+  void staffPasswordResetApi
+    .ghostMessages(roomId.value)
+    .then(({ data }) => {
+      messages.value = data.items ?? []
+      connectWs()
+    })
+    .catch(() => {
       roomId.value = null
     })
-  }
 })
 
 onUnmounted(() => {
-  socket?.close()
+  disposed = true
+  stopPolling()
+  const current = socket
+  socket = null
+  current?.close()
 })
 </script>
 

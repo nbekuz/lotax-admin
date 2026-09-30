@@ -43,7 +43,7 @@ export const staffPasswordResetApi = {
   ghostMessages(roomId: string) {
     return ghostHttp().get<StaffPasswordResetMessageListResponse>(
       `/password-reset/staff/rooms/${roomId}/messages`,
-      { params: { page: 1, page_size: 100 } },
+      { params: { page: 1, page_size: 50 } },
     )
   },
 
@@ -63,7 +63,7 @@ export const staffPasswordResetApi = {
   adminMessages(roomId: string) {
     return http.get<StaffPasswordResetMessageListResponse>(
       `/password-reset/staff/admin/rooms/${roomId}/messages`,
-      { params: { page: 1, page_size: 100 } },
+      { params: { page: 1, page_size: 50 } },
     )
   },
 

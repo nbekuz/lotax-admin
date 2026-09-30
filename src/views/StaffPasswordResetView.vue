@@ -23,6 +23,23 @@ const store = useStaffPasswordResetStore()
 const sending = ref(false)
 const passwordOpen = ref(false)
 let socket: WebSocket | null = null
+let pollTimer: ReturnType<typeof setInterval> | null = null
+let disposed = false
+
+function stopPolling() {
+  if (pollTimer != null) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+function startPolling() {
+  if (disposed || pollTimer != null) return
+  void store.pollSnapshot()
+  pollTimer = setInterval(() => {
+    void store.pollSnapshot()
+  }, 2000)
+}
 
 const roomTitle = computed(() => {
   const room = store.activeRoom
@@ -70,11 +87,16 @@ function backToList() {
 
 function connectWs() {
   const token = tokenStorage.getAccess()
+  startPolling()
   if (!token) return
   const url = `${API_BASE_URL.replace(/^http/, 'ws')}/chat/ws?token=${encodeURIComponent(token)}`
-  socket?.close()
-  socket = new WebSocket(url)
-  socket.onmessage = (event) => {
+  const previous = socket
+  socket = null
+  previous?.close()
+  const next = new WebSocket(url)
+  socket = next
+  next.onmessage = (event) => {
+    if (socket !== next) return
     try {
       const payload = JSON.parse(String(event.data)) as {
         type?: string
@@ -82,10 +104,25 @@ function connectWs() {
         room_id?: string
         conversation_id?: string
       }
+      const name = payload.type ?? payload.event
+      if (name === 'ping') return
+      if (name === 'connected') {
+        stopPolling()
+        void store.pollSnapshot()
+        return
+      }
       store.handleStreamEvent(payload)
     } catch {
       /* ignore */
     }
+  }
+  next.onerror = () => {
+    if (socket !== next) return
+    startPolling()
+  }
+  next.onclose = () => {
+    if (disposed || socket !== next) return
+    startPolling()
   }
 }
 
@@ -98,9 +135,10 @@ async function bootstrap() {
     } else if (!isMobile.value && store.rooms[0] && !store.activeRoomId) {
       await store.selectRoom(store.rooms[0].id)
     }
-    connectWs()
   } catch (e) {
     message.error(extractErrorMessage(e))
+  } finally {
+    connectWs()
   }
 }
 
@@ -139,7 +177,13 @@ watch(
 )
 
 onMounted(bootstrap)
-onUnmounted(() => socket?.close())
+onUnmounted(() => {
+  disposed = true
+  stopPolling()
+  const current = socket
+  socket = null
+  current?.close()
+})
 </script>
 
 <template>

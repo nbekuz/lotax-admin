@@ -27,15 +27,15 @@ export const useStaffPasswordResetStore = defineStore('staffPasswordReset', {
       this.openCount = data.total ?? 0
     },
 
-    async fetchRooms() {
-      this.loadingRooms = true
+    async fetchRooms(options?: { silent?: boolean }) {
+      if (!options?.silent) this.loadingRooms = true
       try {
         const { data } = await staffPasswordResetApi.listRooms(this.statusFilter)
         this.rooms = data.items ?? []
         this.roomsTotal = data.total ?? this.rooms.length
         if (this.statusFilter === 'open') this.openCount = this.roomsTotal
       } finally {
-        this.loadingRooms = false
+        if (!options?.silent) this.loadingRooms = false
       }
     },
 
@@ -44,14 +44,29 @@ export const useStaffPasswordResetStore = defineStore('staffPasswordReset', {
       await this.loadMessages(roomId)
     },
 
-    async loadMessages(roomId: string) {
-      this.loadingMessages = true
+    async loadMessages(roomId: string, options?: { silent?: boolean }) {
+      if (!options?.silent) this.loadingMessages = true
       try {
         const { data } = await staffPasswordResetApi.adminMessages(roomId)
-        this.messages = data.items ?? []
+        if (this.activeRoomId !== roomId) return
+        const incoming = data.items ?? []
+        const known = new Set(incoming.map((item) => item.id))
+        const pending = this.messages.filter((item) => !known.has(item.id))
+        this.messages = pending.length ? [...incoming, ...pending] : incoming
       } finally {
-        this.loadingMessages = false
+        if (!options?.silent) this.loadingMessages = false
       }
+    },
+
+    async pollSnapshot() {
+      const roomId = this.activeRoomId
+      const tasks: Promise<unknown>[] = [
+        this.fetchRooms({ silent: true }).catch(() => undefined),
+      ]
+      if (roomId) {
+        tasks.push(this.loadMessages(roomId, { silent: true }).catch(() => undefined))
+      }
+      await Promise.all(tasks)
     },
 
     async sendMessage(body: string) {
