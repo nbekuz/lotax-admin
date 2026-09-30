@@ -4,6 +4,7 @@ import { message, Modal } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 import {
   DeleteOutlined,
+  EditOutlined,
   EyeOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -29,6 +30,7 @@ const loading = ref(false)
 const saving = ref(false)
 const items = ref<BannerItem[]>([])
 const activeFilter = ref<'all' | 'active' | 'off'>('all')
+const query = ref('')
 const modalOpen = ref(false)
 const previewOpen = ref(false)
 const preview = ref<BannerItem | null>(null)
@@ -80,6 +82,23 @@ const parkOptions = computed(() => {
   }
   return options
 })
+
+const visibleItems = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  if (!q) return items.value
+  return items.value.filter((item) =>
+    [item.title, audienceLabel(item.target_audience)]
+      .join(' ')
+      .toLowerCase()
+      .includes(q),
+  )
+})
+
+function bannerStatus(item: BannerItem) {
+  if (!item.is_active) return 'inactive' as const
+  if (dayjs(item.ends_at).isBefore(dayjs())) return 'ended' as const
+  return 'active' as const
+}
 
 function audienceLabel(value: string) {
   return bannerAudienceLabel[value as BannerTargetAudience] ?? value
@@ -323,26 +342,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 md:gap-6">
+  <div class="flex flex-col gap-3">
     <PageHeader
       title="Баннеры"
       subtitle="Реклама в приложении водителя. Меньший порядок — выше в карусели"
     >
       <template #actions>
-        <a-select
-          v-model:value="activeFilter"
-          class="!w-44"
-          size="large"
-          :options="[
-            { value: 'all', label: 'Все' },
-            { value: 'active', label: 'Активные' },
-            { value: 'off', label: 'Неактивные' },
-          ]"
-        />
-        <a-button class="lotax-btn-secondary" @click="load">
-          <template #icon><ReloadOutlined /></template>
-          Обновить
-        </a-button>
         <a-button type="primary" class="lotax-btn-primary" @click="openCreate">
           <template #icon><PlusOutlined /></template>
           Добавить
@@ -350,66 +355,108 @@ onMounted(async () => {
       </template>
     </PageHeader>
 
-    <section class="lotax-card overflow-hidden">
+    <section class="lotax-card overflow-hidden !p-0">
+      <div class="flex flex-col gap-2 border-b border-line px-3 py-2.5 lg:flex-row lg:items-center lg:justify-between">
+        <a-input
+          v-model:value="query"
+          allow-clear
+          placeholder="Название или аудитория"
+          class="!w-full lg:!max-w-xs"
+        />
+        <div class="flex flex-wrap items-center gap-2">
+          <a-select
+            v-model:value="activeFilter"
+            class="!w-40"
+            :options="[
+              { value: 'all', label: 'Все' },
+              { value: 'active', label: 'Активные' },
+              { value: 'off', label: 'Неактивные' },
+            ]"
+          />
+          <a-button class="lotax-btn-secondary" @click="load">
+            <template #icon><ReloadOutlined /></template>
+            Обновить
+          </a-button>
+        </div>
+      </div>
       <a-table
         row-key="id"
-        :data-source="items"
+        size="small"
+        :data-source="visibleItems"
         :loading="loading"
-        :pagination="pagination"
-        :scroll="{ x: 920 }"
+        :pagination="query.trim() ? false : pagination"
+        :scroll="{ x: 860 }"
+        :locale="{ emptyText: query.trim() ? 'Ничего не найдено' : 'Баннеров нет' }"
         @change="onTableChange"
       >
-        <a-table-column key="preview" title="" :width="72">
+        <a-table-column key="preview" title="" :width="108">
           <template #default="{ record }: { record: BannerItem }">
             <img
               v-if="record.image_url"
               :src="record.image_url"
               alt=""
-              class="h-10 w-14 rounded-lg object-cover ring-1 ring-line"
+              class="h-[54px] w-24 rounded-[10px] object-cover ring-1 ring-line"
             />
           </template>
         </a-table-column>
         <a-table-column key="title" title="Название" data-index="title" ellipsis />
-        <a-table-column key="audience" title="Аудитория" :width="140">
+        <a-table-column key="audience" title="Аудитория" :width="130">
           <template #default="{ record }: { record: BannerItem }">
             {{ audienceLabel(record.target_audience) }}
           </template>
         </a-table-column>
-        <a-table-column key="period" title="Период" :width="220">
+        <a-table-column key="period" title="Период" :width="210">
           <template #default="{ record }: { record: BannerItem }">
-            {{ dayjs(record.starts_at).format('DD.MM.YYYY HH:mm') }}
-            —
-            {{ dayjs(record.ends_at).format('DD.MM.YYYY HH:mm') }}
-          </template>
-        </a-table-column>
-        <a-table-column key="order" title="Порядок" data-index="display_order" :width="100" />
-        <a-table-column key="status" title="Статус" :width="120">
-          <template #default="{ record }: { record: BannerItem }">
-            <span
-              class="rounded-full px-2.5 py-1 text-[13px] font-medium ring-1 ring-inset"
-              :class="
-                record.is_active
-                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                  : 'bg-slate-100 text-slate-600 ring-slate-300'
-              "
-            >
-              {{ record.is_active ? 'Активен' : 'Выключен' }}
+            <span class="tabular-nums text-[12px] text-ink">
+              {{ dayjs(record.starts_at).format('DD.MM.YYYY HH:mm') }}
+              <span class="text-ink-muted"> — </span>
+              {{ dayjs(record.ends_at).format('DD.MM.YYYY HH:mm') }}
             </span>
           </template>
         </a-table-column>
-        <a-table-column key="actions" title="" :width="200" align="right">
+        <a-table-column key="order" title="Порядок" :width="88">
           <template #default="{ record }: { record: BannerItem }">
-            <div class="flex justify-end gap-2">
-              <a-button size="small" class="lotax-btn-secondary" @click="openPreview(record)">
-                <template #icon><EyeOutlined /></template>
-                Просмотр
-              </a-button>
-              <a-button size="small" class="lotax-btn-secondary" @click="openEdit(record)">
-                Изменить
-              </a-button>
-              <a-button size="small" danger @click="confirmDelete(record)">
-                <template #icon><DeleteOutlined /></template>
-              </a-button>
+            <span class="lotax-badge lotax-badge--info tabular-nums">#{{ record.display_order }}</span>
+          </template>
+        </a-table-column>
+        <a-table-column key="status" title="Статус" :width="120">
+          <template #default="{ record }: { record: BannerItem }">
+            <span
+              class="lotax-badge"
+              :class="{
+                'lotax-badge--success': bannerStatus(record) === 'active',
+                'lotax-badge--muted': bannerStatus(record) === 'inactive',
+                'lotax-badge--warning': bannerStatus(record) === 'ended',
+              }"
+            >
+              {{
+                bannerStatus(record) === 'active'
+                  ? 'Активен'
+                  : bannerStatus(record) === 'ended'
+                    ? 'Завершён'
+                    : 'Неактивен'
+              }}
+            </span>
+          </template>
+        </a-table-column>
+        <a-table-column key="actions" title="" :width="132" align="right">
+          <template #default="{ record }: { record: BannerItem }">
+            <div class="flex justify-end gap-1">
+              <a-tooltip title="Просмотр">
+                <a-button size="small" class="lotax-btn-secondary" @click="openPreview(record)">
+                  <template #icon><EyeOutlined /></template>
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="Изменить">
+                <a-button size="small" class="lotax-btn-secondary" @click="openEdit(record)">
+                  <template #icon><EditOutlined /></template>
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="Удалить">
+                <a-button size="small" danger @click="confirmDelete(record)">
+                  <template #icon><DeleteOutlined /></template>
+                </a-button>
+              </a-tooltip>
             </div>
           </template>
         </a-table-column>

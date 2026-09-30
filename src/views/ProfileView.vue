@@ -22,8 +22,11 @@ import {
 } from '@/utils/labels'
 import InfoField from '@/components/InfoField.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import ThemeModePicker from '@/components/ThemeModePicker.vue'
+import { useThemeStore } from '@/stores/theme'
 
 const auth = useAuthStore()
+const themeStore = useThemeStore()
 
 const passwordForm = reactive({
   current_password: '',
@@ -168,6 +171,12 @@ async function changePassword() {
       subtitle="Данные администратора и права роли"
     />
 
+    <section class="lotax-card p-4 md:p-6">
+      <h2 class="text-[16px] font-semibold text-ink">Тема</h2>
+      <p class="mt-1 mb-4 text-[13px] text-ink-muted">{{ themeStore.hint }}</p>
+      <ThemeModePicker />
+    </section>
+
     <section class="lotax-card p-4 md:p-6 xl:p-7">
       <div class="mb-5 flex flex-col items-center gap-3 text-center md:mb-6 md:flex-row md:items-center md:gap-4 md:text-left">
         <div
@@ -285,7 +294,7 @@ async function changePassword() {
           class="group flex items-start gap-3 rounded-2xl border border-line bg-surface/70 px-3.5 py-3 transition-colors duration-fast md:hover:border-orange-200 md:hover:bg-brand-soft/40"
         >
           <span
-            class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-brand ring-1 ring-inset ring-orange-100"
+            class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-surface-card text-brand ring-1 ring-inset ring-orange-200/60"
           >
             <component :is="item.icon" />
           </span>

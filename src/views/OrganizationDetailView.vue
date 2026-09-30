@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
+  BankOutlined,
   CarOutlined,
   DeleteOutlined,
   LeftOutlined,
@@ -269,26 +270,25 @@ onMounted(load)
 </script>
 
 <template>
-  <div v-if="orgs.current" class="flex flex-col gap-6 md:gap-8">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div>
+  <div v-if="orgs.current" class="flex flex-col gap-3">
+    <div class="lotax-card flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="min-w-0">
         <button
           type="button"
-          class="driver-back mb-4"
+          class="driver-back mb-2"
           @click="router.push('/organizations')"
         >
           <LeftOutlined />
           К списку организаций
         </button>
-        <p class="lotax-caption mb-1">Организация</p>
         <h1 class="lotax-page-title">{{ orgs.current.name }}</h1>
-        <div class="mt-3 flex flex-wrap gap-2">
+        <div class="mt-2 flex flex-wrap gap-2">
           <span
-            class="rounded-full px-2.5 py-1 text-[13px] font-medium ring-1 ring-inset"
+            class="lotax-badge"
             :class="
               orgs.current.subscription_active
-                ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                : 'bg-red-50 text-red-700 ring-red-200'
+                ? 'lotax-badge--success'
+                : 'lotax-badge--danger'
             "
           >
             {{
@@ -298,7 +298,8 @@ onMounted(load)
             }}
           </span>
           <span
-            class="rounded-full bg-slate-100 px-2.5 py-1 text-[13px] font-medium text-slate-700 ring-1 ring-inset ring-slate-300"
+            class="lotax-badge"
+            :class="orgs.current.is_active ? 'lotax-badge--info' : 'lotax-badge--muted'"
           >
             {{ orgs.current.is_active ? 'Активна' : 'Неактивна' }}
           </span>
@@ -336,14 +337,14 @@ onMounted(load)
       </div>
     </div>
 
-    <section class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <section class="grid grid-cols-1 gap-3 md:grid-cols-3">
       <KpiCard
         title="Парки"
         :value="orgs.current.parks_count ?? orgs.parksTotal ?? 0"
         hint="В организации"
         tone="orange"
       >
-        <template #icon><CarOutlined /></template>
+        <template #icon><BankOutlined /></template>
       </KpiCard>
       <KpiCard
         title="Водители"
@@ -363,9 +364,9 @@ onMounted(load)
       </KpiCard>
     </section>
 
-    <section class="lotax-card p-5 md:p-7">
-      <h2 class="lotax-section-title mb-5">Данные организации</h2>
-      <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+    <section class="lotax-card p-4 md:p-5">
+      <h2 class="lotax-section-title mb-4">Данные организации</h2>
+      <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <InfoField
           label="Создана"
           :value="dayjs(orgs.current.created_at).format('DD.MM.YYYY HH:mm')"
@@ -425,8 +426,8 @@ onMounted(load)
       </a-form>
     </section>
 
-    <section class="lotax-card p-5 md:p-7">
-      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <section class="lotax-card p-4 md:p-5">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 class="lotax-section-title">Парки организации</h2>
         <a-button class="lotax-btn-primary" type="primary" @click="openCreatePark">
           <template #icon><PlusOutlined /></template>
@@ -440,7 +441,7 @@ onMounted(load)
         <div
           v-for="park in orgs.parks"
           :key="park.id"
-          class="flex flex-col gap-2 rounded-xl border border-line bg-surface px-4 py-3 md:flex-row md:items-center md:justify-between"
+          class="flex flex-col gap-2 rounded-[12px] border border-line bg-surface px-3 py-2.5 md:flex-row md:items-center md:justify-between"
         >
           <button
             type="button"
@@ -607,9 +608,9 @@ onMounted(load)
   height: 40px;
   padding: 0 14px;
   border-radius: 12px;
-  border: 1px solid #ececec;
-  background: #fff;
-  color: #6b7280;
+  border: 1px solid var(--lotax-border);
+  background: var(--lotax-card);
+  color: var(--lotax-text-secondary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;

@@ -1296,19 +1296,19 @@ watch(driverId, () => { load() })
 
           <!-- Summary cards (if API returns summary) -->
           <div v-if="rhSummary" class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div v-if="rhSummary.total_rides != null" class="rounded-xl bg-gray-50 px-4 py-3">
+            <div v-if="rhSummary.total_rides != null" class="rounded-xl bg-chip px-4 py-3">
               <p class="text-[12px] text-ink-muted">Поездок</p>
               <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_rides }}</p>
             </div>
-            <div v-if="rhSummary.total_fare != null" class="rounded-xl bg-gray-50 px-4 py-3">
+            <div v-if="rhSummary.total_fare != null" class="rounded-xl bg-chip px-4 py-3">
               <p class="text-[12px] text-ink-muted">Выручка</p>
               <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_fare }}</p>
             </div>
-            <div v-if="rhSummary.total_system_points != null" class="rounded-xl bg-gray-50 px-4 py-3">
+            <div v-if="rhSummary.total_system_points != null" class="rounded-xl bg-chip px-4 py-3">
               <p class="text-[12px] text-ink-muted">Сист. баллы</p>
               <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_system_points }}</p>
             </div>
-            <div v-if="rhSummary.total_park_points != null" class="rounded-xl bg-gray-50 px-4 py-3">
+            <div v-if="rhSummary.total_park_points != null" class="rounded-xl bg-chip px-4 py-3">
               <p class="text-[12px] text-ink-muted">Парк. баллы</p>
               <p class="text-[20px] font-bold tabular-nums text-ink">{{ rhSummary.total_park_points }}</p>
             </div>
@@ -2331,7 +2331,7 @@ watch(driverId, () => { load() })
 
 @media (hover: hover) and (pointer: fine) {
   .driver-back:hover {
-    background: #f3f4f6;
+    background: var(--lotax-chip);
     color: var(--lotax-text);
     border-color: var(--lotax-border-strong);
   }
@@ -2483,7 +2483,7 @@ watch(driverId, () => { load() })
 }
 
 .summary-meta__icon--calendar {
-  background: #f3f4f6;
+  background: var(--lotax-chip);
   color: var(--lotax-text-secondary);
 }
 

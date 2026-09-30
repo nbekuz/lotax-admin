@@ -588,7 +588,7 @@ onMounted(async () => {
   justify-content: center;
   overflow: hidden;
   border-radius: 12px;
-  background: #fff;
+  background: var(--lotax-media-well);
   box-shadow: inset 0 0 0 1px var(--lotax-border);
 }
 

@@ -142,7 +142,7 @@ onUnmounted(() => socket?.close())
             v-for="item in store.messages"
             :key="item.id"
             class="max-w-[80%] rounded-2xl px-3 py-2"
-            :class="isMine(item) ? 'ml-auto bg-brand-soft' : 'bg-slate-100'"
+            :class="isMine(item) ? 'ml-auto bg-brand-soft' : 'bg-chip'"
           >
             <p class="text-[12px] font-semibold text-ink-muted">{{ senderLabel(item) }}</p>
             <p class="whitespace-pre-wrap text-[14px] text-ink">{{ item.body }}</p>

@@ -5,6 +5,7 @@ import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
 import BrandMark from '@/components/BrandMark.vue'
+import ThemeMenuButton from '@/components/ThemeMenuButton.vue'
 import { API_BASE_URL } from '@/config'
 import {
   staffGhostToken,
@@ -110,9 +111,12 @@ onUnmounted(() => {
 
 <template>
   <div class="mx-auto flex min-h-full w-full max-w-lg flex-col gap-4 p-4 md:py-10">
+    <div class="flex items-center justify-between">
     <button type="button" class="w-fit text-[14px] text-brand" @click="router.push('/login')">
       ← Ко входу
     </button>
+      <ThemeMenuButton />
+    </div>
     <BrandMark :size="56" layout="stack">
       <p class="mt-2 text-[14px] text-ink-muted">Восстановление пароля</p>
     </BrandMark>
@@ -145,7 +149,7 @@ onUnmounted(() => {
           v-for="item in messages"
           :key="item.id"
           class="max-w-[85%] rounded-2xl px-3 py-2"
-          :class="item.sender_admin_id === adminId ? 'ml-auto bg-brand-soft' : 'bg-slate-100'"
+          :class="item.sender_admin_id === adminId ? 'ml-auto bg-brand-soft' : 'bg-chip'"
         >
           <p class="text-[12px] font-semibold text-ink-muted">{{ senderLabel(item) }}</p>
           <p class="whitespace-pre-wrap text-[14px] text-ink">{{ item.body }}</p>

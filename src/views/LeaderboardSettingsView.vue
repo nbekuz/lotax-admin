@@ -82,7 +82,7 @@ onMounted(load)
 
     <div v-if="loading" class="flex justify-center py-16"><a-spin size="large" /></div>
     <section v-else class="lotax-card p-5 md:p-7">
-      <p class="mb-5 rounded-lg bg-slate-50 px-3 py-2 text-[13px] text-ink-muted">
+      <p class="mb-5 rounded-lg bg-chip px-3 py-2 text-[13px] text-ink-muted">
         Метрика всегда <strong class="font-medium text-ink">поездки</strong>
         за день / неделю / месяц. Баллы в рейтинге не используются.
       </p>

@@ -545,7 +545,7 @@ onMounted(async () => {
 
     <div
       v-if="auth.canEditStatus"
-      class="drivers-bulk flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-white px-3 py-2.5"
+      class="drivers-bulk flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface-card px-3 py-2.5"
     >
       <a-button
         class="lotax-btn-secondary !h-9"
@@ -862,7 +862,7 @@ onMounted(async () => {
 }
 
 :deep(.ant-table-thead > tr > th) {
-  background: #fafafa !important;
+  background: var(--lotax-table-head) !important;
   padding: 10px 12px !important;
 }
 
@@ -871,22 +871,22 @@ onMounted(async () => {
 }
 
 :deep(.ant-table-cell-fix-left) {
-  background: #fff !important;
+  background: var(--lotax-card) !important;
   z-index: 2;
 }
 
 :deep(.ant-table-thead .ant-table-cell-fix-left) {
-  background: #fafafa !important;
+  background: var(--lotax-table-head) !important;
   z-index: 4;
 }
 
 :deep(.ant-table-cell-fix-left-last::after) {
-  box-shadow: inset -8px 0 8px -8px rgba(17, 17, 17, 0.08) !important;
+  box-shadow: inset -8px 0 8px -8px var(--lotax-sticky-shadow) !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
   :deep(.ant-table-tbody > tr:hover > .ant-table-cell-fix-left) {
-    background: #fafbfc !important;
+    background: var(--lotax-hover) !important;
   }
 }
 

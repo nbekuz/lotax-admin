@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import BrandMark from '@/components/BrandMark.vue'
+import ThemeMenuButton from '@/components/ThemeMenuButton.vue'
 
 const links = [
   { to: '/privacy', label: 'Конфиденциальность', short: 'Приватность' },
@@ -22,6 +23,8 @@ const links = [
           <BrandMark :size="32" layout="inline" />
         </RouterLink>
 
+        <div class="flex w-full items-center justify-end gap-3 md:w-auto">
+          <ThemeMenuButton />
         <nav class="legal-nav" aria-label="Документы">
           <RouterLink
             v-for="link in links"
@@ -34,6 +37,7 @@ const links = [
             <span class="legal-nav__short">{{ link.short }}</span>
           </RouterLink>
         </nav>
+        </div>
       </div>
     </header>
 
@@ -53,7 +57,7 @@ const links = [
   top: 0;
   z-index: 30;
   border-bottom: 1px solid var(--lotax-border);
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--lotax-topbar);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }

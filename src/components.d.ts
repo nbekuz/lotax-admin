@@ -29,6 +29,7 @@ declare module 'vue' {
     AMenuItem: typeof import('ant-design-vue/es')['MenuItem']
     AModal: typeof import('ant-design-vue/es')['Modal']
     APagination: typeof import('ant-design-vue/es')['Pagination']
+    APopover: typeof import('ant-design-vue/es')['Popover']
     AProgress: typeof import('ant-design-vue/es')['Progress']
     ARangePicker: typeof import('ant-design-vue/es/date-picker/dayjs')['RangePicker']
     ASelect: typeof import('ant-design-vue/es')['Select']
@@ -58,6 +59,8 @@ declare module 'vue' {
     ScopeFields: typeof import('./components/ScopeFields.vue')['default']
     SetStaffPasswordModal: typeof import('./components/SetStaffPasswordModal.vue')['default']
     StatusBadge: typeof import('./components/StatusBadge.vue')['default']
+    ThemeMenuButton: typeof import('./components/ThemeMenuButton.vue')['default']
+    ThemeModePicker: typeof import('./components/ThemeModePicker.vue')['default']
     TierBadge: typeof import('./components/TierBadge.vue')['default']
   }
 }

@@ -39,7 +39,7 @@ withDefaults(
         :class="layout === 'stack' ? 'text-[32px]' : 'text-lg'"
         aria-label="Lotax"
       >
-        <span class="text-[#111111]">Lo</span><span class="lotax-tax">tax</span>
+        <span class="text-[var(--lotax-wordmark)]">Lo</span><span class="lotax-tax">tax</span>
       </div>
       <slot />
     </div>

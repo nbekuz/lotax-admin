@@ -5,6 +5,7 @@ import type { Rule } from 'ant-design-vue/es/form'
 import { message } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/auth'
 import BrandMark from '@/components/BrandMark.vue'
+import ThemeMenuButton from '@/components/ThemeMenuButton.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -61,9 +62,12 @@ async function onSubmit() {
 
 <template>
   <div class="relative flex min-h-full items-center justify-center overflow-hidden p-4 md:p-6">
+    <div class="absolute right-4 top-4 z-10 md:right-6 md:top-6">
+      <ThemeMenuButton />
+    </div>
     <div
       class="pointer-events-none absolute inset-0"
-      style="background: radial-gradient(ellipse at top, var(--lotax-primary-soft), transparent 55%), linear-gradient(180deg, var(--lotax-bg) 0%, #ffffff 100%)"
+      style="background: radial-gradient(ellipse at top, var(--lotax-primary-soft), transparent 55%), linear-gradient(180deg, var(--lotax-bg) 0%, var(--lotax-login-fade) 100%)"
     />
     <div
       class="pointer-events-none absolute -left-24 top-24 h-72 w-72 rounded-full bg-brand/10 blur-3xl"

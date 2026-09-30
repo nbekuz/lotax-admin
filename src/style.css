@@ -21,6 +21,7 @@
 
   --lotax-danger: #ef4444;
   --lotax-danger-soft: #fef2f2;
+  --lotax-danger-border: #fecaca;
   --lotax-success: #16a34a;
   --lotax-success-soft: #ecfdf3;
   --lotax-warning: #d97706;
@@ -28,22 +29,68 @@
   --lotax-info: #2563eb;
   --lotax-info-soft: #eff6ff;
 
+  --lotax-hover: #fafafa;
+  --lotax-table-head: #fafbfc;
+  --lotax-chip: #f3f4f6;
+  --lotax-topbar: rgba(255, 255, 255, 0.92);
+  --lotax-wordmark: #111111;
+  --lotax-menu-hover: #f3f4f6;
+  --lotax-login-fade: #ffffff;
+  --lotax-media-well: #ffffff;
+  --lotax-sticky-shadow: rgba(17, 17, 17, 0.08);
+
   --lotax-radius-sm: 8px;
-  --lotax-radius: 12px;
-  --lotax-radius-md: 14px;
-  --lotax-radius-lg: 16px;
-  --lotax-radius-xl: 20px;
+  --lotax-radius: 10px;
+  --lotax-radius-md: 12px;
+  --lotax-radius-lg: 12px;
+  --lotax-radius-xl: 14px;
   --lotax-radius-pill: 999px;
 
-  --lotax-shadow: 0 1px 2px rgba(17, 17, 17, 0.04), 0 4px 12px rgba(17, 17, 17, 0.03);
-  --lotax-shadow-hover: 0 4px 12px rgba(17, 17, 17, 0.06), 0 10px 28px rgba(17, 17, 17, 0.05);
+  --lotax-shadow: 0 1px 2px rgba(17, 17, 17, 0.04);
+  --lotax-shadow-hover: 0 4px 14px rgba(17, 17, 17, 0.06);
   --lotax-shadow-modal: 0 16px 48px rgba(17, 17, 17, 0.14);
 
   --lotax-transition: 160ms ease;
-  --lotax-sidebar-expanded: 260px;
-  --lotax-sidebar-collapsed: 72px;
-  --lotax-header-height: 64px;
+  --lotax-sidebar-expanded: 228px;
+  --lotax-sidebar-collapsed: 68px;
+  --lotax-header-height: 56px;
   --lotax-control-height: 40px;
+}
+
+html[data-theme='dark'] {
+  --lotax-bg: #0a0a0a;
+  --lotax-card: #1c1c1e;
+  --lotax-border: #3a3a3c;
+  --lotax-border-strong: #48484a;
+
+  --lotax-text: #f5f5f7;
+  --lotax-text-secondary: #aeaeb2;
+  --lotax-ink-muted: #aeaeb2;
+  --lotax-text-tertiary: #8e8e93;
+
+  --lotax-danger-soft: rgba(239, 68, 68, 0.16);
+  --lotax-danger-border: rgba(239, 68, 68, 0.45);
+  --lotax-success-soft: rgba(22, 163, 74, 0.16);
+  --lotax-warning-soft: rgba(217, 119, 6, 0.18);
+  --lotax-info-soft: rgba(37, 99, 235, 0.18);
+  --lotax-primary-soft: rgba(247, 147, 26, 0.18);
+  --lotax-primary-strong: rgba(247, 147, 26, 0.28);
+
+  --lotax-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 4px 16px rgba(0, 0, 0, 0.35);
+  --lotax-shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.35);
+  --lotax-shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.55);
+
+  --lotax-hover: #2c2c2e;
+  --lotax-table-head: #161618;
+  --lotax-chip: #2c2c2e;
+  --lotax-topbar: rgba(28, 28, 30, 0.92);
+  --lotax-wordmark: #f5f5f7;
+  --lotax-menu-hover: #2c2c2e;
+  --lotax-login-fade: #1c1c1e;
+  --lotax-media-well: #ffffff;
+  --lotax-sticky-shadow: rgba(0, 0, 0, 0.45);
+
+  color-scheme: dark;
 }
 
 html,
@@ -80,7 +127,8 @@ body {
 
 @layer components {
   .lotax-card {
-    @apply border bg-white;
+    background: var(--lotax-card);
+    border: 1px solid var(--lotax-border);
     border-radius: var(--lotax-radius-lg);
     border-color: var(--lotax-border);
     box-shadow: var(--lotax-shadow);
@@ -104,12 +152,12 @@ body {
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px 16px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
   }
 
   .lotax-page-title {
-    font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 650;
     letter-spacing: -0.03em;
     line-height: 1.25;
     color: var(--lotax-text);
@@ -125,7 +173,7 @@ body {
   }
 
   .lotax-section-title {
-    font-size: clamp(1.05rem, 1rem + 0.3vw, 1.2rem);
+    font-size: 0.95rem;
     font-weight: 600;
     letter-spacing: -0.02em;
     line-height: 1.3;
@@ -166,10 +214,47 @@ body {
     border: 1px solid var(--lotax-border);
   }
 
+  .lotax-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .lotax-badge--success {
+    background: var(--lotax-success-soft);
+    color: var(--lotax-success);
+  }
+
+  .lotax-badge--muted {
+    background: var(--lotax-chip);
+    color: var(--lotax-text-secondary);
+  }
+
+  .lotax-badge--danger {
+    background: var(--lotax-danger-soft);
+    color: var(--lotax-danger);
+  }
+
+  .lotax-badge--info {
+    background: var(--lotax-info-soft);
+    color: var(--lotax-info);
+  }
+
+  .lotax-badge--warning {
+    background: var(--lotax-warning-soft);
+    color: var(--lotax-warning);
+  }
+
   .lotax-btn-primary,
   .lotax-btn-secondary,
   .lotax-btn-danger {
-    height: var(--lotax-control-height) !important;
+    height: 36px !important;
     border-radius: var(--lotax-radius) !important;
     font-weight: 550 !important;
     font-size: 14px !important;
@@ -194,14 +279,14 @@ body {
   }
 
   .lotax-btn-secondary {
-    background: #fff !important;
+    background: var(--lotax-card) !important;
     border-color: var(--lotax-border) !important;
     color: var(--lotax-text) !important;
   }
 
   .lotax-btn-danger {
-    background: #fff !important;
-    border-color: #fecaca !important;
+    background: var(--lotax-card) !important;
+    border-color: var(--lotax-danger-border) !important;
     color: var(--lotax-danger) !important;
   }
 
@@ -213,7 +298,7 @@ body {
     }
 
     .lotax-btn-secondary:hover:not(:disabled) {
-      background: #fafafa !important;
+      background: var(--lotax-hover) !important;
       border-color: var(--lotax-border-strong) !important;
     }
 
@@ -221,6 +306,30 @@ body {
       background: var(--lotax-danger-soft) !important;
       border-color: var(--lotax-danger) !important;
     }
+
+    .lotax-icon-btn:hover {
+      border-color: var(--lotax-border-strong);
+      color: var(--lotax-text);
+      background: var(--lotax-hover);
+    }
+  }
+
+  .lotax-icon-btn {
+    display: inline-flex;
+    height: 40px;
+    width: 40px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    border: 1px solid var(--lotax-border);
+    background: var(--lotax-card);
+    color: var(--lotax-text-secondary);
+    cursor: pointer;
+    transition:
+      border-color var(--lotax-transition),
+      color var(--lotax-transition),
+      background var(--lotax-transition);
   }
 
   .lotax-btn-stack {
@@ -310,9 +419,15 @@ body {
   background: var(--lotax-bg) !important;
 }
 
+.ant-layout-sider,
+.ant-layout-sider-light,
+.ant-layout-sider-dark {
+  background: var(--lotax-card) !important;
+}
+
 /* ─── Tables ─── */
 .ant-table-wrapper .ant-table {
-  background: #fff;
+  background: var(--lotax-card);
 }
 
 .lotax-card > .ant-table-wrapper .ant-table,
@@ -322,26 +437,26 @@ body {
 }
 
 .ant-table-thead > tr > th {
-  background: #fafbfc !important;
+  background: var(--lotax-table-head) !important;
   color: var(--lotax-text-secondary) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   text-transform: none;
   border-bottom: 1px solid var(--lotax-border) !important;
-  padding: 12px 16px !important;
+  padding: 8px 12px !important;
 }
 
 .ant-table-tbody > tr > td {
   border-bottom: 1px solid var(--lotax-border) !important;
-  padding: 14px 16px !important;
-  font-size: 14px;
+  padding: 8px 12px !important;
+  font-size: 13px;
   color: var(--lotax-text);
   vertical-align: middle;
 }
 
 .ant-table-tbody > tr:hover > td {
-  background: #fafbfc !important;
+  background: var(--lotax-hover) !important;
 }
 
 .ant-table-tbody > tr:last-child > td {
@@ -602,13 +717,24 @@ body {
   background: transparent !important;
 }
 
-.ant-menu-light .ant-menu-item {
-  border-radius: var(--lotax-radius) !important;
-  margin-inline: 10px !important;
-  margin-block: 2px !important;
-  width: calc(100% - 20px) !important;
-  height: 42px !important;
-  line-height: 42px !important;
+.ant-menu-item-group-title {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lotax-text-tertiary) !important;
+  padding: 12px 16px 4px !important;
+  line-height: 1.2 !important;
+}
+
+.ant-menu-light .ant-menu-item,
+.ant-menu-dark .ant-menu-item {
+  border-radius: 8px !important;
+  margin-inline: 8px !important;
+  margin-block: 1px !important;
+  width: calc(100% - 16px) !important;
+  height: 36px !important;
+  line-height: 36px !important;
   transition: all var(--lotax-transition) !important;
 }
 
@@ -618,9 +744,30 @@ body {
   font-weight: 600;
 }
 
-.ant-menu-light .ant-menu-item:hover {
-  background: #f3f4f6 !important;
+.ant-menu-light .ant-menu-item:hover,
+.ant-menu-dark .ant-menu-item:hover {
+  background: var(--lotax-menu-hover) !important;
   color: var(--lotax-text) !important;
+}
+
+.ant-menu-dark.ant-menu-inline,
+.ant-menu-dark.ant-menu-vertical {
+  background: transparent !important;
+}
+
+.ant-menu-dark .ant-menu-item {
+  color: var(--lotax-text-secondary) !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected {
+  background: var(--lotax-primary-soft) !important;
+  color: var(--lotax-primary) !important;
+  font-weight: 600;
+}
+
+.ant-menu-dark .ant-menu-item-selected:hover {
+  background: var(--lotax-primary-soft) !important;
+  color: var(--lotax-primary) !important;
 }
 
 .ant-menu-light .ant-menu-item-selected:hover {

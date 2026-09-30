@@ -9,6 +9,7 @@ import {
   BarChartOutlined,
   CarOutlined,
   GiftOutlined,
+  BellOutlined,
   InboxOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -29,10 +30,13 @@ import { useOrgStore } from '@/stores/org'
 import { usePasswordResetStore } from '@/stores/passwordReset'
 import { useStaffPasswordResetStore } from '@/stores/staffPasswordReset'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import { extractErrorMessage } from '@/utils/labels'
+import { extractErrorMessage, roleLabel } from '@/utils/labels'
 import BrandMark from '@/components/BrandMark.vue'
+import ThemeMenuButton from '@/components/ThemeMenuButton.vue'
+import { useThemeStore } from '@/stores/theme'
 
 const auth = useAuthStore()
+const themeStore = useThemeStore()
 const chat = useChatStore()
 const passwordReset = usePasswordResetStore()
 const staffPasswordReset = useStaffPasswordResetStore()
@@ -136,11 +140,15 @@ function chatMenuLabel(text: string, unread = chat.totalUnread) {
   )
 }
 
-const menuItems = computed(() => {
+function navGroup(label: string, children: Record<string, unknown>[]) {
+  return { type: 'group' as const, label, children }
+}
+
+const menuItems = computed((): any[] => {
   const unreadCount = chat.totalUnread
 
   if (auth.isPlatformOperator) {
-    const items = [
+    const platform = [
       {
         key: 'organizations',
         icon: () => h(BankOutlined),
@@ -154,69 +162,77 @@ const menuItems = computed(() => {
         title: 'Директоры',
       },
     ]
+    const contact: Record<string, unknown>[] = []
+    const content: Record<string, unknown>[] = []
+    const system: Record<string, unknown>[] = []
     if (auth.isSuperAdmin) {
-      items.push({
+      platform.push({
         key: 'platform-admins',
         icon: () => h(UserOutlined),
         label: 'Админы',
         title: 'Админы платформы',
       })
-      items.push({
-        key: 'chat',
-        icon: () => h(MessageOutlined),
-        label: chatMenuLabel('Обращения', unreadCount) as unknown as string,
-        title: 'Обращения директоров',
-      })
-      items.push({
-        key: 'staff-password-reset',
-        icon: () => h(LockOutlined),
-        label: chatMenuLabel(
-          'Пароли ЛК',
-          staffPasswordReset.openCount,
-        ) as unknown as string,
-        title: 'Пароли сотрудников',
-      })
-      items.push({
-        key: 'system-rewards',
-        icon: () => h(GiftOutlined),
-        label: 'Каталог LOTAX',
-        title: 'Каталог LOTAX',
-      })
-      items.push({
-        key: 'platform-push',
-        icon: () => h(NotificationOutlined),
-        label: 'Push',
-        title: 'Push по организациям',
-      })
-      items.push({
-        key: 'banners',
-        icon: () => h(PictureOutlined),
-        label: 'Баннеры',
-        title: 'Баннеры',
-      })
-      items.push({
-        key: 'deleted-drivers',
-        icon: () => h(InboxOutlined),
-        label: 'Архив',
-        title: 'Архив водителей',
-      })
-      items.push({
-        key: 'settings',
-        icon: () => h(SettingOutlined),
-        label: 'Настройки',
-        title: 'Настройки',
-      })
+      contact.push(
+        {
+          key: 'chat',
+          icon: () => h(MessageOutlined),
+          label: chatMenuLabel('Обращения', unreadCount) as unknown as string,
+          title: 'Обращения директоров',
+        },
+        {
+          key: 'staff-password-reset',
+          icon: () => h(LockOutlined),
+          label: chatMenuLabel(
+            'Пароли ЛК',
+            staffPasswordReset.openCount,
+          ) as unknown as string,
+          title: 'Пароли сотрудников',
+        },
+        {
+          key: 'platform-push',
+          icon: () => h(NotificationOutlined),
+          label: 'Push',
+          title: 'Push по организациям',
+        },
+      )
+      content.push(
+        {
+          key: 'system-rewards',
+          icon: () => h(GiftOutlined),
+          label: 'Каталог LOTAX',
+          title: 'Каталог LOTAX',
+        },
+        {
+          key: 'banners',
+          icon: () => h(PictureOutlined),
+          label: 'Баннеры',
+          title: 'Баннеры',
+        },
+      )
+      system.push(
+        {
+          key: 'deleted-drivers',
+          icon: () => h(InboxOutlined),
+          label: 'Архив',
+          title: 'Архив водителей',
+        },
+        {
+          key: 'settings',
+          icon: () => h(SettingOutlined),
+          label: 'Настройки',
+          title: 'Настройки',
+        },
+      )
     }
-    items.push({
-      key: 'profile',
-      icon: () => h(UserOutlined),
-      label: 'Профиль',
-      title: 'Профиль',
-    })
-    return items
+    return [
+      navGroup('Платформа', platform),
+      ...(contact.length ? [navGroup('Связь', contact)] : []),
+      ...(content.length ? [navGroup('Контент', content)] : []),
+      ...(system.length ? [navGroup('Система', system)] : []),
+    ]
   }
 
-  const items = [
+  const fleet = [
     {
       key: 'organization',
       icon: () => h(BankOutlined),
@@ -229,6 +245,8 @@ const menuItems = computed(() => {
       label: 'Водители',
       title: 'Водители',
     },
+  ]
+  const loyalty = [
     {
       key: 'rewards',
       icon: () => h(GiftOutlined),
@@ -254,8 +272,9 @@ const menuItems = computed(() => {
       title: 'Заявки',
     },
   ]
+  const contact: Record<string, unknown>[] = []
   if (auth.canViewChat) {
-    items.push({
+    contact.push({
       key: 'chat',
       icon: () => h(MessageOutlined),
       label: chatMenuLabel('Чаты', unreadCount) as unknown as string,
@@ -263,7 +282,7 @@ const menuItems = computed(() => {
     })
   }
   if (auth.canViewPasswordReset) {
-    items.push({
+    contact.push({
       key: 'password-reset',
       icon: () => h(LockOutlined),
       label: chatMenuLabel(
@@ -273,8 +292,9 @@ const menuItems = computed(() => {
       title: 'Восстановление пароля',
     })
   }
+  const manage: Record<string, unknown>[] = []
   if (showAnalyticsHub.value) {
-    items.push({
+    manage.push({
       key: 'analytics-hub',
       icon: () => h(BarChartOutlined),
       label: 'Аналитика',
@@ -282,7 +302,7 @@ const menuItems = computed(() => {
     })
   }
   if (showEngagementHub.value) {
-    items.push({
+    manage.push({
       key: 'engagement-hub',
       icon: () => h(RocketOutlined),
       label: 'Активность',
@@ -290,7 +310,7 @@ const menuItems = computed(() => {
     })
   }
   if (showParkSettingsHub.value) {
-    items.push({
+    manage.push({
       key: 'park-settings-hub',
       icon: () => h(SettingOutlined),
       label: 'Настройки',
@@ -298,20 +318,19 @@ const menuItems = computed(() => {
     })
   }
   if (auth.canManageStaff) {
-    items.push({
+    manage.push({
       key: 'staff',
       icon: () => h(TeamOutlined),
       label: 'Сотрудники',
       title: 'Сотрудники',
     })
   }
-  items.push({
-    key: 'profile',
-    icon: () => h(UserOutlined),
-    label: 'Профиль',
-    title: 'Профиль',
-  })
-  return items
+  return [
+    navGroup('Парк', fleet),
+    navGroup('Лояльность', loyalty),
+    ...(contact.length ? [navGroup('Связь', contact)] : []),
+    ...(manage.length ? [navGroup('Управление', manage)] : []),
+  ]
 })
 
 const parkSelectOptions = computed(() =>
@@ -326,16 +345,11 @@ const userInitial = computed(() =>
   (auth.admin?.first_name?.[0] || auth.admin?.email?.[0] || 'A').toUpperCase(),
 )
 
-const headerTitle = computed(() => String(route.meta.title || 'Lotax'))
-
-const isDetailRoute = computed(
-  () =>
-    route.name === 'driver-detail' ||
-    route.name === 'organization-detail' ||
-    route.name === 'task-progress' ||
-    route.name === 'competition-leaderboard' ||
-    route.name === 'chat-conversation',
+const roleText = computed(() =>
+  auth.admin?.role ? roleLabel[auth.admin.role] : '',
 )
+
+const headerTitle = computed(() => String(route.meta.title || 'Lotax'))
 
 onMounted(async () => {
   if (auth.isParkAdmin) {
@@ -430,10 +444,10 @@ function toggleNav() {
       v-model:collapsed="collapsed"
       collapsible
       :trigger="null"
-      :width="260"
-      :collapsed-width="72"
-      theme="light"
-      class="lotax-sider !bg-white"
+      :width="228"
+      :collapsed-width="68"
+      :theme="themeStore.resolved"
+      class="lotax-sider !bg-surface-card"
     >
       <div
         class="lotax-sider__brand flex items-center border-b border-line px-4"
@@ -446,9 +460,9 @@ function toggleNav() {
         />
       </div>
 
-      <div class="lotax-sider__menu flex-1 overflow-y-auto px-1 py-3">
+      <div class="lotax-sider__menu flex-1 overflow-y-auto px-1 py-2">
         <a-menu
-          theme="light"
+          :theme="themeStore.resolved"
           mode="inline"
           class="!border-none !bg-transparent"
           :selected-keys="selectedKeys"
@@ -456,6 +470,31 @@ function toggleNav() {
           :inline-collapsed="collapsed"
           @click="onMenuClick"
         />
+      </div>
+      <div class="lotax-sider__user">
+        <button
+          type="button"
+          class="lotax-user-chip"
+          :title="auth.fullName || auth.admin?.email || 'Профиль'"
+          @click="router.push({ name: 'profile' })"
+        >
+          <span class="lotax-avatar-btn !h-8 !w-8">{{ userInitial }}</span>
+          <span v-if="!collapsed" class="min-w-0 text-left">
+            <span class="block truncate text-[13px] font-semibold text-ink">
+              {{ auth.fullName || auth.admin?.email }}
+            </span>
+            <span class="block truncate text-[11px] text-ink-muted">{{ roleText }}</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          class="lotax-icon-btn !h-8 !w-8"
+          aria-label="Выйти"
+          title="Выйти"
+          @click="logout"
+        >
+          <LogoutOutlined />
+        </button>
       </div>
     </a-layout-sider>
 
@@ -472,7 +511,7 @@ function toggleNav() {
       </div>
       <div class="px-1 py-3">
         <a-menu
-          theme="light"
+          :theme="themeStore.resolved"
           mode="inline"
           class="!border-none !bg-transparent"
           :selected-keys="selectedKeys"
@@ -480,7 +519,20 @@ function toggleNav() {
           @click="onMenuClick"
         />
       </div>
-      <div class="absolute inset-x-0 bottom-0 border-t border-line bg-white p-4">
+      <div class="absolute inset-x-0 bottom-0 border-t border-line bg-surface-card p-3">
+        <button
+          type="button"
+          class="lotax-user-chip mb-2 w-full"
+          @click="onMenuClick({ key: 'profile' })"
+        >
+          <span class="lotax-avatar-btn !h-8 !w-8">{{ userInitial }}</span>
+          <span class="min-w-0 text-left">
+            <span class="block truncate text-[13px] font-semibold text-ink">
+              {{ auth.fullName || auth.admin?.email }}
+            </span>
+            <span class="block truncate text-[11px] text-ink-muted">{{ roleText }}</span>
+          </span>
+        </button>
         <a-button class="lotax-btn-secondary w-full" block @click="logout">
           <template #icon><LogoutOutlined /></template>
           Выйти
@@ -503,20 +555,15 @@ function toggleNav() {
           </button>
 
           <div class="min-w-0 flex-1">
-            <p
-              class="truncate"
-              :class="
-                isDetailRoute
-                  ? 'text-[13px] font-medium text-ink-muted'
-                  : 'text-[15px] font-semibold tracking-tight text-ink md:text-base'
-              "
-            >
-              {{ headerTitle }}
+            <p class="truncate text-[12px] text-ink-muted">
+              Lotax
+              <span class="px-1 text-ink-tertiary">/</span>
+              <span class="font-medium text-ink">{{ headerTitle }}</span>
             </p>
           </div>
         </div>
 
-        <div class="flex shrink-0 items-center gap-2 md:gap-2.5">
+        <div class="flex shrink-0 items-center gap-2">
           <a-select
             v-if="auth.isParkAdmin && org.hasMultipleOrgs"
             :value="org.organization?.id"
@@ -535,11 +582,28 @@ function toggleNav() {
             @change="(v) => onParkChange(String(v))"
           />
 
-          <div
-            class="hidden max-w-[180px] truncate text-[13px] font-medium text-ink-muted xl:block"
+          <span
+            v-if="roleText"
+            class="lotax-badge lotax-badge--warning hidden md:inline-flex"
           >
-            {{ auth.fullName || auth.admin?.email }}
-          </div>
+            {{ roleText }}
+          </span>
+
+          <button
+            v-if="auth.canViewChat"
+            type="button"
+            class="lotax-icon-btn relative"
+            aria-label="Уведомления"
+            title="Уведомления"
+            @click="router.push({ name: 'chat' })"
+          >
+            <BellOutlined />
+            <span v-if="chat.totalUnread" class="lotax-notify-count">
+              {{ chat.totalUnread > 99 ? '99+' : chat.totalUnread }}
+            </span>
+          </button>
+
+          <ThemeMenuButton />
 
           <button
             type="button"
@@ -550,14 +614,6 @@ function toggleNav() {
           >
             {{ userInitial }}
           </button>
-
-          <a-button
-            class="lotax-btn-secondary !hidden lg:!inline-flex"
-            @click="logout"
-          >
-            <template #icon><LogoutOutlined /></template>
-            Выйти
-          </a-button>
         </div>
       </a-layout-header>
 
@@ -582,8 +638,49 @@ function toggleNav() {
 }
 
 .lotax-sider__brand {
-  height: 64px;
+  height: 56px;
   flex-shrink: 0;
+}
+
+.lotax-sider__user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 10px;
+  border-top: 1px solid var(--lotax-border);
+}
+
+.lotax-user-chip {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.lotax-user-chip:hover {
+  background: var(--lotax-chip);
+}
+
+.lotax-notify-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--lotax-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
 }
 
 .lotax-sider__menu {
@@ -595,12 +692,12 @@ function toggleNav() {
   top: 0;
   z-index: 20;
   display: flex !important;
-  height: 64px !important;
+  height: 56px !important;
   align-items: center !important;
   justify-content: space-between !important;
   gap: 12px;
   padding-inline: 16px !important;
-  background: rgba(255, 255, 255, 0.92) !important;
+  background: var(--lotax-topbar) !important;
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--lotax-border);
   line-height: 1.2 !important;
@@ -609,31 +706,6 @@ function toggleNav() {
 @media (min-width: 768px) {
   .lotax-topbar {
     padding-inline: 24px !important;
-  }
-}
-
-.lotax-icon-btn {
-  display: inline-flex;
-  height: 40px;
-  width: 40px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  border: 1px solid var(--lotax-border);
-  background: #fff;
-  color: var(--lotax-text-secondary);
-  transition:
-    border-color 160ms ease,
-    color 160ms ease,
-    background 160ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .lotax-icon-btn:hover {
-    border-color: var(--lotax-border-strong);
-    color: var(--lotax-text);
-    background: #fafafa;
   }
 }
 
@@ -685,6 +757,6 @@ function toggleNav() {
 :deep(.ant-drawer-body) {
   position: relative;
   min-height: 100%;
-  padding-bottom: 88px !important;
+  padding-bottom: 132px !important;
 }
 </style>

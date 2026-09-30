@@ -23,6 +23,7 @@ export default {
           card: 'var(--lotax-card)',
         },
         line: 'var(--lotax-border)',
+        chip: 'var(--lotax-chip)',
         ink: {
           DEFAULT: 'var(--lotax-text)',
           muted: 'var(--lotax-text-secondary)',

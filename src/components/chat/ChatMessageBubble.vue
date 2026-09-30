@@ -61,9 +61,9 @@ const bubbleClass = computed(() => {
 }
 
 .chat-bubble--other {
-  background: #fff;
+  background: var(--lotax-card);
   color: var(--lotax-text);
-  border: 1px solid rgba(17, 17, 17, 0.06);
+  border: 1px solid var(--lotax-border);
 }
 
 .chat-bubble--mine-single {

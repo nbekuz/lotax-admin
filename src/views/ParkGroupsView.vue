@@ -229,7 +229,7 @@ onMounted(async () => {
             <input
               v-model="form.color"
               type="color"
-              class="h-10 w-12 cursor-pointer rounded border border-line bg-white"
+              class="h-10 w-12 cursor-pointer rounded border border-line bg-surface-card"
             />
             <a-input v-model:value="form.color" class="!flex-1" placeholder="#3B82F6" />
           </div>

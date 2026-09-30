@@ -53,7 +53,7 @@ import LegalLayout from '@/layouts/LegalLayout.vue'
         <h2 class="text-[18px] font-semibold">6. Изменения условий</h2>
         <p>
           Актуальная версия:
-          <code class="rounded bg-slate-100 px-1.5 py-0.5 text-[13px]">/termofuse</code>.
+          <code class="rounded bg-chip px-1.5 py-0.5 text-[13px]">/termofuse</code>.
           Существенные изменения могут сопровождаться уведомлением в приложении.
         </p>
 

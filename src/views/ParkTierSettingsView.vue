@@ -185,7 +185,7 @@ onMounted(async () => {
         </a-form-item>
 
         <template v-if="form.apply_tiers">
-          <p class="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-[13px] text-ink-muted">
+          <p class="mb-4 rounded-lg bg-chip px-3 py-2 text-[13px] text-ink-muted">
             Пороги считаются по поездкам во <strong class="font-medium text-ink">всех парках организации</strong>,
             не по текущему парку. Коэффициент 1.0–2.0 (шаг 0.1) умножает только парковые баллы.
             «Мин. месяц» — минимум поездок за календарный месяц для удержания уровня; 0 — не проверять.

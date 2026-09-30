@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { ReloadOutlined, UndoOutlined } from '@ant-design/icons-vue'
 import { superAdminApi } from '@/api/superAdmin'
@@ -10,7 +10,18 @@ import dayjs from 'dayjs'
 
 const loading = ref(false)
 const restoringId = ref<string | null>(null)
+const query = ref('')
 const items = ref<DeletedDriverItem[]>([])
+
+const visibleItems = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  if (!q) return items.value
+  return items.value.filter((row) =>
+    [row.display_name, row.phone_masked, row.park_name]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(q)),
+  )
+})
 
 const pagination = reactive({
   current: 1,
@@ -81,7 +92,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 md:gap-6">
+  <div class="flex flex-col gap-3">
     <PageHeader
       title="Архив водителей"
       subtitle="Soft-delete. Восстановление → «Ожидание», затем SMS → «Активен»"
@@ -94,34 +105,53 @@ onMounted(load)
       </template>
     </PageHeader>
 
-    <div class="lotax-card !p-0">
+    <div class="lotax-card overflow-hidden !p-0">
+      <div class="flex flex-col gap-2 border-b border-line px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <a-input
+          v-model:value="query"
+          allow-clear
+          placeholder="Имя, телефон или парк"
+          class="!w-full sm:!max-w-xs"
+        />
+        <span class="text-[12px] text-ink-muted">{{ pagination.total }} в архиве</span>
+      </div>
       <a-table
         row-key="id"
+        size="small"
         :columns="columns"
-        :data-source="items"
+        :data-source="visibleItems"
         :loading="loading"
-        :pagination="pagination"
-        :locale="{ emptyText: 'Удалённых водителей нет' }"
+        :pagination="query.trim() ? false : pagination"
+        :locale="{ emptyText: query.trim() ? 'Ничего не найдено' : 'Удалённых водителей нет' }"
         @change="onTableChange"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'display_name'">
-            {{ (record as DeletedDriverItem).display_name || '—' }}
+            <span class="font-medium text-ink">
+              {{ (record as DeletedDriverItem).display_name || '—' }}
+            </span>
           </template>
           <template v-else-if="column.key === 'phone_masked'">
-            <span class="font-mono text-[13px] text-ink-muted">
+            <span class="font-mono text-[12px] text-ink-muted">
               {{ (record as DeletedDriverItem).phone_masked || '—' }}
             </span>
           </template>
+          <template v-else-if="column.key === 'park_name'">
+            {{ (record as DeletedDriverItem).park_name || '—' }}
+          </template>
           <template v-else-if="column.key === 'deleted_at'">
-            <span v-if="(record as DeletedDriverItem).deleted_at" class="tabular-nums text-ink-muted">
-              {{ dayjs((record as DeletedDriverItem).deleted_at).format('DD.MM.YYYY · HH:mm') }}
+            <span
+              v-if="(record as DeletedDriverItem).deleted_at"
+              class="lotax-badge lotax-badge--muted tabular-nums"
+            >
+              {{ dayjs((record as DeletedDriverItem).deleted_at).format('DD.MM.YYYY HH:mm') }}
             </span>
             <span v-else>—</span>
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-button
               size="small"
+              class="lotax-btn-secondary"
               :loading="restoringId === (record as DeletedDriverItem).id"
               @click="confirmRestore(record as DeletedDriverItem)"
             >

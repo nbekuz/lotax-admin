@@ -63,7 +63,7 @@ import LegalLayout from '@/layouts/LegalLayout.vue'
         <h2 class="text-[18px] font-semibold">7. Изменения</h2>
         <p>
           Актуальная версия всегда доступна по адресу
-          <code class="rounded bg-slate-100 px-1.5 py-0.5 text-[13px]">/privacy</code>.
+          <code class="rounded bg-chip px-1.5 py-0.5 text-[13px]">/privacy</code>.
           Продолжая пользоваться приложением, вы подтверждаете согласие с
           этой Политикой.
         </p>
