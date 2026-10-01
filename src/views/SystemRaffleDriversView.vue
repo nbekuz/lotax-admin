@@ -26,7 +26,12 @@ const rewardTitle = ref('')
 const tickets = ref<SystemRaffleTicket[]>([])
 const query = ref('')
 
-const ticketQuery = computed(() => query.value.trim().replace(/^№\s*/, ''))
+const ticketQuery = computed(() => query.value.trim().replace(/^№\s*/, '').replace(/\s+/g, ''))
+
+function formatTicket(no: number | string) {
+  const digits = String(no).replace(/\D/g, '')
+  return digits.replace(/(\d{4})(?=\d)/g, '$1 ')
+}
 
 const filtered = computed(() => {
   const q = ticketQuery.value
@@ -189,7 +194,7 @@ onMounted(load)
         >
           <div>
             <p class="text-[12px] font-semibold uppercase tracking-wide text-[var(--lotax-primary)]">
-              Билет № {{ exact.ticket_no }}
+              Билет {{ formatTicket(exact.ticket_no) }}
             </p>
             <p class="text-[16px] font-semibold text-ink">{{ exact.driver_display_name }}</p>
             <p class="text-[13px] text-ink-muted">
@@ -206,24 +211,30 @@ onMounted(load)
         <a-table
           class="raffle-drivers-table"
           row-key="ticket_no"
+          :scroll="{ x: 920 }"
           :pagination="filtered.length > 20 ? { pageSize: 20, showSizeChanger: false } : false"
           :data-source="filtered"
           :row-class-name="rowClass"
           :columns="[
-            { title: '№', dataIndex: 'ticket_no', width: 120 },
-            { title: 'ФИО', dataIndex: 'driver_display_name' },
-            { title: 'Телефон', dataIndex: 'driver_phone', width: 170 },
-            { title: 'Дата', key: 'purchased_at', width: 160 },
-            { title: 'Баллы', dataIndex: 'points_spent', width: 90 },
-            { title: 'Парк', dataIndex: 'park_name' },
+            { title: 'Номер', dataIndex: 'ticket_no', width: 168 },
+            { title: 'ФИО', dataIndex: 'driver_display_name', ellipsis: true },
+            { title: 'Телефон', dataIndex: 'driver_phone', width: 168 },
+            { title: 'Дата', key: 'purchased_at', width: 168 },
+            { title: 'Баллы', dataIndex: 'points_spent', width: 96, align: 'right' },
+            { title: 'Парк', dataIndex: 'park_name', width: 140 },
           ]"
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.dataIndex === 'ticket_no'">
-              <span class="font-semibold tabular-nums text-ink">{{ record.ticket_no }}</span>
+              <span class="ticket-code">{{ formatTicket(record.ticket_no) }}</span>
+            </template>
+            <template v-else-if="column.dataIndex === 'driver_phone'">
+              <span class="whitespace-nowrap tabular-nums">{{ record.driver_phone }}</span>
             </template>
             <template v-else-if="column.key === 'purchased_at'">
-              {{ dayjs(record.purchased_at).format('DD.MM.YYYY HH:mm') }}
+              <span class="whitespace-nowrap tabular-nums">
+                {{ dayjs(record.purchased_at).format('DD.MM.YYYY HH:mm') }}
+              </span>
             </template>
           </template>
           <template #emptyText>
@@ -247,7 +258,34 @@ onMounted(load)
 </template>
 
 <style scoped>
+.ticket-code {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--lotax-bg);
+  color: var(--lotax-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px var(--lotax-border);
+}
+
+:deep(.raffle-drivers-table .ant-table-tbody > tr > td) {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
 :deep(.raffle-ticket-hit > td) {
   background: var(--lotax-primary-soft) !important;
+}
+
+:deep(.raffle-ticket-hit .ticket-code) {
+  background: var(--lotax-card);
+  box-shadow: inset 0 0 0 1px var(--lotax-primary);
+  color: var(--lotax-primary);
 }
 </style>
