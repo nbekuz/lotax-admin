@@ -31,6 +31,8 @@ declare module 'vue' {
     APagination: typeof import('ant-design-vue/es')['Pagination']
     APopover: typeof import('ant-design-vue/es')['Popover']
     AProgress: typeof import('ant-design-vue/es')['Progress']
+    ARadio: typeof import('ant-design-vue/es')['Radio']
+    ARadioGroup: typeof import('ant-design-vue/es')['RadioGroup']
     ARangePicker: typeof import('ant-design-vue/es/date-picker/dayjs')['RangePicker']
     ASelect: typeof import('ant-design-vue/es')['Select']
     ASpin: typeof import('ant-design-vue/es')['Spin']

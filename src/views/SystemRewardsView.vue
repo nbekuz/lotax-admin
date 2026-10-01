@@ -24,6 +24,9 @@ import type { DriverTier, RewardAdminItem, RewardType } from '@/types/api'
 
 const loading = ref(false)
 const items = ref<RewardAdminItem[]>([])
+const page = ref(1)
+const pageSize = 20
+const total = ref(0)
 const modalOpen = ref(false)
 const saving = ref(false)
 const editing = ref<RewardAdminItem | null>(null)
@@ -59,6 +62,7 @@ function resetPrizes(item?: RewardAdminItem | null) {
 }
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
+const clearImage = ref(false)
 
 const typeOptions = [
   { value: 'raffle_coupon', label: rewardTypeLabel.raffle_coupon },
@@ -93,11 +97,38 @@ function stockLabel(item: RewardAdminItem) {
   return `${left} / ${item.stock_total}`
 }
 
+function prizeSummary(item: RewardAdminItem) {
+  const places = [...(item.prize_places ?? [])].sort((a, b) => a.place - b.place)
+  if (!places.length) return ''
+  const unique = new Set(places.map((row) => row.prize))
+  if (unique.size === 1) {
+    return places.length === 1
+      ? `${places[0].place} место · ${places[0].prize}`
+      : `${places.length} одинаковых · ${places[0].prize}`
+  }
+  const shown = places.slice(0, 4).map((row) => `${row.place}. ${row.prize}`)
+  const extra = places.length - shown.length
+  return extra > 0 ? `${shown.join(' · ')} · ещё ${extra}` : shown.join(' · ')
+}
+
+const activeHint = computed(() => {
+  if (!form.is_active) {
+    return editing.value ? 'Неактивна · водители не видят' : 'Неактивна · пуш не уйдёт'
+  }
+  return editing.value
+    ? 'Активна · видна водителям'
+    : 'Активна · видна водителям, пуш отправит сервер'
+})
+
 async function load() {
   loading.value = true
   try {
-    const { data } = await superAdminApi.listRewards()
-    items.value = data.items
+    const { data } = await superAdminApi.listRewards({
+      page: page.value,
+      page_size: pageSize,
+    })
+    items.value = data.items ?? []
+    total.value = data.total ?? items.value.length
   } catch (e) {
     message.error(extractErrorMessage(e))
   } finally {
@@ -120,6 +151,7 @@ function openCreate() {
   resetPrizes()
   imageFile.value = null
   imagePreview.value = null
+  clearImage.value = false
   modalOpen.value = true
 }
 
@@ -138,13 +170,21 @@ function openEdit(item: RewardAdminItem) {
   resetPrizes(item)
   imageFile.value = null
   imagePreview.value = item.image_url || null
+  clearImage.value = false
   modalOpen.value = true
 }
 
 function onImageSelect(file: File) {
   imageFile.value = file
   imagePreview.value = URL.createObjectURL(file)
+  clearImage.value = false
   return false
+}
+
+function removeImage() {
+  imageFile.value = null
+  imagePreview.value = null
+  clearImage.value = Boolean(editing.value?.image_url)
 }
 
 async function save() {
@@ -187,6 +227,7 @@ async function save() {
             raffle_date,
             ...prizes,
             image: imageFile.value,
+            clear_image: clearImage.value ? true : undefined,
           })
         ).data
       : (
@@ -208,6 +249,7 @@ async function save() {
         ).data
     message.success(created ? 'Создано' : 'Обновлено')
     modalOpen.value = false
+    if (created) page.value = 1
     await load()
     if ((saved.type ?? form.type) === 'raffle_coupon') {
       const pushNote = created
@@ -217,7 +259,7 @@ async function save() {
         : ''
       Modal.confirm({
         title: 'Скачать для рандомайзера',
-        content: `В файле номер купона, дата, баллы, организация и парк. ФИО и телефона нет.${pushNote}`,
+        content: `Excel этой карточки: номер, дата, баллы, организация, парк. ФИО и телефона нет. Пустой файл — билетов ещё нет. Купоны вкладки «Парк» сюда не входят.${pushNote}`,
         okText: 'Скачать для рандомайзера',
         cancelText: 'Позже',
         centered: true,
@@ -259,6 +301,11 @@ async function downloadRaffle(item: RewardAdminItem, format: 'csv' | 'xlsx') {
   }
 }
 
+function onPageChange(next: number) {
+  page.value = next
+  void load()
+}
+
 onMounted(load)
 </script>
 
@@ -292,7 +339,7 @@ onMounted(load)
             Всего
           </p>
           <p class="mt-1 text-[20px] font-semibold tabular-nums text-ink">
-            {{ items.length }}
+            {{ total }}
           </p>
         </div>
         <div class="lotax-card px-3 py-3 sm:px-4">
@@ -403,34 +450,35 @@ onMounted(load)
                   v-if="item.raffle_date"
                   class="inline-flex items-center rounded-full bg-[var(--lotax-info-soft)] px-2.5 py-1 text-[12px] font-medium text-[var(--lotax-info)] ring-1 ring-inset ring-[var(--lotax-info)]/15"
                 >
-                  Розыгрыш {{ dayjs(item.raffle_date).format('DD.MM.YYYY') }}
+                  Розыгрыш {{ dayjs(item.raffle_date).format('DD.MM.YYYY HH:mm') }}
                 </span>
               </div>
+              <p
+                v-if="item.type === 'raffle_coupon' && prizeSummary(item)"
+                class="mt-2 text-[13px] leading-relaxed text-ink"
+              >
+                {{ prizeSummary(item) }}
+              </p>
+              <p
+                v-if="item.type === 'raffle_coupon'"
+                class="mt-1 text-[12px] leading-relaxed text-ink-muted"
+              >
+                Excel только по этой карточке, без ФИО и телефона. Купоны «Парк» сюда не входят.
+              </p>
             </div>
 
             <div
               class="flex shrink-0 flex-wrap items-center gap-2 border-t border-line pt-3 md:border-t-0 md:pt-0"
             >
-              <a-dropdown
+              <a-button
                 v-if="item.type === 'raffle_coupon'"
-                :trigger="['click']"
+                class="lotax-btn-secondary"
+                :loading="exportingId === `${item.id}:xlsx`"
+                @click="downloadRaffle(item, 'xlsx')"
               >
-                <a-button
-                  class="lotax-btn-secondary"
-                  :loading="exportingId?.startsWith(item.id)"
-                >
-                  <template #icon><DownloadOutlined /></template>
-                  <span>Скачать для рандомайзера</span>
-                </a-button>
-                <template #overlay>
-                  <a-menu
-                    @click="({ key }: { key: string | number }) => downloadRaffle(item, String(key) as 'csv' | 'xlsx')"
-                  >
-                    <a-menu-item key="csv">CSV</a-menu-item>
-                    <a-menu-item key="xlsx">Excel (XLSX)</a-menu-item>
-                  </a-menu>
-                </template>
-              </a-dropdown>
+                <template #icon><DownloadOutlined /></template>
+                Скачать для рандомайзера
+              </a-button>
               <a-button
                 type="primary"
                 class="lotax-btn-primary"
@@ -442,6 +490,15 @@ onMounted(load)
             </div>
           </div>
         </article>
+        <div v-if="total > pageSize" class="flex justify-end">
+          <a-pagination
+            :current="page"
+            :page-size="pageSize"
+            :total="total"
+            :show-size-changer="false"
+            @change="onPageChange"
+          />
+        </div>
       </div>
     </template>
 
@@ -480,12 +537,14 @@ onMounted(load)
             <a-button class="lotax-btn-secondary">Выбрать файл</a-button>
           </a-upload>
           <p class="lotax-caption mt-1">JPEG / PNG / WEBP / GIF · multipart</p>
-          <img
-            v-if="imagePreview"
-            :src="imagePreview"
-            alt=""
-            class="mt-2 h-20 w-20 rounded-lg object-cover ring-1 ring-line"
-          />
+          <div v-if="imagePreview" class="mt-2 flex items-center gap-3">
+            <img
+              :src="imagePreview"
+              alt=""
+              class="h-20 w-20 rounded-lg object-cover ring-1 ring-line"
+            />
+            <a-button class="lotax-btn-secondary" @click="removeImage">Убрать</a-button>
+          </div>
         </a-form-item>
         <div class="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
           <a-form-item label="Тип">
@@ -532,8 +591,11 @@ onMounted(load)
             format="DD.MM.YYYY HH:mm"
           />
           <p class="lotax-caption mt-1">
-            Без лимита на водителя · системные баллы · Excel без ФИО и телефона
+            Много билетов на водителя. Напоминание в день эфира — push со ссылкой Zoom, не кнопка на этой форме.
           </p>
+        </a-form-item>
+        <a-form-item v-else label="Один раз на водителя">
+          <a-switch v-model:checked="form.one_per_driver" />
         </a-form-item>
         <a-form-item v-if="isRaffle" label="Места призов">
           <RafflePrizeFields
@@ -547,11 +609,7 @@ onMounted(load)
           <div class="flex items-center gap-2">
             <a-switch v-model:checked="form.is_active" />
             <span class="text-[13px] text-ink-muted">
-              {{
-                form.is_active
-                  ? 'Активна · видна водителям, пуш отправит сервер'
-                  : 'Неактивна · пуш не уйдёт'
-              }}
+              {{ activeHint }}
             </span>
           </div>
         </a-form-item>

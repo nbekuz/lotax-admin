@@ -218,7 +218,7 @@ onMounted(() => {
   <div class="flex flex-col gap-4 md:gap-6">
     <PageHeader
       title="Push по организациям"
-      subtitle="История рассылок · новый push — через кнопку"
+      subtitle="Напоминание перед эфиром и другие рассылки. Пуш при создании купона сервер шлёт сам."
     >
       <template #actions>
         <a-button type="primary" class="lotax-btn-primary" @click="openCreate">
@@ -316,6 +316,9 @@ onMounted(() => {
       destroy-on-close
       :footer="null"
     >
+      <p class="mb-3 text-[13px] leading-relaxed text-ink-muted">
+        Перед эфиром укажите ссылку Zoom в тексте. Это не повтор пуша, который сервер уже отправил при создании активного купона.
+      </p>
       <a-form layout="vertical" class="mt-2">
         <a-form-item label="Категория">
           <a-select
@@ -328,7 +331,7 @@ onMounted(() => {
           <a-input
             v-model:value="form.title"
             :maxlength="120"
-            placeholder="Акция LOTAX"
+            placeholder="Розыгрыш LOTAX сейчас"
           />
         </a-form-item>
         <a-form-item label="Текст" required>
@@ -336,7 +339,7 @@ onMounted(() => {
             v-model:value="form.body"
             :rows="4"
             :maxlength="500"
-            placeholder="Купите купон розыгрыша и выиграйте приз"
+            placeholder="Эфир: https://zoom.us/…"
           />
         </a-form-item>
         <a-form-item>

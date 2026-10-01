@@ -167,7 +167,7 @@ onUnmounted(() => {
 
 <template>
   <div class="forgot-page">
-    <div class="forgot-top shrink-0">
+    <div class="forgot-top">
       <button type="button" class="forgot-back" @click="router.push('/login')">
         ← Ко входу
       </button>
@@ -178,7 +178,7 @@ onUnmounted(() => {
       <p class="mt-2 text-[14px] text-ink-muted">Восстановление пароля</p>
     </BrandMark>
 
-    <div v-if="!roomId" class="lotax-card p-5">
+    <div v-if="!roomId" class="lotax-card shrink-0 p-5">
       <p class="mb-4 text-[14px] text-ink-muted">
         Напишите super-admin. Пароль ставит только он — в чате видно, кто ответил.
       </p>
@@ -230,6 +230,7 @@ onUnmounted(() => {
   max-width: 32rem;
   height: 100vh;
   height: 100dvh;
+  max-height: 100dvh;
   margin: 0 auto;
   flex-direction: column;
   gap: 16px;
@@ -239,6 +240,7 @@ onUnmounted(() => {
 
 .forgot-top {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -267,7 +269,7 @@ onUnmounted(() => {
 .forgot-chat__messages {
   display: flex;
   min-height: 0;
-  flex: 1;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 10px;
   overflow-x: hidden;
