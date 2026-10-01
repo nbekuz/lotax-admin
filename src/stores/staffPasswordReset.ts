@@ -2,11 +2,29 @@ import { defineStore } from 'pinia'
 import { staffPasswordResetApi } from '@/api/staffPasswordReset'
 import type { StaffPasswordResetMessage, StaffPasswordResetRoom } from '@/types/staffPasswordReset'
 
+const SEEN_KEY = 'lotax.staffPasswordSeen'
+
+function roomStamp(room: Pick<StaffPasswordResetRoom, 'last_message_at' | 'created_at'>) {
+  return room.last_message_at || room.created_at
+}
+
+function readSeen(): Record<string, string> {
+  try {
+    const raw = sessionStorage.getItem(SEEN_KEY)
+    const parsed = raw ? (JSON.parse(raw) as Record<string, string>) : {}
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
 export const useStaffPasswordResetStore = defineStore('staffPasswordReset', {
   state: () => ({
     rooms: [] as StaffPasswordResetRoom[],
     roomsTotal: 0,
     openCount: 0,
+    viewing: false,
+    seen: readSeen() as Record<string, string>,
     statusFilter: 'open' as 'open' | 'closed' | 'all',
     activeRoomId: null as string | null,
     messages: [] as StaffPasswordResetMessage[],
@@ -22,9 +40,29 @@ export const useStaffPasswordResetStore = defineStore('staffPasswordReset', {
   },
 
   actions: {
+    persistSeen() {
+      sessionStorage.setItem(SEEN_KEY, JSON.stringify(this.seen))
+    },
+
+    applyBadge(rooms: StaffPasswordResetRoom[]) {
+      const open = rooms.filter((room) => room.status === 'open' || room.status === 'active')
+      if (this.viewing) {
+        for (const room of open) this.seen[room.id] = roomStamp(room)
+        this.persistSeen()
+        this.openCount = 0
+        return
+      }
+      this.openCount = open.filter((room) => this.seen[room.id] !== roomStamp(room)).length
+    },
+
+    setViewing(active: boolean) {
+      this.viewing = active
+      if (active) this.applyBadge(this.rooms)
+    },
+
     async fetchOpenCount() {
       const { data } = await staffPasswordResetApi.listRooms('open')
-      this.openCount = data.total ?? 0
+      this.applyBadge(data.items ?? [])
     },
 
     async fetchRooms(options?: { silent?: boolean }) {
@@ -33,7 +71,8 @@ export const useStaffPasswordResetStore = defineStore('staffPasswordReset', {
         const { data } = await staffPasswordResetApi.listRooms(this.statusFilter)
         this.rooms = data.items ?? []
         this.roomsTotal = data.total ?? this.rooms.length
-        if (this.statusFilter === 'open') this.openCount = this.roomsTotal
+        if (this.statusFilter === 'open') this.applyBadge(this.rooms)
+        else void this.fetchOpenCount()
       } finally {
         if (!options?.silent) this.loadingRooms = false
       }

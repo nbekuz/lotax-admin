@@ -177,8 +177,12 @@ watch(
   },
 )
 
-onMounted(bootstrap)
+onMounted(() => {
+  store.setViewing(true)
+  void bootstrap()
+})
 onUnmounted(() => {
+  store.setViewing(false)
   disposed = true
   stopPolling()
   const current = socket

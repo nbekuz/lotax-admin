@@ -8,11 +8,28 @@ import type {
 } from '@/types/passwordReset'
 
 const POLL_MS = 8000
+const SEEN_KEY = 'lotax.passwordResetSeen'
+
+function roomStamp(room: { last_message_at?: string | null; created_at: string }) {
+  return room.last_message_at || room.created_at
+}
+
+function readSeen(): Record<string, string> {
+  try {
+    const raw = sessionStorage.getItem(SEEN_KEY)
+    const parsed = raw ? (JSON.parse(raw) as Record<string, string>) : {}
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
 
 interface PasswordResetState {
   rooms: PasswordResetRoom[]
   roomsTotal: number
   openCount: number
+  viewing: boolean
+  seen: Record<string, string>
   statusFilter: PasswordResetRoomsFilter
   activeRoomId: string | null
   messages: PasswordResetMessage[]
@@ -40,6 +57,8 @@ export const usePasswordResetStore = defineStore('passwordReset', {
     rooms: [],
     roomsTotal: 0,
     openCount: 0,
+    viewing: false,
+    seen: readSeen(),
     statusFilter: 'open',
     activeRoomId: null,
     messages: [],
@@ -58,13 +77,33 @@ export const usePasswordResetStore = defineStore('passwordReset', {
   },
 
   actions: {
+    persistSeen() {
+      sessionStorage.setItem(SEEN_KEY, JSON.stringify(this.seen))
+    },
+
+    applyBadge(rooms: PasswordResetRoom[]) {
+      const open = rooms.filter((room) => room.status === 'open')
+      if (this.viewing) {
+        for (const room of open) this.seen[room.id] = roomStamp(room)
+        this.persistSeen()
+        this.openCount = 0
+        return
+      }
+      this.openCount = open.filter((room) => this.seen[room.id] !== roomStamp(room)).length
+    },
+
+    setViewing(active: boolean) {
+      this.viewing = active
+      if (active) this.applyBadge(this.rooms)
+    },
+
     async fetchOpenCount() {
       const { data } = await passwordResetApi.listRooms({
         status: 'open',
         page: 1,
-        page_size: 1,
+        page_size: 50,
       })
-      this.openCount = data.total ?? 0
+      this.applyBadge(data.items ?? [])
     },
 
     async fetchRooms() {
@@ -78,7 +117,7 @@ export const usePasswordResetStore = defineStore('passwordReset', {
         this.rooms = sortRooms(data.items ?? [])
         this.roomsTotal = data.total ?? this.rooms.length
         if (this.statusFilter === 'open') {
-          this.openCount = this.roomsTotal
+          this.applyBadge(this.rooms)
         } else {
           void this.fetchOpenCount()
         }

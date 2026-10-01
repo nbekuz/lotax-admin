@@ -57,6 +57,7 @@ const activeSubtitle = computed(() => {
 async function bootstrap() {
   try {
     await Promise.all([chat.fetchConversations(), chat.fetchNotifications()])
+    await chat.acknowledgeInbox()
 
     const routeId = route.params.id
     if (typeof routeId === 'string' && routeId) {

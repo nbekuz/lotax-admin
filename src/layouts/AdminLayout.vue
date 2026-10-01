@@ -123,7 +123,7 @@ const showAnalyticsHub = computed(
   () => auth.canViewReports || auth.canViewPdnAudit,
 )
 
-function chatMenuLabel(text: string, unread = chat.totalUnread) {
+function chatMenuLabel(text: string, unread = chat.appealUnread) {
   return h(
     'span',
     {
@@ -147,7 +147,7 @@ function navGroup(label: string, children: Record<string, unknown>[]) {
 }
 
 const menuItems = computed((): any[] => {
-  const unreadCount = chat.totalUnread
+  const unreadCount = chat.appealUnread
 
   if (auth.isPlatformOperator) {
     const platform = [
@@ -641,8 +641,8 @@ function toggleNav() {
               title="Уведомления"
             >
               <BellOutlined />
-              <span v-if="chat.totalUnread" class="lotax-notify-count">
-                {{ chat.totalUnread > 99 ? '99+' : chat.totalUnread }}
+              <span v-if="chat.appealUnread" class="lotax-notify-count">
+                {{ chat.appealUnread > 99 ? '99+' : chat.appealUnread }}
               </span>
             </button>
             <template #content>

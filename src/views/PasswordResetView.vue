@@ -184,11 +184,13 @@ function confirmCloseRoom() {
 }
 
 onMounted(() => {
+  store.setViewing(true)
   void bootstrap()
   store.startPolling()
 })
 
 onUnmounted(() => {
+  store.setViewing(false)
   store.stopPolling()
 })
 

@@ -92,6 +92,15 @@ export const useChatStore = defineStore('chat', {
       if (!state.messages.length) return null
       return state.messages[state.messages.length - 1]?.id ?? null
     },
+    appealUnread(state): number {
+      return state.notifications
+        .filter(
+          (item) =>
+            item.conversation_type === 'support' ||
+            item.conversation_type === 'staff',
+        )
+        .reduce((sum, item) => sum + (item.unread_count || 0), 0)
+    },
   },
 
   actions: {
@@ -212,6 +221,23 @@ export const useChatStore = defineStore('chat', {
       } finally {
         this.sending = false
       }
+    },
+
+    async acknowledgeInbox() {
+      const ids = new Set(
+        this.conversations.filter((item) => item.unread_count > 0).map((item) => item.id),
+      )
+      for (const item of this.notifications) {
+        if (
+          (item.conversation_type === 'support' || item.conversation_type === 'staff') &&
+          item.unread_count > 0
+        ) {
+          ids.add(item.conversation_id)
+        }
+      }
+      await Promise.all([...ids].map((id) => chatApi.markRead(id)))
+      for (const conversation of this.conversations) conversation.unread_count = 0
+      await this.fetchNotifications()
     },
 
     async markRead(conversationId: string) {
