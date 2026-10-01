@@ -20,7 +20,6 @@ import {
   formatPhone,
   roleLabel,
   adminStatusLabel,
-  adminStatusTone,
 } from '@/utils/labels'
 import InfoField from '@/components/InfoField.vue'
 import CopyableId from '@/components/CopyableId.vue'
@@ -478,37 +477,38 @@ onMounted(load)
       </div>
     </section>
 
-    <section class="lotax-card p-5 md:p-7">
-      <h2 class="lotax-section-title mb-5">Сотрудники ЛК</h2>
+    <section class="lotax-card p-4 md:p-5">
+      <h2 class="lotax-section-title mb-4">Сотрудники ЛК</h2>
       <div v-if="!orgs.staff.length" class="lotax-caption py-6 text-center">
         Сотрудников пока нет
       </div>
-      <div v-else class="flex flex-col gap-3">
-        <div
-          v-for="member in orgs.staff"
-          :key="member.id"
-          class="flex flex-col gap-1 rounded-xl border border-line bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div>
-            <div class="font-medium text-ink">
-              {{ member.first_name }} {{ member.last_name }}
-            </div>
-            <div class="text-[13px] text-ink-muted">{{ member.email }}</div>
+      <div v-else class="flex flex-col gap-2">
+        <article v-for="member in orgs.staff" :key="member.id" class="staff-row">
+          <div class="staff-row__main">
+            <span class="staff-row__name">{{ member.first_name }} {{ member.last_name }}</span>
+            <span class="staff-row__email">{{ member.email }}</span>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="staff-row__side">
             <span
-              class="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-1 text-[13px] font-medium text-brand ring-1 ring-inset ring-orange-200"
+              class="lotax-badge"
+              :class="member.role === 'director' ? 'lotax-badge--warning' : 'lotax-badge--info'"
             >
               {{ roleLabel[member.role] }}
             </span>
             <span
-              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-medium ring-1 ring-inset"
-              :class="adminStatusTone[member.status]"
+              class="lotax-badge"
+              :class="
+                member.status === 'active'
+                  ? 'lotax-badge--success'
+                  : member.status === 'blocked'
+                    ? 'lotax-badge--danger'
+                    : 'lotax-badge--muted'
+              "
             >
               {{ adminStatusLabel[member.status] }}
             </span>
           </div>
-        </div>
+        </article>
       </div>
     </section>
 
@@ -678,6 +678,66 @@ onMounted(load)
 
   .park-row__side {
     flex-wrap: nowrap;
+  }
+}
+
+.staff-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--lotax-border);
+  border-radius: 14px;
+  background: transparent;
+}
+
+.staff-row__main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.staff-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--lotax-text);
+}
+
+.staff-row__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--lotax-text-secondary);
+}
+
+.staff-row__side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .staff-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .staff-row__side {
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    margin-left: auto;
   }
 }
 </style>
