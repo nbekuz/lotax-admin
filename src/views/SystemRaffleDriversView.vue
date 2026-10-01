@@ -210,7 +210,7 @@ onMounted(load)
           :data-source="filtered"
           :row-class-name="rowClass"
           :columns="[
-            { title: '№', dataIndex: 'ticket_no', width: 80 },
+            { title: '№', dataIndex: 'ticket_no', width: 120 },
             { title: 'ФИО', dataIndex: 'driver_display_name' },
             { title: 'Телефон', dataIndex: 'driver_phone', width: 170 },
             { title: 'Дата', key: 'purchased_at', width: 160 },
