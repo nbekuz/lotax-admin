@@ -437,48 +437,44 @@ onMounted(load)
       <div v-if="!orgs.parks.length" class="lotax-caption py-6 text-center">
         Парков пока нет — добавьте первый
       </div>
-      <div v-else class="flex flex-col gap-3">
-        <div
+      <div v-else class="flex flex-col gap-2">
+        <article
           v-for="park in orgs.parks"
           :key="park.id"
-          class="flex flex-col gap-2 rounded-[12px] border border-line bg-surface px-3 py-2.5 md:flex-row md:items-center md:justify-between"
+          class="park-row"
         >
-          <button
-            type="button"
-            class="min-w-0 flex-1 text-left"
-            @click="openEditPark(park)"
-          >
-            <div class="font-medium text-ink">{{ park.name }}</div>
-            <div class="font-mono text-[13px] text-ink-muted">
+          <button type="button" class="park-row__main" @click="openEditPark(park)">
+            <span class="park-row__name">{{ park.name }}</span>
+            <span class="park-row__id">
               {{ park.yandex_park_id || 'Без Yandex ID' }}
-            </div>
+            </span>
           </button>
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="park-row__side">
             <span
-              class="rounded-full px-2.5 py-1 text-[13px] font-medium ring-1 ring-inset"
-              :class="
-                park.subscription_active
-                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                  : 'bg-red-50 text-red-700 ring-red-200'
-              "
+              class="lotax-badge"
+              :class="park.subscription_active ? 'lotax-badge--success' : 'lotax-badge--danger'"
             >
               {{ park.subscription_active ? 'Подписка' : 'Нет подписки' }}
             </span>
-            <span class="text-[13px] text-ink-muted">
+            <span
+              class="lotax-badge"
+              :class="park.has_yandex_api_key ? 'lotax-badge--info' : 'lotax-badge--muted'"
+            >
               {{ park.has_yandex_api_key ? 'API-ключ задан' : 'Нет API-ключа' }}
             </span>
-            <a-button class="lotax-btn-secondary" @click="openEditPark(park)">
+            <a-button size="small" class="lotax-btn-secondary" @click="openEditPark(park)">
               Изменить
             </a-button>
             <a-button
               v-if="auth.canDeleteOrganizations"
+              size="small"
               danger
               @click="confirmDeletePark(park)"
             >
               Удалить
             </a-button>
           </div>
-        </div>
+        </article>
       </div>
     </section>
 
@@ -614,5 +610,74 @@ onMounted(load)
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+}
+
+.park-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--lotax-border);
+  border-radius: 14px;
+  background: transparent;
+}
+
+.park-row__main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+
+.park-row__name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--lotax-text);
+}
+
+.park-row__id {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--lotax-text-tertiary);
+}
+
+.park-row__side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .park-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .park-row__side {
+    flex-wrap: nowrap;
+  }
 }
 </style>
