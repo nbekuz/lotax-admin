@@ -295,6 +295,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'system-raffles/:id',
+        name: 'system-raffle-drivers',
+        component: () => import('@/views/SystemRaffleDriversView.vue'),
+        meta: {
+          title: 'Билеты розыгрыша',
+          roles: ['director', 'manager'],
+        },
+      },
+      {
         path: 'password-reset',
         name: 'password-reset',
         component: () => import('@/views/PasswordResetView.vue'),

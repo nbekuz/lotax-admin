@@ -8,6 +8,12 @@ export interface RafflePrizePlace {
 export interface SystemRaffleListItem {
   id: string
   title: string
+  description?: string | null
+  image_url?: string | null
+  points_cost?: number | null
+  stock_total?: number | null
+  stock_remaining?: number | null
+  min_tier?: string | null
   raffle_date?: string | null
   prize_places?: RafflePrizePlace[]
   is_active: boolean

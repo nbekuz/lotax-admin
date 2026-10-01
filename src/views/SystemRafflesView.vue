@@ -1,28 +1,66 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
+import {
+  DownloadOutlined,
+  GiftOutlined,
+  ReloadOutlined,
+  TeamOutlined,
+} from '@ant-design/icons-vue'
 import {
   systemRafflesApi,
   type SystemRaffleListItem,
-  type SystemRaffleTicket,
 } from '@/api/systemRaffles'
 import PageHeader from '@/components/PageHeader.vue'
+import TierBadge from '@/components/TierBadge.vue'
 import {
   filenameFromContentDisposition,
   messageFromBlobError,
   triggerBlobDownload,
 } from '@/utils/download'
-import { extractErrorMessage } from '@/utils/labels'
+import { extractErrorMessage, rewardTypeLabel } from '@/utils/labels'
+import type { DriverTier } from '@/types/api'
 
+const router = useRouter()
 const loading = ref(false)
 const items = ref<SystemRaffleListItem[]>([])
-const selected = ref<SystemRaffleListItem | null>(null)
-const tickets = ref<SystemRaffleTicket[]>([])
-const ticketsLoading = ref(false)
-const exporting = ref(false)
-const query = ref('')
+const exportingId = ref<string | null>(null)
+
+const total = computed(() => items.value.length)
+const activeCount = computed(() => items.value.filter((item) => item.is_active).length)
+const ticketCount = computed(() =>
+  items.value.reduce((sum, item) => sum + (item.tickets_in_org || 0), 0),
+)
+
+function stockLabel(item: SystemRaffleListItem) {
+  if (item.stock_total == null) return 'Без лимита'
+  const left = item.stock_remaining ?? item.stock_total
+  return `${left} / ${item.stock_total}`
+}
+
+function prizeSummary(item: SystemRaffleListItem) {
+  const places = [...(item.prize_places ?? [])].sort((a, b) => a.place - b.place)
+  if (!places.length) return ''
+  const unique = new Set(places.map((row) => row.prize))
+  if (unique.size === 1) {
+    return places.length === 1
+      ? `${places[0].place}. ${places[0].prize}`
+      : `${places.length} одинаковых · ${places[0].prize}`
+  }
+  const shown = places.slice(0, 4).map((row) => `${row.place}. ${row.prize}`)
+  const extra = places.length - shown.length
+  return extra > 0 ? `${shown.join(' · ')} · ещё ${extra}` : shown.join(' · ')
+}
+
+function tierOf(item: SystemRaffleListItem): DriverTier {
+  const tier = item.min_tier
+  if (tier === 'silver' || tier === 'gold' || tier === 'platinum' || tier === 'bronze') {
+    return tier
+  }
+  return 'bronze'
+}
 
 async function load() {
   loading.value = true
@@ -36,47 +74,24 @@ async function load() {
   }
 }
 
-async function openRaffle(item: SystemRaffleListItem) {
-  selected.value = item
-  query.value = ''
-  ticketsLoading.value = true
+async function download(item: SystemRaffleListItem) {
+  exportingId.value = item.id
   try {
-    const { data } = await systemRafflesApi.tickets(item.id)
-    tickets.value = data.items ?? []
-  } catch (e) {
-    tickets.value = []
-    message.error(extractErrorMessage(e))
-  } finally {
-    ticketsLoading.value = false
-  }
-}
-
-function matches(ticket: SystemRaffleTicket) {
-  const q = query.value.trim().toLowerCase()
-  if (!q) return true
-  const name = `${ticket.driver_first_name ?? ''} ${ticket.driver_last_name ?? ''} ${ticket.driver_display_name}`.toLowerCase()
-  return (
-    String(ticket.ticket_no) === q ||
-    name.includes(q) ||
-    ticket.driver_phone.toLowerCase().includes(q)
-  )
-}
-
-async function download() {
-  if (!selected.value) return
-  exporting.value = true
-  try {
-    const response = await systemRafflesApi.exportXlsx(selected.value.id)
+    const response = await systemRafflesApi.exportXlsx(item.id)
     const filename = filenameFromContentDisposition(
       response.headers['content-disposition'] as string | undefined,
-      `coupons_${selected.value.id}.xlsx`,
+      `coupons_${item.id}.xlsx`,
     )
     triggerBlobDownload(response.data, filename)
   } catch (e) {
     message.error(await messageFromBlobError(e, 'Не удалось скачать'))
   } finally {
-    exporting.value = false
+    exportingId.value = null
   }
+}
+
+function openDrivers(item: SystemRaffleListItem) {
+  router.push({ name: 'system-raffle-drivers', params: { id: item.id } })
 }
 
 onMounted(load)
@@ -86,7 +101,7 @@ onMounted(load)
   <div class="flex flex-col gap-4 md:gap-5">
     <PageHeader
       title="Купоны LOTAX"
-      subtitle="Системные розыгрыши. В таблице только водители вашего парка."
+      subtitle="Системные розыгрыши. Билеты и Excel — только водители вашего парка."
     >
       <template #actions>
         <a-button class="lotax-btn-secondary" @click="load">
@@ -100,63 +115,152 @@ onMounted(load)
       <a-spin size="large" />
     </div>
 
-    <div v-else class="grid gap-3 md:grid-cols-2">
-      <button
-        v-for="item in items"
-        :key="item.id"
-        type="button"
-        class="lotax-card p-4 text-left"
-        :class="selected?.id === item.id ? 'ring-2 ring-brand' : ''"
-        @click="openRaffle(item)"
-      >
-        <p class="text-[16px] font-semibold text-ink">{{ item.title }}</p>
-        <p class="mt-1 text-[13px] text-ink-muted">
-          {{ item.raffle_date ? dayjs(item.raffle_date).format('DD.MM.YYYY HH:mm') : 'Дата не задана' }}
-          · купонов: {{ item.tickets_in_org }}
-        </p>
-        <p v-if="item.prize_places?.length" class="mt-2 text-[13px] text-ink">
-          <span v-for="place in item.prize_places" :key="place.place" class="mr-3">
-            {{ place.place }} — {{ place.prize }}
-          </span>
-        </p>
-      </button>
-      <p v-if="!items.length" class="text-[14px] text-ink-muted">Системных розыгрышей нет</p>
-    </div>
-
-    <section v-if="selected" class="lotax-card !p-0">
-      <div class="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 class="text-[16px] font-semibold text-ink">{{ selected.title }}</h2>
-          <p class="text-[13px] text-ink-muted">№ купона, ФИО, телефон — только свои водители</p>
+    <template v-else>
+      <div v-if="items.length" class="grid grid-cols-3 gap-3 sm:max-w-xl">
+        <div class="lotax-card px-3 py-3 sm:px-4">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+            Всего
+          </p>
+          <p class="mt-1 text-[20px] font-semibold tabular-nums text-ink">
+            {{ total }}
+          </p>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <a-input v-model:value="query" allow-clear placeholder="№, имя или телефон" class="!w-56" />
-          <a-button class="lotax-btn-secondary" :loading="exporting" @click="download">
-            <template #icon><DownloadOutlined /></template>
-            Excel
-          </a-button>
+        <div class="lotax-card px-3 py-3 sm:px-4">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+            Активны
+          </p>
+          <p class="mt-1 text-[20px] font-semibold tabular-nums text-[var(--lotax-success)]">
+            {{ activeCount }}
+          </p>
+        </div>
+        <div class="lotax-card px-3 py-3 sm:px-4">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+            Билеты
+          </p>
+          <p class="mt-1 text-[20px] font-semibold tabular-nums text-ink">
+            {{ ticketCount }}
+          </p>
         </div>
       </div>
-      <a-table
-        row-key="ticket_no"
-        :loading="ticketsLoading"
-        :pagination="false"
-        :data-source="tickets.filter(matches)"
-        :columns="[
-          { title: '№', dataIndex: 'ticket_no', width: 70 },
-          { title: 'ФИО', dataIndex: 'driver_display_name' },
-          { title: 'Телефон', dataIndex: 'driver_phone', width: 160 },
-          { title: 'Дата', key: 'purchased_at', width: 150 },
-          { title: 'Баллы', dataIndex: 'points_spent', width: 90 },
-          { title: 'Парк', dataIndex: 'park_name' },
-        ]"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'purchased_at'">
-            {{ dayjs(record.purchased_at).format('DD.MM.YYYY HH:mm') }}
-          </template>
-        </template>
-      </a-table>
-    </section>
+
+      <div v-if="!items.length" class="lotax-card lotax-empty">
+        <div class="lotax-empty__icon">
+          <GiftOutlined />
+        </div>
+        <p class="text-[16px] font-semibold text-ink">Розыгрышей пока нет</p>
+        <p class="lotax-caption mt-1 max-w-sm">
+          Когда супер-админ запустит купон LOTAX, он появится здесь.
+        </p>
+      </div>
+
+      <div v-else class="flex flex-col gap-3">
+        <article
+          v-for="item in items"
+          :key="item.id"
+          class="lotax-card lotax-card-hover overflow-hidden"
+        >
+          <div class="flex flex-col gap-4 p-4 md:flex-row md:items-center md:gap-5">
+            <div
+              class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[14px] bg-[var(--lotax-bg)] ring-1 ring-line sm:h-[72px] sm:w-[72px]"
+            >
+              <img
+                v-if="item.image_url"
+                :src="item.image_url"
+                alt=""
+                class="h-full w-full object-cover"
+              />
+              <GiftOutlined v-else class="text-[22px] text-ink-muted" />
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-start gap-2">
+                <h3 class="min-w-0 flex-1 text-[15px] font-semibold leading-snug text-ink sm:text-[16px]">
+                  {{ item.title }}
+                </h3>
+                <span
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1 ring-inset"
+                  :class="
+                    item.is_active
+                      ? 'bg-[var(--lotax-success-soft)] text-[var(--lotax-success)] ring-[var(--lotax-success)]/20'
+                      : 'bg-[var(--lotax-bg)] text-ink-muted ring-line'
+                  "
+                >
+                  <span
+                    class="h-1.5 w-1.5 rounded-full"
+                    :class="item.is_active ? 'bg-[var(--lotax-success)]' : 'bg-ink-muted'"
+                    aria-hidden="true"
+                  />
+                  {{ item.is_active ? 'Активна' : 'Неактивна' }}
+                </span>
+              </div>
+
+              <p
+                v-if="item.description"
+                class="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-muted"
+              >
+                {{ item.description }}
+              </p>
+
+              <div class="mt-3 flex flex-wrap items-center gap-2">
+                <span
+                  v-if="item.points_cost"
+                  class="inline-flex items-center rounded-full bg-[var(--lotax-primary-soft)] px-2.5 py-1 text-[12px] font-semibold tabular-nums text-[var(--lotax-primary)]"
+                >
+                  {{ item.points_cost }} б.
+                </span>
+                <span
+                  class="inline-flex items-center rounded-full bg-[var(--lotax-bg)] px-2.5 py-1 text-[12px] font-medium text-ink ring-1 ring-inset ring-line"
+                >
+                  {{ rewardTypeLabel.raffle_coupon }}
+                </span>
+                <TierBadge :tier="tierOf(item)" />
+                <span
+                  class="inline-flex items-center rounded-full bg-[var(--lotax-bg)] px-2.5 py-1 text-[12px] font-medium text-ink-muted ring-1 ring-inset ring-line"
+                >
+                  Запас · {{ stockLabel(item) }}
+                </span>
+                <span
+                  class="inline-flex items-center rounded-full bg-[var(--lotax-bg)] px-2.5 py-1 text-[12px] font-medium text-ink ring-1 ring-inset ring-line"
+                >
+                  Билетов · {{ item.tickets_in_org }}
+                </span>
+                <span
+                  v-if="item.raffle_date"
+                  class="inline-flex items-center rounded-full bg-[var(--lotax-info-soft)] px-2.5 py-1 text-[12px] font-medium text-[var(--lotax-info)] ring-1 ring-inset ring-[var(--lotax-info)]/15"
+                >
+                  Розыгрыш {{ dayjs(item.raffle_date).format('DD.MM.YYYY HH:mm') }}
+                </span>
+              </div>
+
+              <p v-if="prizeSummary(item)" class="mt-2 text-[13px] leading-relaxed text-ink">
+                {{ prizeSummary(item) }}
+              </p>
+              <p class="mt-1 text-[12px] leading-relaxed text-ink-muted">
+                Excel с ФИО и телефоном — только ваши водители. Номер билета ищите на странице «Водители».
+              </p>
+            </div>
+
+            <div class="flex shrink-0 flex-wrap items-center gap-2 border-t border-line pt-3 md:border-t-0 md:pt-0">
+              <a-button
+                class="lotax-btn-secondary"
+                :loading="exportingId === item.id"
+                @click="download(item)"
+              >
+                <template #icon><DownloadOutlined /></template>
+                Скачать
+              </a-button>
+              <a-button
+                type="primary"
+                class="lotax-btn-primary"
+                @click="openDrivers(item)"
+              >
+                <template #icon><TeamOutlined /></template>
+                Водители
+              </a-button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </template>
   </div>
 </template>
