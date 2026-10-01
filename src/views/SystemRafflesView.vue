@@ -3,30 +3,19 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import {
-  DownloadOutlined,
-  GiftOutlined,
-  ReloadOutlined,
-  TeamOutlined,
-} from '@ant-design/icons-vue'
+import { GiftOutlined, ReloadOutlined, TeamOutlined } from '@ant-design/icons-vue'
 import {
   systemRafflesApi,
   type SystemRaffleListItem,
 } from '@/api/systemRaffles'
 import PageHeader from '@/components/PageHeader.vue'
 import TierBadge from '@/components/TierBadge.vue'
-import {
-  filenameFromContentDisposition,
-  messageFromBlobError,
-  triggerBlobDownload,
-} from '@/utils/download'
 import { extractErrorMessage, rewardTypeLabel } from '@/utils/labels'
 import type { DriverTier } from '@/types/api'
 
 const router = useRouter()
 const loading = ref(false)
 const items = ref<SystemRaffleListItem[]>([])
-const exportingId = ref<string | null>(null)
 
 const total = computed(() => items.value.length)
 const activeCount = computed(() => items.value.filter((item) => item.is_active).length)
@@ -74,22 +63,6 @@ async function load() {
   }
 }
 
-async function download(item: SystemRaffleListItem) {
-  exportingId.value = item.id
-  try {
-    const response = await systemRafflesApi.exportXlsx(item.id)
-    const filename = filenameFromContentDisposition(
-      response.headers['content-disposition'] as string | undefined,
-      `coupons_${item.id}.xlsx`,
-    )
-    triggerBlobDownload(response.data, filename)
-  } catch (e) {
-    message.error(await messageFromBlobError(e, 'Не удалось скачать'))
-  } finally {
-    exportingId.value = null
-  }
-}
-
 function openDrivers(item: SystemRaffleListItem) {
   router.push({ name: 'system-raffle-drivers', params: { id: item.id } })
 }
@@ -101,7 +74,7 @@ onMounted(load)
   <div class="flex flex-col gap-4 md:gap-5">
     <PageHeader
       title="Купоны LOTAX"
-      subtitle="Системные розыгрыши. Билеты и Excel — только водители вашего парка."
+      subtitle="Системные розыгрыши. Билеты — только водители вашего парка."
     >
       <template #actions>
         <a-button class="lotax-btn-secondary" @click="load">
@@ -236,19 +209,11 @@ onMounted(load)
                 {{ prizeSummary(item) }}
               </p>
               <p class="mt-1 text-[12px] leading-relaxed text-ink-muted">
-                Excel с ФИО и телефоном — только ваши водители. Номер билета ищите на странице «Водители».
+                Номер билета ищите на странице «Водители» — только ваши водители.
               </p>
             </div>
 
             <div class="flex shrink-0 flex-wrap items-center gap-2 border-t border-line pt-3 md:border-t-0 md:pt-0">
-              <a-button
-                class="lotax-btn-secondary"
-                :loading="exportingId === item.id"
-                @click="download(item)"
-              >
-                <template #icon><DownloadOutlined /></template>
-                Скачать
-              </a-button>
               <a-button
                 type="primary"
                 class="lotax-btn-primary"

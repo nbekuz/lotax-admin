@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
-  DownloadOutlined,
   GiftOutlined,
   LeftOutlined,
   ReloadOutlined,
@@ -15,11 +14,6 @@ import {
   type SystemRaffleListItem,
   type SystemRaffleTicket,
 } from '@/api/systemRaffles'
-import {
-  filenameFromContentDisposition,
-  messageFromBlobError,
-  triggerBlobDownload,
-} from '@/utils/download'
 import { extractErrorMessage } from '@/utils/labels'
 
 const route = useRoute()
@@ -27,7 +21,6 @@ const router = useRouter()
 
 const raffleId = computed(() => String(route.params.id || ''))
 const loading = ref(false)
-const exporting = ref(false)
 const raffle = ref<SystemRaffleListItem | null>(null)
 const rewardTitle = ref('')
 const tickets = ref<SystemRaffleTicket[]>([])
@@ -76,22 +69,6 @@ async function load() {
   }
 }
 
-async function download() {
-  exporting.value = true
-  try {
-    const response = await systemRafflesApi.exportXlsx(raffleId.value)
-    const filename = filenameFromContentDisposition(
-      response.headers['content-disposition'] as string | undefined,
-      `coupons_${raffleId.value}.xlsx`,
-    )
-    triggerBlobDownload(response.data, filename)
-  } catch (e) {
-    message.error(await messageFromBlobError(e, 'Не удалось скачать'))
-  } finally {
-    exporting.value = false
-  }
-}
-
 function rowClass(record: SystemRaffleTicket) {
   if (exact.value && record.ticket_no === exact.value.ticket_no) {
     return 'raffle-ticket-hit'
@@ -130,10 +107,6 @@ onMounted(load)
           <a-button class="lotax-btn-secondary" @click="load">
             <template #icon><ReloadOutlined /></template>
             Обновить
-          </a-button>
-          <a-button class="lotax-btn-secondary" :loading="exporting" @click="download">
-            <template #icon><DownloadOutlined /></template>
-            Скачать
           </a-button>
         </div>
       </header>
