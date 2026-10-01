@@ -65,6 +65,13 @@ export const useStaffPasswordResetStore = defineStore('staffPasswordReset', {
       this.applyBadge(data.items ?? [])
     },
 
+    async setStatusFilter(status: 'open' | 'closed' | 'all') {
+      this.statusFilter = status
+      this.activeRoomId = null
+      this.messages = []
+      await this.fetchRooms()
+    },
+
     async fetchRooms(options?: { silent?: boolean }) {
       if (!options?.silent) this.loadingRooms = true
       try {

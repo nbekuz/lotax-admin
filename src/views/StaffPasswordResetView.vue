@@ -1,19 +1,26 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { message } from 'ant-design-vue'
-import { KeyOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { message, Modal } from 'ant-design-vue'
+import {
+  CloseCircleOutlined,
+  KeyOutlined,
+  LockOutlined,
+  ReloadOutlined,
+  UserOutlined,
+} from '@ant-design/icons-vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
+import ChatMessageList from '@/components/chat/ChatMessageList.vue'
 import SetStaffPasswordModal from '@/components/SetStaffPasswordModal.vue'
-import PageHeader from '@/components/PageHeader.vue'
 import { API_BASE_URL } from '@/config'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAuthStore } from '@/stores/auth'
 import { useStaffPasswordResetStore } from '@/stores/staffPasswordReset'
 import { tokenStorage } from '@/utils/tokenStorage'
-import { formatChatTime, groupMessagesByDate } from '@/utils/chatDate'
+import { formatChatListTime } from '@/utils/chatDate'
 import { extractErrorMessage, roleLabel } from '@/utils/labels'
 import type { AdminRole } from '@/types/api'
+import type { ChatMessage } from '@/types/chat'
 import type { StaffPasswordResetMessage, StaffPasswordResetRoom } from '@/types/staffPasswordReset'
 
 const auth = useAuthStore()
@@ -50,7 +57,8 @@ const roomTitle = computed(() => {
 function senderLabel(item: StaffPasswordResetMessage) {
   const name = item.sender_name?.trim() || 'Сотрудник'
   const role = item.sender_role?.trim()
-  return role ? `${name} · ${role}` : name
+  const roleText = role ? roleLabel[role as AdminRole] || role : ''
+  return roleText ? `${name} · ${roleText}` : name
 }
 
 function roomName(room: StaffPasswordResetRoom) {
@@ -61,23 +69,37 @@ function roomRole(room: StaffPasswordResetRoom) {
   return roleLabel[room.target_role as AdminRole] || room.target_role || ''
 }
 
-function roomStatusText(status: string) {
-  if (status === 'open' || status === 'active') return 'Активен'
-  if (status === 'closed') return 'Закрыт'
-  return status
-}
-
-function roomStatusClass(status: string) {
-  if (status === 'open' || status === 'active') return 'lotax-badge--success'
-  if (status === 'closed') return 'lotax-badge--muted'
-  return 'lotax-badge--warning'
-}
-
 function isMine(item: StaffPasswordResetMessage) {
   return item.sender_admin_id === auth.admin?.id
 }
 
-const groupedMessages = computed(() => groupMessagesByDate(store.messages))
+const threadMessages = computed<ChatMessage[]>(() =>
+  store.messages.map((item) => ({
+    id: item.id,
+    conversation_id: item.room_id,
+    body: item.body,
+    created_at: item.created_at,
+    sender_admin_id: item.sender_admin_id ?? '',
+    sender_type: isMine(item) ? 'initiator' : 'receiver',
+    sender_name: senderLabel(item),
+    is_mine: isMine(item),
+  })),
+)
+
+const roomSubtitle = computed(() => {
+  const room = store.activeRoom
+  if (!room) return ''
+  if (room.status === 'closed') return 'Комната закрыта'
+  const written = store.messages.find((item) => !isMine(item))?.body?.trim()
+  return written || 'Заявка на смену пароля'
+})
+
+const filterOptions = [
+  { value: 'open', label: 'Открытые' },
+  { value: 'closed', label: 'Закрытые' },
+  { value: 'all', label: 'Все' },
+] as const
+
 const showList = computed(() => !isMobile.value || !store.activeRoomId)
 const showThread = computed(() => !isMobile.value || Boolean(store.activeRoomId))
 
@@ -159,13 +181,32 @@ async function send(body: string) {
   }
 }
 
-async function closeRoom() {
+async function onFilterChange(status: 'open' | 'closed' | 'all') {
   try {
-    await store.closeActive()
-    message.success('Комната закрыта')
+    await store.setStatusFilter(status)
   } catch (e) {
     message.error(extractErrorMessage(e))
   }
+}
+
+function confirmCloseRoom() {
+  Modal.confirm({
+    title: 'Закрыть комнату?',
+    content: 'Сотрудник больше не сможет писать в эту заявку. Новый запрос откроет новую комнату.',
+    okText: 'Закрыть',
+    cancelText: 'Отмена',
+    okButtonProps: { danger: true },
+    centered: true,
+    async onOk() {
+      try {
+        await store.closeActive()
+        message.success('Комната закрыта')
+      } catch (e) {
+        message.error(extractErrorMessage(e, 'Не удалось закрыть комнату'))
+        throw e
+      }
+    },
+  })
 }
 
 watch(
@@ -192,96 +233,145 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="staff-page flex h-full min-h-0 flex-col">
-    <PageHeader v-if="!isMobile" class="staff-page-head shrink-0" title="Пароли сотрудников">
-      <template #actions>
-        <a-button class="lotax-btn-secondary" @click="bootstrap">
-          <template #icon><ReloadOutlined /></template>
-          Обновить
-        </a-button>
-      </template>
-    </PageHeader>
+  <div class="flex h-full min-h-0 flex-col gap-2">
+    <div class="lotax-card flex min-h-0 flex-1 overflow-hidden !p-0 !shadow-sm">
+      <div
+        v-if="showList"
+        class="h-full min-h-0 border-r border-line"
+        :class="isMobile ? 'w-full' : 'w-[340px] shrink-0 xl:w-[380px]'"
+      >
+        <div class="flex h-full min-h-0 flex-col bg-surface-card">
+          <div class="flex min-h-[64px] items-center gap-2 border-b border-line px-4 py-3">
+            <div class="min-w-0 flex-1">
+              <div class="text-[17px] font-semibold tracking-tight text-ink">Заявки</div>
+            </div>
+            <a-tooltip v-if="!isMobile" title="Обновить">
+              <a-button type="text" class="!h-9 !w-9" @click="bootstrap">
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </a-tooltip>
+          </div>
 
-    <div class="staff-layout">
-      <div v-if="showList" class="staff-list lotax-card">
-        <button
-          v-for="room in store.rooms"
-          :key="room.id"
-          type="button"
-          class="staff-room"
-          :class="{ 'is-active': store.activeRoomId === room.id }"
-          @click="store.selectRoom(room.id)"
-        >
-          <span class="staff-room__name">{{ roomName(room) }}</span>
-          <span class="staff-room__meta">
-            {{ roomRole(room) }}
-            · {{ room.last_message_preview || 'Нет сообщений' }}
-          </span>
-          <span class="staff-room__role">{{ roomRole(room) || 'Сотрудник' }}</span>
-          <span v-if="room.last_message_preview" class="staff-room__preview">
-            {{ room.last_message_preview }}
-          </span>
-          <span class="lotax-badge staff-room__status" :class="roomStatusClass(room.status)">
-            {{ roomStatusText(room.status) }}
-          </span>
-        </button>
-        <p v-if="!store.rooms.length" class="staff-list__empty">Открытых запросов нет</p>
+          <div class="border-b border-line px-3 py-2">
+            <a-segmented
+              :value="store.statusFilter"
+              block
+              :options="[...filterOptions]"
+              @change="(v: string | number) => onFilterChange(String(v) as 'open' | 'closed' | 'all')"
+            />
+          </div>
+
+          <div
+            v-if="store.loadingRooms && !store.rooms.length"
+            class="flex flex-1 items-center justify-center"
+          >
+            <a-spin />
+          </div>
+          <div
+            v-else-if="!store.rooms.length"
+            class="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center"
+          >
+            <div class="text-[15px] font-medium text-ink">Нет заявок</div>
+            <p class="text-[13px] leading-relaxed text-ink-muted">
+              Когда сотрудник напишет, что забыл пароль, текст заявки появится здесь
+            </p>
+          </div>
+          <div v-else class="pr-sidebar__list min-h-0 flex-1 overflow-y-auto">
+            <button
+              v-for="room in store.rooms"
+              :key="room.id"
+              type="button"
+              class="pr-sidebar__item"
+              :class="{ 'pr-sidebar__item--active': store.activeRoomId === room.id }"
+              @click="store.selectRoom(room.id)"
+            >
+              <div class="pr-sidebar__avatar">
+                <LockOutlined class="text-[22px]" />
+              </div>
+              <div class="pr-sidebar__content">
+                <div class="pr-sidebar__top">
+                  <span class="pr-sidebar__name">{{ roomName(room) }}</span>
+                  <span v-if="room.last_message_at || room.created_at" class="pr-sidebar__time">
+                    {{ formatChatListTime(room.last_message_at || room.created_at) }}
+                  </span>
+                </div>
+                <div class="pr-sidebar__bottom">
+                  <span
+                    class="pr-sidebar__preview"
+                    :class="{ 'pr-sidebar__preview--empty': !room.last_message_preview?.trim() }"
+                  >
+                    {{ room.last_message_preview?.trim() || 'Нет сообщений' }}
+                  </span>
+                </div>
+                <div class="pr-sidebar__role">{{ roomRole(room) }}</div>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div v-if="showThread" class="staff-thread lotax-card">
-        <div v-if="store.activeRoom" class="staff-thread__head">
-          <div class="staff-thread__identity">
-            <button
-              v-if="isMobile"
-              type="button"
-              class="staff-back"
-              aria-label="Назад"
-              @click="backToList"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-            <div class="min-w-0">
-              <p class="staff-thread__title">{{ roomTitle }}</p>
-              <p class="staff-thread__email">{{ store.activeRoom.target_email }}</p>
-            </div>
+      <div
+        v-if="showThread"
+        class="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface"
+      >
+        <div
+          v-if="store.activeRoom"
+          class="flex min-h-[64px] shrink-0 items-center gap-3 border-b border-line bg-surface-card px-4 py-3"
+        >
+          <a-button
+            v-if="isMobile"
+            type="text"
+            class="!h-9 !w-9 !px-0"
+            aria-label="Назад"
+            @click="backToList"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </a-button>
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+            <UserOutlined />
           </div>
-          <div class="staff-thread__actions">
-            <a-button class="lotax-btn-secondary" @click="passwordOpen = true">
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-[16px] font-semibold text-ink">{{ roomTitle }}</div>
+            <div class="truncate text-[13px] text-ink-muted">{{ roomSubtitle }}</div>
+          </div>
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
+            <a-button type="primary" size="small" @click="passwordOpen = true">
               <template #icon><KeyOutlined /></template>
-              Пароль
+              Задать пароль
             </a-button>
-            <a-button v-if="store.activeRoom.status !== 'closed'" @click="closeRoom">Закрыть</a-button>
+            <a-button
+              v-if="store.activeRoom.status !== 'closed'"
+              size="small"
+              danger
+              @click="confirmCloseRoom"
+            >
+              <template #icon><CloseCircleOutlined /></template>
+              Закрыть комнату
+            </a-button>
           </div>
         </div>
-        <div class="staff-thread__messages">
-          <template v-for="group in groupedMessages" :key="group.key">
-            <div class="chat-day">{{ group.label }}</div>
-            <div
-              v-for="item in group.items"
-              :key="item.id"
-              class="staff-msg"
-              :class="isMine(item) ? 'staff-msg--mine' : 'staff-msg--theirs'"
-            >
-              <p class="staff-msg__who">{{ senderLabel(item) }}</p>
-              <p class="staff-msg__body">{{ item.body }}</p>
-              <p class="staff-msg__time">{{ formatChatTime(item.created_at) }}</p>
-            </div>
-          </template>
-          <p v-if="store.activeRoom && !store.messages.length" class="staff-thread__hint">
-            Сообщений пока нет
-          </p>
-          <p v-if="!store.activeRoom" class="staff-thread__hint">
-            <span class="staff-hint-desktop">Выберите запрос слева</span>
-            <span class="staff-hint-mobile">Выберите запрос</span>
-          </p>
+
+        <div
+          v-else
+          class="flex flex-1 items-center justify-center px-6 text-center text-[15px] text-ink-muted"
+        >
+          Выберите заявку слева
         </div>
-        <ChatComposer
-          v-if="store.activeRoom && store.activeRoom.status !== 'closed'"
-          :sending="sending"
-          @send="send"
-        />
+
+        <template v-if="store.activeRoom">
+          <ChatMessageList
+            :messages="threadMessages"
+            :loading="store.loadingMessages"
+            :has-more="false"
+          />
+          <ChatComposer
+            :sending="sending"
+            :disabled="store.activeRoom.status === 'closed'"
+            @send="send"
+          />
+        </template>
       </div>
     </div>
 
@@ -295,353 +385,121 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.staff-page {
-  gap: 12px;
-}
-
-.staff-layout {
-  display: flex;
-  min-height: 0;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.staff-list {
-  flex: 0 1 auto;
-  width: 100%;
-  max-height: 38%;
-  overflow: auto;
+.pr-sidebar__list {
   padding: 8px;
 }
 
-.staff-list__empty {
-  margin: 0;
-  padding: 12px;
-  font-size: 13px;
-  color: var(--lotax-text-secondary);
-}
-
-.staff-room {
+.pr-sidebar__item {
+  appearance: none;
+  position: relative;
   display: flex;
   width: 100%;
-  min-height: 44px;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  margin: 0 0 8px;
-  padding: 16px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--lotax-hover);
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 4px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
   text-align: left;
   cursor: pointer;
-  appearance: none;
+  transition: background-color 120ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.staff-room:last-child {
+.pr-sidebar__item:last-child {
   margin-bottom: 0;
 }
 
-.staff-room.is-active {
+.pr-sidebar__item:hover {
+  background: rgba(17, 17, 17, 0.04);
+}
+
+.pr-sidebar__item--active,
+.pr-sidebar__item--active:hover {
   background: var(--lotax-primary-soft);
 }
 
-.staff-room__name {
-  max-width: 100%;
+.pr-sidebar__item:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.pr-sidebar__item:focus-visible {
+  outline: 2px solid var(--lotax-primary);
+  outline-offset: 0;
+}
+
+.pr-sidebar__avatar {
+  display: flex;
+  height: 48px;
+  width: 48px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--lotax-primary-soft);
+  color: var(--lotax-primary);
+}
+
+.pr-sidebar__content {
+  min-width: 0;
+  flex: 1;
+  padding: 1px 0;
+}
+
+.pr-sidebar__top,
+.pr-sidebar__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pr-sidebar__bottom {
+  margin-top: 4px;
+}
+
+.pr-sidebar__name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 15px;
-  font-weight: 600;
-  line-height: 1.3;
+  font-weight: 500;
+  line-height: 1.2;
   color: var(--lotax-text);
 }
 
-.staff-room__meta {
-  display: none;
+.pr-sidebar__time {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--lotax-text-tertiary);
 }
 
-.staff-room__role,
-.staff-room__preview {
-  max-width: 100%;
+.pr-sidebar__preview {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: 14px;
+  line-height: 1.25;
   color: var(--lotax-text-secondary);
 }
 
-.staff-room__preview {
-  font-size: 12px;
+.pr-sidebar__preview--empty {
+  font-style: italic;
+  color: var(--lotax-text-tertiary);
 }
 
-.staff-room__status {
-  margin-top: 4px;
-}
-
-.staff-thread {
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
+.pr-sidebar__role {
+  margin-top: 2px;
   overflow: hidden;
-  padding: 0;
-}
-
-.staff-thread__head {
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
-  border-bottom: 1px solid var(--lotax-border);
-  padding: 12px 16px;
-}
-
-.staff-thread__identity {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 4px;
-}
-
-.staff-back {
-  display: inline-flex;
-  height: 36px;
-  width: 36px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--lotax-text);
-  cursor: pointer;
-}
-
-.staff-thread__title {
-  margin: 0;
-  overflow-wrap: anywhere;
-  font-weight: 600;
-  color: var(--lotax-text);
-}
-
-.staff-thread__email {
-  margin: 2px 0 0;
-  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
-  color: var(--lotax-text-secondary);
-}
-
-.staff-thread__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.staff-thread__actions :deep(.ant-btn) {
-  min-height: 44px;
-}
-
-.staff-thread__messages {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 10px;
-  overflow-y: auto;
-  padding: 12px;
-}
-
-.chat-day {
-  margin: 2px auto 2px;
-  width: fit-content;
-  border-radius: 999px;
-  background: var(--lotax-chip);
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--lotax-text-secondary);
-}
-
-.staff-msg {
-  max-width: 85%;
-  border-radius: 16px;
-  padding: 8px 12px;
-  overflow-wrap: anywhere;
-}
-
-.staff-msg--mine {
-  margin-left: auto;
-  background: var(--lotax-primary-soft);
-}
-
-.staff-msg--theirs {
-  margin-right: auto;
-  background: var(--lotax-chip);
-}
-
-.staff-msg__who {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--lotax-text-secondary);
-}
-
-.staff-msg__body {
-  margin: 2px 0 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 14px;
-  line-height: 1.4;
-  color: var(--lotax-text);
-}
-
-.staff-msg__time {
-  margin: 4px 0 0;
-  font-size: 11px;
-  color: var(--lotax-text-secondary);
-}
-
-.staff-thread__hint {
-  margin: 0;
-  font-size: 14px;
-  color: var(--lotax-text-secondary);
-}
-
-.staff-hint-desktop {
-  display: none;
-}
-
-@media (max-width: 375px) {
-  .staff-thread__actions {
-    flex-direction: column;
-  }
-
-  .staff-thread__actions :deep(.ant-btn) {
-    width: 100%;
-  }
-}
-
-@media (max-width: 767px) {
-  .staff-list,
-  .staff-thread {
-    flex: 1 1 auto;
-    max-height: none;
-    min-height: 0;
-    height: 100%;
-  }
-
-  .staff-page-head {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .staff-page-head :deep(.ant-btn) {
-    min-height: 44px;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
-  .staff-layout {
-    flex-direction: row;
-    align-items: stretch;
-  }
-
-  .staff-list {
-    width: 220px;
-    flex: none;
-    max-height: none;
-    align-self: stretch;
-  }
-}
-
-@media (min-width: 1024px) {
-  .staff-layout {
-    flex-direction: row;
-    align-items: stretch;
-  }
-
-  .staff-list {
-    width: 280px;
-    flex: none;
-    max-height: none;
-    align-self: stretch;
-    padding: 8px;
-  }
-
-  .staff-room {
-    gap: 0;
-    margin: 0;
-    padding: 8px 12px;
-    border-radius: 12px;
-    background: transparent;
-  }
-
-  .staff-room.is-active {
-    background: var(--lotax-primary-soft);
-  }
-
-  .staff-room__name {
-    font-size: 14px;
-    line-height: 1.25;
-  }
-
-  .staff-room__meta {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
-    line-height: 1.3;
-    color: var(--lotax-text-secondary);
-  }
-
-  .staff-room__role,
-  .staff-room__preview,
-  .staff-room__status {
-    display: none;
-  }
-
-  .staff-thread__head {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 12px 16px;
-  }
-
-  .staff-thread__actions {
-    flex-wrap: nowrap;
-  }
-
-  .staff-thread__actions :deep(.ant-btn) {
-    min-height: 0;
-    width: auto;
-  }
-
-  .staff-thread__messages {
-    gap: 12px;
-    padding: 16px;
-  }
-
-  .staff-msg {
-    max-width: 80%;
-    padding: 8px 12px;
-  }
-
-  .staff-hint-desktop {
-    display: inline;
-  }
-
-  .staff-hint-mobile {
-    display: none;
-  }
+  line-height: 1.2;
+  color: var(--lotax-text-tertiary);
 }
 </style>
-

@@ -32,6 +32,9 @@ const bubbleClass = computed(() => {
 <template>
   <div class="flex" :class="message.is_mine ? 'justify-end' : 'justify-start'">
     <div class="max-w-[min(100%,68%)]" :class="cluster.isLast ? 'mb-2' : 'mb-0.5'">
+      <p v-if="!message.is_mine && cluster.isFirst && message.sender_name" class="chat-bubble__who">
+        {{ message.sender_name }}
+      </p>
       <div :class="bubbleClass">
         <div class="chat-bubble__text">
           <span class="chat-bubble__body">{{ message.body }}</span>
@@ -48,6 +51,14 @@ const bubbleClass = computed(() => {
 </template>
 
 <style scoped>
+.chat-bubble__who {
+  margin: 0 0 4px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--lotax-text-secondary);
+}
+
 .chat-bubble {
   position: relative;
   min-width: 52px;
