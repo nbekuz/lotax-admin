@@ -21,6 +21,7 @@ const form = reactive({
 
 const categoryOptions = [
   { value: 'promo', label: 'Промо' },
+  { value: 'coupon', label: 'Купон' },
   { value: 'tasks', label: 'Задания' },
   { value: 'competitions', label: 'Соревнования' },
   { value: 'referrals', label: 'Рефералы' },

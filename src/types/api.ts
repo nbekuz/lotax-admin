@@ -1136,6 +1136,7 @@ export type PushNotifyCategory =
   | 'competitions'
   | 'referrals'
   | 'promo'
+  | 'coupon'
 
 export interface PushNotifyPayload {
   park_id: string

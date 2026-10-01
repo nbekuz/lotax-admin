@@ -45,6 +45,7 @@ const form = reactive({
 
 const categoryOptions = [
   { value: 'promo', label: 'Промо' },
+  { value: 'coupon', label: 'Купон' },
   { value: 'tasks', label: 'Задания' },
   { value: 'competitions', label: 'Соревнования' },
   { value: 'referrals', label: 'Рефералы' },
@@ -167,7 +168,7 @@ async function send() {
       category,
       all_organizations: allOrgs || undefined,
       organization_ids: allOrgs ? undefined : orgIds,
-      data: { type: 'promo' },
+      data: { type: category },
     })
 
     if (data.devices_targeted === 0) {
