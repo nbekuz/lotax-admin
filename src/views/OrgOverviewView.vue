@@ -27,6 +27,10 @@ async function load() {
   }
 }
 
+function formatCount(value: number | null | undefined) {
+  return new Intl.NumberFormat('ru-RU').format(value ?? 0)
+}
+
 async function onPageChange(page: number) {
   pagination.current = page
   try {
@@ -56,108 +60,71 @@ onMounted(load)
     </div>
 
     <template v-else-if="org.organization">
-      <section class="lotax-card p-5 md:p-7">
-        <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 class="lotax-section-title">{{ org.organization.name }}</h2>
-            <p class="lotax-caption mt-1">
+      <section class="lotax-card org-card">
+        <div class="org-card__head">
+          <div class="min-w-0">
+            <h2 class="org-card__title">{{ org.organization.name }}</h2>
+            <p class="org-card__legal">
               {{ org.organization.legal_name || 'Юридическое название не указано' }}
             </p>
           </div>
-          <div class="flex flex-wrap gap-2">
-            <span
-              class="rounded-full px-2.5 py-1 text-[13px] font-medium ring-1 ring-inset"
-              :class="
-                org.organization.subscription_active
-                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                  : 'bg-red-50 text-red-700 ring-red-200'
-              "
-            >
-              {{
-                org.organization.subscription_active
-                  ? 'Подписка активна'
-                  : 'Подписка отключена'
-              }}
-            </span>
+          <span
+            class="lotax-badge"
+            :class="org.organization.subscription_active ? 'lotax-badge--success' : 'lotax-badge--danger'"
+          >
+            {{ org.organization.subscription_active ? 'Подписка активна' : 'Подписка отключена' }}
+          </span>
+        </div>
+
+        <div class="org-stats">
+          <div class="org-stat">
+            <span class="org-stat__label">Парков</span>
+            <span class="org-stat__value">{{ org.organization.parks_count ?? org.parksTotal }}</span>
+          </div>
+          <div class="org-stat">
+            <span class="org-stat__label">Водители</span>
+            <span class="org-stat__value">{{ formatCount(org.organization.drivers_count) }}</span>
+          </div>
+          <div class="org-stat">
+            <span class="org-stat__label">Поездки</span>
+            <span class="org-stat__value">{{ formatCount(org.organization.completed_orders_count) }}</span>
           </div>
         </div>
 
-        <div class="mb-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <InfoField
-            label="Парков"
-            :value="String(org.organization.parks_count ?? org.parksTotal)"
-          />
-          <InfoField
-            label="Водители"
-            :value="String(org.organization.drivers_count ?? 0)"
-          />
-          <InfoField
-            label="Поездки"
-            :value="String(org.organization.completed_orders_count ?? 0)"
-          />
+        <div class="org-meta">
+          <InfoField label="Создана" :value="dayjs(org.organization.created_at).format('DD.MM.YYYY')" />
+          <InfoField label="Статус" :value="org.organization.is_active ? 'Активна' : 'Неактивна'" />
+          <InfoField label="Телефон" :value="formatPhone(org.organization.phone)" />
+          <InfoField label="Контактное лицо" :value="org.organization.contact_person || '—'" />
         </div>
-        <div class="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <InfoField
-            label="Создана"
-            :value="dayjs(org.organization.created_at).format('DD.MM.YYYY')"
-          />
-          <InfoField
-            label="Статус"
-            :value="org.organization.is_active ? 'Активна' : 'Неактивна'"
-          />
-          <InfoField
-            label="Телефон"
-            :value="formatPhone(org.organization.phone)"
-          />
-          <InfoField
-            label="Контактное лицо"
-            :value="org.organization.contact_person || '—'"
-          />
-        </div>
+
         <CopyableId label="UUID организации" :value="org.organization.id" />
       </section>
 
-      <section class="lotax-card p-5 md:p-7">
-        <h2 class="lotax-section-title mb-5">Парки</h2>
+      <section class="lotax-card org-card">
+        <h2 class="lotax-section-title mb-4">Парки</h2>
         <div v-if="!org.parks.length" class="lotax-caption py-8 text-center">
           В организации пока нет парков
         </div>
-        <div v-else class="flex flex-col gap-3">
-          <article
-            v-for="park in org.parks"
-            :key="park.id"
-            class="rounded-xl border border-line bg-surface px-4 py-3"
-          >
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div class="min-w-0">
-                <div class="truncate font-medium text-ink">{{ park.name }}</div>
-                <div class="truncate text-[13px] text-ink-muted">
-                  {{ park.legal_name || '—' }} ·
-                  <span class="font-mono">{{ park.yandex_park_id || 'нет Yandex ID' }}</span>
-                </div>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <span
-                  class="rounded-full px-2.5 py-1 text-[13px] font-medium ring-1 ring-inset"
-                  :class="
-                    park.is_active
-                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                      : 'bg-slate-100 text-slate-600 ring-slate-300'
-                  "
-                >
-                  {{ park.is_active ? 'Активен' : 'Неактивен' }}
-                </span>
-                <span
-                  class="rounded-full px-2.5 py-1 text-[13px] font-medium ring-1 ring-inset"
-                  :class="
-                    park.subscription_active
-                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                      : 'bg-red-50 text-red-700 ring-red-200'
-                  "
-                >
-                  {{ park.subscription_active ? 'Подписка' : 'Нет подписки' }}
-                </span>
-              </div>
+        <div v-else class="flex flex-col gap-2">
+          <article v-for="park in org.parks" :key="park.id" class="org-park">
+            <div class="org-park__main">
+              <span class="org-park__name">{{ park.name }}</span>
+              <span class="org-park__id">
+                {{ park.legal_name || 'Без юр. названия' }}
+                · {{ park.yandex_park_id || 'нет Yandex ID' }}
+              </span>
+            </div>
+            <div class="org-park__side">
+              <span class="lotax-badge" :class="park.is_active ? 'lotax-badge--success' : 'lotax-badge--muted'">
+                {{ park.is_active ? 'Активен' : 'Неактивен' }}
+              </span>
+              <span
+                class="lotax-badge"
+                :class="park.subscription_active ? 'lotax-badge--info' : 'lotax-badge--danger'"
+              >
+                {{ park.subscription_active ? 'Подписка' : 'Нет подписки' }}
+              </span>
             </div>
           </article>
         </div>
@@ -185,3 +152,145 @@ onMounted(load)
     </div>
   </div>
 </template>
+
+<style scoped>
+.org-card {
+  padding: 20px;
+}
+
+.org-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.org-card__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--lotax-text);
+}
+
+.org-card__legal {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--lotax-text-secondary);
+}
+
+.org-stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.org-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--lotax-border);
+  border-radius: 12px;
+  background: transparent;
+}
+
+.org-stat__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lotax-text-secondary);
+}
+
+.org-stat__value {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--lotax-text);
+}
+
+.org-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.org-park {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--lotax-border);
+  border-radius: 14px;
+  background: transparent;
+}
+
+.org-park__main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.org-park__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--lotax-text);
+}
+
+.org-park__id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--lotax-text-tertiary);
+}
+
+.org-park__side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .org-card {
+    padding: 22px 24px;
+  }
+
+  .org-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .org-stat {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .org-meta {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .org-park {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .org-park__side {
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+}
+</style>
