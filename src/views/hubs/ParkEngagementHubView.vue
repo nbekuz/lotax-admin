@@ -61,7 +61,7 @@ function open(routeName: string) {
       Разделы недоступны для вашей роли
     </div>
 
-    <div v-else class="grid gap-3 sm:grid-cols-2">
+    <div v-else class="grid grid-cols-1 gap-3 md:grid-cols-2">
       <HubNavCard
         v-for="item in links"
         :key="item.key"

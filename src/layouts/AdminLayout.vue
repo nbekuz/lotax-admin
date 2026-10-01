@@ -408,8 +408,13 @@ watch(isMobile, (mobile) => {
 })
 
 function onMenuClick(info: { key: string | number }) {
-  const key = String(info.key)
-  router.push({ name: key })
+  const key = String(info.key || '')
+  if (!key || key === 'undefined') return
+  if (router.hasRoute(key)) {
+    router.push({ name: key })
+  } else {
+    router.push({ path: `/${key}` })
+  }
   if (isMobile.value) {
     drawerOpen.value = false
   }
@@ -575,8 +580,7 @@ function toggleNav() {
     </a-drawer>
 
     <a-layout
-      class="!min-w-0 !bg-surface"
-      :class="fillsViewport ? 'h-dvh overflow-hidden' : ''"
+      class="lotax-main !min-w-0 !bg-surface"
     >
       <a-layout-header class="lotax-topbar">
         <div class="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
@@ -692,13 +696,13 @@ function toggleNav() {
 
       <a-layout-content
         class="lotax-page-pad"
-        :class="fillsViewport ? 'lotax-page-pad--fill flex min-h-0 flex-1 flex-col overflow-hidden !py-3' : ''"
+        :class="fillsViewport ? 'lotax-page-pad--fill' : ''"
       >
         <div
           class="mx-auto w-full max-w-[1400px]"
           :class="
             fillsViewport
-              ? 'flex h-full min-h-0 flex-col'
+              ? 'flex h-full min-h-0 flex-1 flex-col'
               : 'min-h-[calc(100vh-5rem)]'
           "
         >
@@ -710,6 +714,31 @@ function toggleNav() {
 </template>
 
 <style scoped>
+.lotax-main {
+  display: flex;
+  min-width: 0;
+  min-height: 100dvh;
+  flex: 1;
+  flex-direction: column;
+}
+
+.lotax-page-pad--fill {
+  display: flex;
+  min-height: calc(100dvh - 56px);
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+.lotax-page-pad--fill > div {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
 .lotax-sider {
   border-right: 1px solid var(--lotax-border) !important;
   transition: width 160ms ease !important;
