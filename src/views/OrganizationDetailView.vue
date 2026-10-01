@@ -443,12 +443,12 @@ onMounted(load)
           :key="park.id"
           class="park-row"
         >
-          <button type="button" class="park-row__main" @click="openEditPark(park)">
+          <div class="park-row__main" @click="openEditPark(park)">
             <span class="park-row__name">{{ park.name }}</span>
             <span class="park-row__id">
               {{ park.yandex_park_id || 'Без Yandex ID' }}
             </span>
-          </button>
+          </div>
           <div class="park-row__side">
             <span
               class="lotax-badge"
@@ -626,17 +626,17 @@ onMounted(load)
 .park-row__main {
   display: flex;
   min-width: 0;
-  flex: 1;
+  flex: 0 1 280px;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
   margin: 0;
   padding: 0;
   border: 0;
-  background: transparent;
+  background: none;
+  box-shadow: none;
   text-align: left;
   cursor: pointer;
-  appearance: none;
 }
 
 .park-row__name {
