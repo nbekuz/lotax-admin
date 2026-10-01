@@ -1,4 +1,5 @@
 import { http } from './http'
+import { toFormData } from '@/utils/formData'
 import type {
   BannerCreatePayload,
   BannerItem,
@@ -27,16 +28,27 @@ export const bannersApi = {
     })
   },
 
-  create(payload: BannerCreatePayload) {
-    return http.post<BannerItem>('/super-admin/banners', payload)
+  create(payload: Omit<BannerCreatePayload, 'image_url'> & { image: File }) {
+    const { image, ...rest } = payload
+    return http.post<BannerItem>(
+      '/super-admin/banners',
+      toFormData({ ...rest, image }),
+    )
   },
 
   getById(bannerId: string) {
     return http.get<BannerItem>(`/super-admin/banners/${bannerId}`)
   },
 
-  update(bannerId: string, payload: BannerUpdatePayload) {
-    return http.patch<BannerItem>(`/super-admin/banners/${bannerId}`, payload)
+  update(
+    bannerId: string,
+    payload: Omit<BannerUpdatePayload, 'image_url'> & { image?: File | null },
+  ) {
+    const { image, ...rest } = payload
+    return http.patch<BannerItem>(
+      `/super-admin/banners/${bannerId}`,
+      toFormData({ ...rest, image: image ?? undefined }),
+    )
   },
 
   remove(bannerId: string) {

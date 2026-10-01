@@ -52,7 +52,6 @@ const pagination = reactive({
 
 const form = reactive({
   title: '',
-  image_url: '',
   link_url: '',
   is_active: true,
   display_order: 0,
@@ -63,6 +62,8 @@ const form = reactive({
 
 const startsAt = ref<Dayjs | undefined>(undefined)
 const endsAt = ref<Dayjs | undefined>(undefined)
+const imageFile = ref<File | null>(null)
+const imagePreview = ref<string | null>(null)
 
 const audienceOptions = [
   { value: 'all', label: bannerAudienceLabel.all },
@@ -169,8 +170,9 @@ function onTableChange(pag: { current?: number; pageSize?: number }) {
 
 function resetForm() {
   form.title = ''
-  form.image_url = ''
   form.link_url = ''
+  imageFile.value = null
+  imagePreview.value = null
   form.is_active = true
   form.display_order = 0
   form.target_audience = 'all'
@@ -191,8 +193,9 @@ function openCreate() {
 async function openEdit(item: BannerItem) {
   editing.value = item
   form.title = item.title
-  form.image_url = item.image_url
   form.link_url = item.link_url || ''
+  imageFile.value = null
+  imagePreview.value = item.image_url || null
   form.is_active = item.is_active
   form.display_order = item.display_order
   form.target_audience = (item.target_audience as BannerTargetAudience) || 'all'
@@ -245,9 +248,16 @@ function confirmDelete(item: BannerItem) {
   })
 }
 
+function onImageSelect(file: File) {
+  imageFile.value = file
+  if (imagePreview.value?.startsWith('blob:')) URL.revokeObjectURL(imagePreview.value)
+  imagePreview.value = URL.createObjectURL(file)
+  return false
+}
+
 function validateForm(): string | null {
   if (!form.title.trim()) return 'Укажите название'
-  if (!form.image_url.trim()) return 'Укажите URL изображения'
+  if (!editing.value && !imageFile.value) return 'Выберите изображение'
   if (!startsAt.value || !endsAt.value) return 'Укажите период показа'
   if (!endsAt.value.isAfter(startsAt.value)) {
     return 'Дата окончания должна быть позже даты начала'
@@ -271,7 +281,7 @@ async function save() {
   try {
     const payload = {
       title: form.title.trim(),
-      image_url: form.image_url.trim(),
+      image: imageFile.value,
       link_url: form.link_url.trim() || null,
       starts_at: startsAt.value!.toISOString(),
       ends_at: endsAt.value!.toISOString(),
@@ -287,8 +297,8 @@ async function save() {
     if (editing.value) {
       await bannersApi.update(editing.value.id, payload)
       message.success('Баннер обновлён')
-    } else {
-      await bannersApi.create(payload)
+    } else if (imageFile.value) {
+      await bannersApi.create({ ...payload, image: imageFile.value })
       message.success('Баннер создан')
     }
     modalOpen.value = false
@@ -478,8 +488,21 @@ onMounted(async () => {
         <a-form-item label="Название" required>
           <a-input v-model:value="form.title" placeholder="Весенний бонус" />
         </a-form-item>
-        <a-form-item label="URL изображения" required>
-          <a-input v-model:value="form.image_url" placeholder="https://cdn.example/banner.png" />
+        <a-form-item label="Изображение" :required="!editing">
+          <a-upload
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            :show-upload-list="false"
+            :before-upload="onImageSelect"
+          >
+            <a-button class="lotax-btn-secondary">Выбрать файл</a-button>
+          </a-upload>
+          <p class="lotax-caption mt-1">JPEG / PNG / WEBP / GIF</p>
+          <img
+            v-if="imagePreview"
+            :src="imagePreview"
+            alt=""
+            class="mt-3 h-32 w-full rounded-xl object-cover ring-1 ring-line"
+          />
         </a-form-item>
         <a-form-item label="Ссылка (необязательно)">
           <a-input v-model:value="form.link_url" placeholder="https://lotax.app/promo" />
