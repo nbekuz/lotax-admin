@@ -101,16 +101,36 @@ body,
   overflow-x: clip;
 }
 
-/* Scroll ishlaydi, chiziq ko‘rinmaydi — sahifa, jadval, modal. */
-* {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+/* Scroll ishlaydi, chiziq ko‘rinmaydi. * pseudo ba’zi brauzerlarda modalga yetmaydi. */
+*,
+.ant-modal-wrap,
+.ant-modal-body,
+.ant-modal-confirm-body,
+.ant-drawer-body,
+.ant-table-body,
+.ant-table-content,
+.ant-select-dropdown,
+.ant-dropdown-menu,
+.rc-virtual-list-holder {
+  scrollbar-width: none !important;
+  scrollbar-color: transparent transparent !important;
+  -ms-overflow-style: none !important;
 }
 
-*::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none;
+*::-webkit-scrollbar,
+.ant-modal-wrap::-webkit-scrollbar,
+.ant-modal-body::-webkit-scrollbar,
+.ant-modal-confirm-body::-webkit-scrollbar,
+.ant-drawer-body::-webkit-scrollbar,
+.ant-table-body::-webkit-scrollbar,
+.ant-table-content::-webkit-scrollbar,
+.ant-select-dropdown::-webkit-scrollbar,
+.ant-dropdown-menu::-webkit-scrollbar,
+.rc-virtual-list-holder::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
 }
 
 body {
@@ -557,9 +577,12 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  /* Room for the focus ring so overflow does not slice the field. */
-  padding: 4px 4px 8px !important;
-  margin: 0 !important;
+  scrollbar-width: none !important;
+  scrollbar-color: transparent transparent !important;
+  /* .ant-modal-content overflow:hidden chiziqni qirib tashlaydi. */
+  margin-right: -18px !important;
+  padding: 4px 22px 8px 4px !important;
+  margin-left: 0 !important;
 }
 
 .ant-modal-title {
