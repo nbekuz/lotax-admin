@@ -154,12 +154,14 @@ export const superAdminApi = {
 
   listDeletedDrivers(params: {
     park_id?: string | null
+    q?: string | null
     page?: number
     page_size?: number
   } = {}) {
     return http.get<DeletedDriverListResponse>('/super-admin/drivers/deleted', {
       params: {
         park_id: params.park_id || undefined,
+        q: params.q?.trim() || undefined,
         page: params.page ?? 1,
         page_size: params.page_size ?? 20,
       },

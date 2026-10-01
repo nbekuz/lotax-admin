@@ -262,6 +262,8 @@ export interface DeletedDriverItem {
   park_id?: string | null
   park_name?: string | null
   deleted_at?: string | null
+  deleted_at_exact?: boolean
+  archive_reason?: string | null
   status?: DriverStatus
 }
 

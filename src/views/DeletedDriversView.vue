@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { ReloadOutlined, UndoOutlined } from '@ant-design/icons-vue'
 import { superAdminApi } from '@/api/superAdmin'
@@ -12,32 +12,31 @@ const loading = ref(false)
 const restoringId = ref<string | null>(null)
 const query = ref('')
 const items = ref<DeletedDriverItem[]>([])
-
-const visibleItems = computed(() => {
-  const q = query.value.trim().toLowerCase()
-  if (!q) return items.value
-  return items.value.filter((row) =>
-    [row.display_name, row.phone_masked, row.park_name]
-      .filter(Boolean)
-      .some((value) => String(value).toLowerCase().includes(q)),
-  )
-})
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const pagination = reactive({
   current: 1,
   pageSize: 20,
   total: 0,
   showSizeChanger: true,
+  pageSizeOptions: ['20', '50', '100'],
   showTotal: (total: number) => `Всего: ${total}`,
 })
 
 const columns = [
-  { title: 'Имя', key: 'display_name', dataIndex: 'display_name', ellipsis: true },
-  { title: 'Телефон', key: 'phone_masked', dataIndex: 'phone_masked', width: 170 },
+  { title: 'Имя', key: 'display_name', dataIndex: 'display_name', width: 180 },
+  { title: 'Телефон', key: 'phone_masked', dataIndex: 'phone_masked', width: 180 },
   { title: 'Парк', key: 'park_name', dataIndex: 'park_name', width: 180 },
-  { title: 'Удалён', key: 'deleted_at', dataIndex: 'deleted_at', width: 180 },
-  { title: '', key: 'actions', width: 140 },
+  { title: 'Почему в архиве', key: 'archive_reason', dataIndex: 'archive_reason', width: 200 },
+  { title: 'В архиве', key: 'deleted_at', dataIndex: 'deleted_at', width: 168 },
+  { title: '', key: 'actions', width: 148, fixed: 'right' as const },
 ]
+
+function reasonClass(reason?: string | null) {
+  if (reason === 'Удалил аккаунт') return 'lotax-badge--muted'
+  if (reason === 'Смена парка') return 'lotax-badge--info'
+  return 'lotax-badge--warning'
+}
 
 async function load() {
   loading.value = true
@@ -45,6 +44,7 @@ async function load() {
     const { data } = await superAdminApi.listDeletedDrivers({
       page: pagination.current,
       page_size: pagination.pageSize,
+      q: query.value,
     })
     const list = data.items ?? []
     items.value = list
@@ -68,7 +68,7 @@ function confirmRestore(row: DeletedDriverItem) {
   Modal.confirm({
     title: 'Восстановить водителя?',
     content:
-      'Статус станет «Ожидание». Водитель снова сможет войти по SMS и стать активным.',
+      'Статус станет «Ожидание». Водитель снова сможет войти по SMS и стать активным. Если Яндекс по-прежнему отдаёт его как уволенного, следующий синхрон снова уберёт его из списка директора.',
     okText: 'Восстановить',
     cancelText: 'Отмена',
     centered: true,
@@ -88,14 +88,25 @@ function confirmRestore(row: DeletedDriverItem) {
   })
 }
 
+watch(query, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    pagination.current = 1
+    void load()
+  }, 300)
+})
+
 onMounted(load)
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+})
 </script>
 
 <template>
   <div class="flex flex-col gap-3">
     <PageHeader
       title="Архив водителей"
-      subtitle="Soft-delete. Восстановление → «Ожидание», затем SMS → «Активен»"
+      subtitle="Их убрал синхрон Яндекса: в парке они уже не «работающие». Аккаунт сами не удаляли. Восстановление → «Ожидание», затем SMS → «Активен»."
     >
       <template #actions>
         <a-button class="lotax-btn-secondary" :loading="loading" @click="load">
@@ -111,7 +122,7 @@ onMounted(load)
           v-model:value="query"
           allow-clear
           placeholder="Имя, телефон или парк"
-          class="!w-full sm:!max-w-xs"
+          class="!w-full sm:!max-w-sm"
         />
         <span class="text-[12px] text-ink-muted">{{ pagination.total }} в архиве</span>
       </div>
@@ -119,34 +130,55 @@ onMounted(load)
         row-key="id"
         size="small"
         :columns="columns"
-        :data-source="visibleItems"
+        :data-source="items"
         :loading="loading"
-        :pagination="query.trim() ? false : pagination"
+        :pagination="pagination"
+        :scroll="{ x: 980 }"
         :locale="{ emptyText: query.trim() ? 'Ничего не найдено' : 'Удалённых водителей нет' }"
         @change="onTableChange"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'display_name'">
             <span class="font-medium text-ink">
-              {{ (record as DeletedDriverItem).display_name || '—' }}
+              {{ (record as DeletedDriverItem).display_name || 'Без имени' }}
             </span>
           </template>
           <template v-else-if="column.key === 'phone_masked'">
-            <span class="font-mono text-[12px] text-ink-muted">
-              {{ (record as DeletedDriverItem).phone_masked || '—' }}
+            <span
+              v-if="(record as DeletedDriverItem).phone_masked"
+              class="font-mono text-[12px] text-ink"
+            >
+              {{ (record as DeletedDriverItem).phone_masked }}
             </span>
+            <span v-else class="text-[12px] text-ink-muted">Нет номера</span>
           </template>
           <template v-else-if="column.key === 'park_name'">
-            {{ (record as DeletedDriverItem).park_name || '—' }}
+            <span v-if="(record as DeletedDriverItem).park_name" class="text-ink">
+              {{ (record as DeletedDriverItem).park_name }}
+            </span>
+            <span v-else class="text-[12px] text-ink-muted">Не привязан</span>
+          </template>
+          <template v-else-if="column.key === 'archive_reason'">
+            <span
+              class="lotax-badge"
+              :class="reasonClass((record as DeletedDriverItem).archive_reason)"
+            >
+              {{ (record as DeletedDriverItem).archive_reason || 'Нет в активном списке Яндекса' }}
+            </span>
           </template>
           <template v-else-if="column.key === 'deleted_at'">
             <span
               v-if="(record as DeletedDriverItem).deleted_at"
               class="lotax-badge lotax-badge--muted tabular-nums"
+              :title="
+                (record as DeletedDriverItem).deleted_at_exact
+                  ? 'Точное время архива'
+                  : 'Синхрон не записал время. Показана дата последнего обновления карточки'
+              "
             >
               {{ dayjs((record as DeletedDriverItem).deleted_at).format('DD.MM.YYYY HH:mm') }}
             </span>
-            <span v-else>—</span>
+            <span v-else class="text-[12px] text-ink-muted">Нет даты</span>
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-button
