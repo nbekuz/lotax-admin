@@ -15,6 +15,7 @@ import {
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
+  CommentOutlined,
   CustomerServiceOutlined,
   LockOutlined,
   MessageOutlined,
@@ -29,6 +30,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useOrgStore } from '@/stores/org'
 import { usePasswordResetStore } from '@/stores/passwordReset'
+import { useDriverSupportStore } from '@/stores/driverSupport'
 import { useStaffPasswordResetStore } from '@/stores/staffPasswordReset'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { extractErrorMessage, roleLabel } from '@/utils/labels'
@@ -41,6 +43,7 @@ const auth = useAuthStore()
 const themeStore = useThemeStore()
 const chat = useChatStore()
 const passwordReset = usePasswordResetStore()
+const driverSupport = useDriverSupportStore()
 const staffPasswordReset = useStaffPasswordResetStore()
 const org = useOrgStore()
 const route = useRoute()
@@ -83,11 +86,13 @@ const selectedKeys = computed(() => {
   ) {
     return ['park-settings-hub']
   }
-  if (route.path === '/team' || route.path.startsWith('/staff')) {
+  if (route.path.startsWith('/staff-password-reset')) return ['staff-password-reset']
+  if (route.path === '/team' || route.path === '/staff' || route.path.startsWith('/staff/')) {
     return ['staff']
   }
+  if (route.path.startsWith('/support-contacts')) return ['support-contacts']
+  if (route.path.startsWith('/driver-support')) return ['driver-support']
   if (route.path.startsWith('/chat')) return ['chat']
-  if (route.path.startsWith('/staff-password-reset')) return ['staff-password-reset']
   if (route.path.startsWith('/password-reset')) return ['password-reset']
   if (route.path.startsWith('/system-raffles')) return ['system-raffles']
   if (route.path === '/organization' || route.path.startsWith('/organization/')) {
@@ -99,7 +104,8 @@ const selectedKeys = computed(() => {
   if (route.path.startsWith('/settings')) return ['settings']
   if (route.path.startsWith('/profile')) return ['profile']
   if (route.path.startsWith('/drivers')) return ['drivers']
-  return auth.isPlatformOperator ? ['organizations'] : ['organization']
+  const name = typeof route.name === 'string' ? route.name : ''
+  return name ? [name] : []
 })
 
 const showEngagementHub = computed(
@@ -277,12 +283,20 @@ const menuItems = computed((): any[] => {
   ]
   const contact: Record<string, unknown>[] = []
   if (auth.isDirector) {
-    contact.push({
-      key: 'support-contacts',
-      icon: () => h(CustomerServiceOutlined),
-      label: 'Контакты',
-      title: 'Контакты для водителей',
-    })
+    contact.push(
+      {
+        key: 'support-contacts',
+        icon: () => h(CustomerServiceOutlined),
+        label: 'Контакты',
+        title: 'Контакты для водителей',
+      },
+      {
+        key: 'driver-support',
+        icon: () => h(CommentOutlined),
+        label: chatMenuLabel('Водители', driverSupport.totalUnread) as unknown as string,
+        title: 'Чаты с водителями',
+      },
+    )
   }
   if (auth.canViewChat) {
     contact.push({
@@ -365,6 +379,8 @@ const fillsViewport = computed(
   () =>
     route.name === 'chat' ||
     route.name === 'chat-conversation' ||
+    route.name === 'driver-support' ||
+    route.name === 'driver-support-conversation' ||
     route.name === 'staff-password-reset' ||
     route.name === 'password-reset',
 )
@@ -388,6 +404,14 @@ onMounted(async () => {
   if (auth.canViewPasswordReset) {
     try {
       await passwordReset.fetchOpenCount()
+    } catch {
+      /* ignore */
+    }
+  }
+  if (auth.isDirector) {
+    try {
+      await driverSupport.fetchNotifications()
+      driverSupport.startRealtime()
     } catch {
       /* ignore */
     }
@@ -463,6 +487,7 @@ async function onOrgChange(id: string) {
 
 function logout() {
   chat.reset()
+  driverSupport.reset()
   passwordReset.reset()
   staffPasswordReset.reset()
   auth.logout()
@@ -479,7 +504,7 @@ function toggleNav() {
 </script>
 
 <template>
-  <a-layout class="min-h-full">
+  <a-layout class="min-h-full" :class="{ 'lotax-shell--lock': fillsViewport }">
     <a-layout-sider
       v-if="!isMobile"
       v-model:collapsed="collapsed"
@@ -590,6 +615,7 @@ function toggleNav() {
 
     <a-layout
       class="lotax-main !min-w-0 !bg-surface"
+      :class="{ 'lotax-main--lock': fillsViewport }"
     >
       <a-layout-header class="lotax-topbar">
         <div class="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
@@ -731,9 +757,22 @@ function toggleNav() {
   flex-direction: column;
 }
 
+.lotax-shell--lock {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+}
+
+.lotax-main--lock {
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
 .lotax-page-pad--fill {
   display: flex;
-  min-height: calc(100dvh - 56px);
+  min-height: 0;
   flex: 1;
   flex-direction: column;
   overflow: hidden;

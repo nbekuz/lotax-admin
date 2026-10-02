@@ -181,7 +181,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 flex-col gap-2">
+  <div class="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
     <div
       v-if="isMobile && (auth.isDirector || (auth.isManager && !chat.conversations.length))"
       class="flex shrink-0 flex-wrap items-center justify-end gap-2"

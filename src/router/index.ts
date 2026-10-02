@@ -268,6 +268,24 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'driver-support',
+        name: 'driver-support',
+        component: () => import('@/views/DriverSupportChatView.vue'),
+        meta: {
+          title: 'Чаты с водителями',
+          roles: ['director'],
+        },
+      },
+      {
+        path: 'driver-support/:id',
+        name: 'driver-support-conversation',
+        component: () => import('@/views/DriverSupportChatView.vue'),
+        meta: {
+          title: 'Чат с водителем',
+          roles: ['director'],
+        },
+      },
+      {
         path: 'chat',
         name: 'chat',
         component: () => import('@/views/ChatView.vue'),
