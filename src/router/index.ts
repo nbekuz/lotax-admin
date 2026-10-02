@@ -259,6 +259,15 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Сотрудники', roles: ['director'] },
       },
       {
+        path: 'support-contacts',
+        name: 'support-contacts',
+        component: () => import('@/views/SupportContactsView.vue'),
+        meta: {
+          title: 'Контакты для водителей',
+          roles: ['director'],
+        },
+      },
+      {
         path: 'chat',
         name: 'chat',
         component: () => import('@/views/ChatView.vue'),

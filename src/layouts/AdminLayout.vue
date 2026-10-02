@@ -15,6 +15,7 @@ import {
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
+  CustomerServiceOutlined,
   LockOutlined,
   MessageOutlined,
   PictureOutlined,
@@ -275,6 +276,14 @@ const menuItems = computed((): any[] => {
     },
   ]
   const contact: Record<string, unknown>[] = []
+  if (auth.isDirector) {
+    contact.push({
+      key: 'support-contacts',
+      icon: () => h(CustomerServiceOutlined),
+      label: 'Контакты',
+      title: 'Контакты для водителей',
+    })
+  }
   if (auth.canViewChat) {
     contact.push({
       key: 'chat',
