@@ -13,6 +13,7 @@ import {
   GiftOutlined,
   KeyOutlined,
   LeftOutlined,
+  MessageOutlined,
   StarOutlined,
   StopOutlined,
   TrophyOutlined,
@@ -22,6 +23,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
 import { driversApi } from '@/api/drivers'
+import { driverSupportApi } from '@/api/driverSupport'
 import { extractErrorMessage, formatPhone, isForbiddenError, tierLabel } from '@/utils/labels'
 import { filenameFromContentDisposition, triggerBlobDownload, messageFromBlobError } from '@/utils/download'
 import type {
@@ -58,6 +60,9 @@ const tierOpen = ref(false)
 const passwordOpen = ref(false)
 const passwordSaving = ref(false)
 const passwordValue = ref('')
+const messageOpen = ref(false)
+const messageSaving = ref(false)
+const messageBody = ref('')
 const pdnLoading = ref(false)
 const pdnError = ref<string | null>(null)
 const adjustSaving = ref(false)
@@ -886,6 +891,39 @@ function openPasswordModal() {
   passwordOpen.value = true
 }
 
+function openMessageModal() {
+  messageBody.value = ''
+  messageOpen.value = true
+}
+
+async function sendDriverMessage() {
+  const text = messageBody.value.trim()
+  if (!text) {
+    message.warning('Введите сообщение')
+    return Promise.reject()
+  }
+  if (text.length > 4000) {
+    message.warning('Сообщение длиннее 4000 символов')
+    return Promise.reject()
+  }
+  messageSaving.value = true
+  try {
+    const sent = await driverSupportApi.messageDriver(driverId.value, text)
+    message.success('Сообщение отправлено')
+    messageOpen.value = false
+    messageBody.value = ''
+    await router.push({
+      name: 'driver-support-conversation',
+      params: { id: sent.conversation_id },
+    })
+  } catch (e) {
+    message.error(extractErrorMessage(e, 'Не удалось отправить сообщение'))
+    return Promise.reject()
+  } finally {
+    messageSaving.value = false
+  }
+}
+
 async function savePassword() {
   const password = passwordValue.value.trim()
   if (!/^\d{4}$/.test(password)) {
@@ -1015,6 +1053,14 @@ watch(driverId, () => { load() })
         >
           <template #icon><TrophyOutlined /></template>
           Изменить уровень
+        </a-button>
+        <a-button
+          v-if="auth.isDirector"
+          class="lotax-btn-secondary"
+          @click="openMessageModal"
+        >
+          <template #icon><MessageOutlined /></template>
+          Отправить сообщение
         </a-button>
         <a-button
           v-if="auth.isDirector"
@@ -2242,6 +2288,28 @@ watch(driverId, () => { load() })
           <p class="lotax-caption mt-1">
             После даты уровень снова считается автоматически
           </p>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:open="messageOpen"
+      title="Отправить сообщение"
+      ok-text="Отправить"
+      cancel-text="Отмена"
+      centered
+      :width="480"
+      :confirm-loading="messageSaving"
+      @ok="sendDriverMessage"
+    >
+      <a-form layout="vertical" class="mt-2">
+        <a-form-item label="Сообщение водителю" required>
+          <a-textarea
+            v-model:value="messageBody"
+            :rows="4"
+            :maxlength="4000"
+            placeholder="Напишите водителю"
+          />
         </a-form-item>
       </a-form>
     </a-modal>

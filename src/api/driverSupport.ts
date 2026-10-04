@@ -77,6 +77,14 @@ export const driverSupportApi = {
     return data
   },
 
+  async messageDriver(driverId: string, body: string) {
+    const { data } = await http.post<DriverSupportMessage>(
+      `/driver-support/drivers/${driverId}/messages`,
+      { body },
+    )
+    return data
+  },
+
   markRead(conversationId: string) {
     return http.post(`/driver-support/inbox/${conversationId}/read`)
   },
