@@ -146,7 +146,7 @@ export const useDriverSupportStore = defineStore('driverSupport', {
           void this.fetchNotifications().catch(() => undefined)
           void this.fetchInbox().catch(() => undefined)
           if (this.activeId) void this.loadMessages(this.activeId).catch(() => undefined)
-        }, 15000)
+        }, 3000)
       }
     },
 

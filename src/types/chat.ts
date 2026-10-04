@@ -13,6 +13,7 @@ export type ChatStreamEventType =
   | 'staff_password_reset_opened'
   | 'staff_password_reset_message'
   | 'staff_password_reset_closed'
+  | 'driver_support_message'
 
 export interface ChatParticipant {
   id: string

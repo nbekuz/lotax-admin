@@ -296,6 +296,30 @@ export const useChatStore = defineStore('chat', {
         return
       }
 
+      if (name === 'driver_support_message') {
+        const incoming = event.message as {
+          id?: string
+          conversation_id?: string
+          body?: string
+          created_at?: string
+          sender_name?: string
+          sender_role?: string
+        } | null
+        if (incoming?.id && incoming.conversation_id && incoming.body && incoming.created_at) {
+          void import('@/stores/driverSupport').then(({ useDriverSupportStore }) => {
+            useDriverSupportStore().remember({
+              id: incoming.id as string,
+              conversation_id: incoming.conversation_id as string,
+              body: incoming.body as string,
+              created_at: incoming.created_at as string,
+              sender_role: incoming.sender_role || 'driver',
+              sender_name: incoming.sender_name || null,
+            })
+          })
+        }
+        return
+      }
+
       if (name === 'message' && event.message) {
         const msg = event.message
         this.touchConversation(msg.conversation_id, msg.body, msg.created_at)
