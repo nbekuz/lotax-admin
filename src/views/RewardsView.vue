@@ -4,6 +4,7 @@ import { message } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 import { DownloadOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { adminRewardIconsApi } from '@/api/adminRewardIcons'
+import { adminSystemImagesApi } from '@/api/adminSystemImages'
 import { adminRewardsApi } from '@/api/adminRewards'
 import RafflePrizeFields from '@/components/RafflePrizeFields.vue'
 import ScopeFields, { type ScopeFieldsValue } from '@/components/ScopeFields.vue'
@@ -28,6 +29,7 @@ import type {
   RewardAdminItem,
   RewardIconItem,
   RewardType,
+  SystemImageItem,
 } from '@/types/api'
 
 const auth = useAuthStore()
@@ -35,6 +37,7 @@ const org = useOrgStore()
 const loading = ref(false)
 const items = ref<RewardAdminItem[]>([])
 const icons = ref<RewardIconItem[]>([])
+const systemImages = ref<SystemImageItem[]>([])
 const modalOpen = ref(false)
 const saving = ref(false)
 const editing = ref<RewardAdminItem | null>(null)
@@ -50,6 +53,7 @@ const form = reactive({
   is_active: true,
   one_per_driver: false,
   icon_id: undefined as string | undefined,
+  system_image_id: undefined as string | undefined,
 })
 
 const scope = ref<ScopeFieldsValue>(defaultSpecificScope())
@@ -97,14 +101,17 @@ const exportingId = ref<string | null>(null)
 const selectedIcon = computed(() =>
   icons.value.find((i) => i.id === form.icon_id) ?? null,
 )
+const selectedSystemImage = computed(() =>
+  systemImages.value.find((i) => i.id === form.system_image_id) ?? null,
+)
 
 function typeLabel(type: string) {
   return rewardTypeLabel[type as RewardType] ?? type
 }
 
-/** Card art: uploaded photo, otherwise the catalog icon. */
+/** Card art: uploaded photo, otherwise the system picture, otherwise the catalog icon. */
 function cardImageUrl(item: RewardAdminItem) {
-  return item.image_url || item.icon?.image_url || null
+  return item.image_url || item.system_image?.image_url || item.icon?.image_url || null
 }
 
 /** Catalog SVG/PNG icons sit in a padded canvas; photos should stay cover. */
@@ -128,6 +135,19 @@ async function loadIcons() {
   } catch {
     icons.value = []
   }
+}
+
+async function loadSystemImages() {
+  try {
+    const { data } = await adminSystemImagesApi.list({ page: 1, page_size: 100 })
+    systemImages.value = data.items ?? []
+  } catch {
+    systemImages.value = []
+  }
+}
+
+function loadCatalogs() {
+  return Promise.all([loadIcons(), loadSystemImages()])
 }
 
 async function load() {
@@ -158,12 +178,13 @@ function openCreate() {
   form.is_active = true
   form.one_per_driver = false
   form.icon_id = undefined
+  form.system_image_id = undefined
   raffleDate.value = undefined
   resetPrizes()
   scope.value = defaultSpecificScope(parkId.value)
   imageFile.value = null
   imagePreview.value = null
-  void loadIcons()
+  void loadCatalogs()
   modalOpen.value = true
 }
 
@@ -179,12 +200,13 @@ function openEdit(item: RewardAdminItem) {
   form.is_active = item.is_active
   form.one_per_driver = Boolean(item.one_per_driver)
   form.icon_id = item.icon_id || item.icon?.id || undefined
+  form.system_image_id = item.system_image_id || item.system_image?.id || undefined
   raffleDate.value = item.raffle_date ? dayjs(item.raffle_date) : undefined
   resetPrizes(item)
   scope.value = scopeFromApi(item.scope, item.park_id)
   imageFile.value = null
   imagePreview.value = item.image_url || null
-  void loadIcons()
+  void loadCatalogs()
   modalOpen.value = true
 }
 
@@ -227,6 +249,10 @@ async function save() {
     if (editing.value) {
       const hadIcon = Boolean(editing.value.icon_id || editing.value.icon?.id)
       const clear_icon = hadIcon && !form.icon_id
+      const hadPicture = Boolean(
+        editing.value.system_image_id || editing.value.system_image?.id,
+      )
+      const clear_system_image = hadPicture && !form.system_image_id
       await adminRewardsApi.update(editing.value.id, {
         title: form.title.trim(),
         description: form.description.trim() || null,
@@ -241,6 +267,8 @@ async function save() {
         ...prizes,
         icon_id: form.icon_id || null,
         clear_icon: clear_icon || undefined,
+        system_image_id: form.system_image_id || null,
+        clear_system_image: clear_system_image || undefined,
         scope_type: scope.value.scope_type,
         park_group_id: scope.value.park_group_id,
         park_ids: scope.value.park_ids,
@@ -264,6 +292,7 @@ async function save() {
         raffle_date,
         ...prizes,
         icon_id: form.icon_id || null,
+        system_image_id: form.system_image_id || null,
         scope_type: scope.value.scope_type,
         park_group_id: scope.value.park_group_id,
         park_ids: scope.value.park_ids,
@@ -321,7 +350,7 @@ async function downloadRaffle(item: RewardAdminItem, format: 'csv' | 'xlsx') {
 watch(parkId, load)
 onMounted(async () => {
   if (!org.parks.length) await org.fetchParks()
-  await Promise.all([load(), loadIcons()])
+  await Promise.all([load(), loadCatalogs()])
 })
 </script>
 
@@ -330,15 +359,22 @@ onMounted(async () => {
     <PageHeader title="Награды парка">
       <template #description>
         <p class="lotax-page-subtitle">
-          Парковые баллы · иконка из
+          Парковые баллы ·
           <router-link class="text-brand underline" :to="{ name: 'reward-icons' }">
-            каталога организации
+            иконки
+          </router-link>
+          и
+          <router-link class="text-brand underline" :to="{ name: 'system-images' }">
+            системные картинки
           </router-link>
         </p>
       </template>
       <template #actions>
         <a-button class="lotax-btn-secondary" @click="$router.push({ name: 'reward-icons' })">
           Иконки
+        </a-button>
+        <a-button class="lotax-btn-secondary" @click="$router.push({ name: 'system-images' })">
+          Картинки
         </a-button>
         <a-button class="lotax-btn-secondary" @click="load">
           <template #icon><ReloadOutlined /></template>
@@ -496,6 +532,62 @@ onMounted(async () => {
             <div class="min-w-0">
               <div class="truncate text-[14px] font-medium text-ink">
                 {{ selectedIcon.title }}
+              </div>
+              <div class="text-[12px] text-ink-muted">Выбрана из каталога</div>
+            </div>
+          </div>
+        </a-form-item>
+        <a-form-item label="Системная картинка">
+          <a-select
+            v-model:value="form.system_image_id"
+            allow-clear
+            show-search
+            option-filter-prop="label"
+            placeholder="— без картинки"
+            class="!w-full"
+            :options="
+              systemImages.map((i) => ({
+                value: i.id,
+                label: i.title,
+              }))
+            "
+          >
+            <template #option="{ value, label }">
+              <div class="flex items-center gap-2 py-0.5">
+                <span
+                  v-if="systemImages.find((i) => i.id === value)?.image_url"
+                  class="reward-thumb reward-thumb--sm"
+                >
+                  <img
+                    :src="systemImages.find((i) => i.id === value)!.image_url"
+                    alt=""
+                  />
+                </span>
+                <span class="h-7 w-7 rounded bg-surface ring-1 ring-line" v-else />
+                <span>{{ label }}</span>
+              </div>
+            </template>
+          </a-select>
+          <p class="lotax-caption mt-1">
+            Каталог организации · пусто = без картинки ·
+            <router-link class="text-brand underline" :to="{ name: 'system-images' }">
+              Управление картинками
+            </router-link>
+          </p>
+          <div
+            v-if="selectedSystemImage"
+            class="mt-2 flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2"
+          >
+            <div class="reward-thumb">
+              <img
+                v-if="selectedSystemImage.image_url"
+                :src="selectedSystemImage.image_url"
+                alt=""
+              />
+            </div>
+            <div class="min-w-0">
+              <div class="truncate text-[14px] font-medium text-ink">
+                {{ selectedSystemImage.title }}
               </div>
               <div class="text-[12px] text-ink-muted">Выбрана из каталога</div>
             </div>

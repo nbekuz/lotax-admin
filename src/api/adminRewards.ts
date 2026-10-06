@@ -46,6 +46,7 @@ export const adminRewardsApi = {
         prize_identical_count: rest.prize_identical_count,
         prize_identical_prize: rest.prize_identical_prize,
         icon_id: rest.icon_id || undefined,
+        system_image_id: rest.system_image_id || undefined,
         ...scopeToFormFields({
           scope_type: rest.scope_type,
           park_group_id: rest.park_group_id,
@@ -82,6 +83,8 @@ export const adminRewardsApi = {
         prize_identical_prize: rest.prize_identical_prize,
         icon_id: rest.clear_icon ? undefined : rest.icon_id || undefined,
         clear_icon: rest.clear_icon || undefined,
+        system_image_id: rest.clear_system_image ? undefined : rest.system_image_id || undefined,
+        clear_system_image: rest.clear_system_image || undefined,
         ...scopeToFormFields({
           scope_type: rest.scope_type,
           park_group_id: rest.park_group_id,

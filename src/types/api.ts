@@ -735,6 +735,22 @@ export interface RewardIconListResponse {
   page_size: number
 }
 
+export interface SystemImageItem {
+  id: string
+  title: string
+  image_url: string
+  organization_id: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface SystemImageListResponse {
+  items: SystemImageItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
 /* ── Rewards (admin ЛК + super-admin) ── */
 
 export interface RewardAdminItem {
@@ -745,6 +761,8 @@ export interface RewardAdminItem {
   image_url?: string | null
   icon_id?: string | null
   icon?: RewardIconItem | null
+  system_image_id?: string | null
+  system_image?: SystemImageItem | null
   type: string
   points_type: PointsType
   points_cost: number
@@ -786,6 +804,7 @@ export interface RewardAdminCreatePayload {
   prize_identical_count?: number | null
   prize_identical_prize?: string | null
   icon_id?: string | null
+  system_image_id?: string | null
   scope_type?: ScopeType
   park_group_id?: string | null
   park_ids?: string[] | null
@@ -807,6 +826,8 @@ export interface RewardAdminUpdatePayload {
   prize_identical_prize?: string | null
   icon_id?: string | null
   clear_icon?: boolean
+  system_image_id?: string | null
+  clear_system_image?: boolean
   scope_type?: ScopeType | null
   park_group_id?: string | null
   park_ids?: string[] | null

@@ -99,6 +99,7 @@ const selectedKeys = computed(() => {
     return ['organization']
   }
   if (route.path.startsWith('/reward-icons')) return ['reward-icons']
+  if (route.path.startsWith('/system-images')) return ['system-images']
   if (route.path.startsWith('/rewards')) return ['rewards']
   if (route.path.startsWith('/orders')) return ['orders']
   if (route.path.startsWith('/settings')) return ['settings']
@@ -273,6 +274,12 @@ const menuItems = computed((): any[] => {
       icon: () => h(AppstoreOutlined),
       label: 'Иконки',
       title: 'Иконки наград',
+    },
+    {
+      key: 'system-images',
+      icon: () => h(PictureOutlined),
+      label: 'Картинки',
+      title: 'Системные картинки',
     },
     {
       key: 'orders',

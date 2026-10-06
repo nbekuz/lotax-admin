@@ -106,6 +106,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'system-images',
+        name: 'system-images',
+        component: () => import('@/views/SystemImagesView.vue'),
+        meta: {
+          title: 'Системные картинки',
+          roles: ['director', 'manager'],
+        },
+      },
+      {
         path: 'orders',
         name: 'orders',
         component: () => import('@/views/OrdersView.vue'),
