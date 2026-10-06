@@ -98,12 +98,32 @@ const canEdit = computed(() => auth.canManageRewards)
 const isRaffle = computed(() => form.type === 'raffle_coupon')
 const exportingId = ref<string | null>(null)
 
+const NONE = '__none__'
+
 const selectedIcon = computed(() =>
   icons.value.find((i) => i.id === form.icon_id) ?? null,
 )
 const selectedSystemImage = computed(() =>
   systemImages.value.find((i) => i.id === form.system_image_id) ?? null,
 )
+const iconOptions = computed(() => [
+  { value: NONE, label: '— без иконки' },
+  ...icons.value.map((i) => ({ value: i.id, label: i.title })),
+])
+const systemImageOptions = computed(() => [
+  { value: NONE, label: '— без картинки' },
+  ...systemImages.value.map((i) => ({ value: i.id, label: i.title })),
+])
+
+function pickIcon(value: unknown) {
+  const next = typeof value === 'string' ? value : ''
+  form.icon_id = !next || next === NONE ? undefined : next
+}
+
+function pickSystemImage(value: unknown) {
+  const next = typeof value === 'string' ? value : ''
+  form.system_image_id = !next || next === NONE ? undefined : next
+}
 
 function typeLabel(type: string) {
   return rewardTypeLabel[type as RewardType] ?? type
@@ -483,23 +503,18 @@ onMounted(async () => {
         </a-form-item>
         <a-form-item label="Иконка">
           <a-select
-            v-model:value="form.icon_id"
-            allow-clear
+            :value="form.icon_id || NONE"
             show-search
             option-filter-prop="label"
             placeholder="— без иконки"
             class="!w-full"
-            :options="
-              icons.map((i) => ({
-                value: i.id,
-                label: i.title,
-              }))
-            "
+            :options="iconOptions"
+            @update:value="pickIcon"
           >
             <template #option="{ value, label }">
               <div class="flex items-center gap-2 py-0.5">
                 <span
-                  v-if="icons.find((i) => i.id === value)?.image_url"
+                  v-if="value !== NONE && icons.find((i) => i.id === value)?.image_url"
                   class="reward-thumb reward-thumb--icon reward-thumb--sm"
                 >
                   <img
@@ -507,7 +522,6 @@ onMounted(async () => {
                     alt=""
                   />
                 </span>
-                <span class="h-7 w-7 rounded bg-surface ring-1 ring-line" v-else />
                 <span>{{ label }}</span>
               </div>
             </template>
@@ -539,23 +553,18 @@ onMounted(async () => {
         </a-form-item>
         <a-form-item label="Системная картинка">
           <a-select
-            v-model:value="form.system_image_id"
-            allow-clear
+            :value="form.system_image_id || NONE"
             show-search
             option-filter-prop="label"
             placeholder="— без картинки"
             class="!w-full"
-            :options="
-              systemImages.map((i) => ({
-                value: i.id,
-                label: i.title,
-              }))
-            "
+            :options="systemImageOptions"
+            @update:value="pickSystemImage"
           >
             <template #option="{ value, label }">
               <div class="flex items-center gap-2 py-0.5">
                 <span
-                  v-if="systemImages.find((i) => i.id === value)?.image_url"
+                  v-if="value !== NONE && systemImages.find((i) => i.id === value)?.image_url"
                   class="reward-thumb reward-thumb--sm"
                 >
                   <img
@@ -563,7 +572,6 @@ onMounted(async () => {
                     alt=""
                   />
                 </span>
-                <span class="h-7 w-7 rounded bg-surface ring-1 ring-line" v-else />
                 <span>{{ label }}</span>
               </div>
             </template>
