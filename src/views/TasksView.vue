@@ -76,8 +76,8 @@ const form = reactive({
 })
 const dateRange = ref<[Dayjs, Dayjs]>()
 const dailyHours = ref(false)
-const hourFrom = ref<Dayjs | null>(null)
-const hourTo = ref<Dayjs | null>(null)
+const hourFrom = ref<Dayjs>()
+const hourTo = ref<Dayjs>()
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
 const scope = ref<ScopeFieldsValue>(defaultSpecificScope())
@@ -266,7 +266,7 @@ function openProgressTpl(item: TaskTemplateItem) {
 }
 
 function clockValue(value?: string | null) {
-  if (!value) return null
+  if (!value) return undefined
   const [hour, minute] = value.split(':')
   return dayjs().hour(Number(hour)).minute(Number(minute)).second(0).millisecond(0)
 }
