@@ -208,6 +208,26 @@ export interface OnlineHoursSettings {
   daily_cap_hours: number
 }
 
+export interface AppUsageOrgItem {
+  organization_id: string
+  organization_name: string
+  drivers_in_system: number
+  drivers_with_app: number
+  drivers_seen_7d: number
+  drivers_seen_30d: number
+}
+
+export interface AppUsageResponse {
+  drivers_in_system: number
+  drivers_with_app: number
+  drivers_seen_7d: number
+  drivers_seen_30d: number
+  active_devices: number
+  devices_ios: number
+  devices_android: number
+  organizations: AppUsageOrgItem[]
+}
+
 export interface DriverListItem {
   id: string
   yandex_driver_id?: string | null

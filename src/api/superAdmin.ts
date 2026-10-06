@@ -7,6 +7,7 @@ import type {
   OrganizationListResponse,
   OrganizationResponse,
   OrganizationSubscriptionPayload,
+  AppUsageResponse,
   OrganizationUpdatePayload,
   OrgDirectorCreatePayload,
   ParkCreatePayload,
@@ -282,5 +283,9 @@ export const superAdminApi = {
 
   pushNotify(payload: SuperAdminPushNotifyPayload) {
     return http.post<PushNotifyResponse>('/super-admin/push/notify', payload)
+  },
+
+  appUsage() {
+    return http.get<AppUsageResponse>('/super-admin/app-usage')
   },
 }

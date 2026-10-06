@@ -405,6 +405,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Push по организациям', roles: ['super_admin'] },
       },
       {
+        path: 'app-usage',
+        name: 'app-usage',
+        component: () => import('@/views/AppUsageView.vue'),
+        meta: { title: 'Водители в приложении', roles: ['super_admin'] },
+      },
+      {
         path: 'profile',
         name: 'profile',
         component: () => import('@/views/ProfileView.vue'),

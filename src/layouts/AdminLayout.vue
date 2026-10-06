@@ -19,6 +19,7 @@ import {
   CustomerServiceOutlined,
   LockOutlined,
   MessageOutlined,
+  MobileOutlined,
   PictureOutlined,
   RocketOutlined,
   SettingOutlined,
@@ -60,6 +61,7 @@ const selectedKeys = computed(() => {
   if (route.path.startsWith('/platform-admins')) return ['platform-admins']
   if (route.path.startsWith('/system-rewards')) return ['system-rewards']
   if (route.path.startsWith('/platform-push')) return ['platform-push']
+  if (route.path.startsWith('/app-usage')) return ['app-usage']
   if (route.path.startsWith('/banners')) return ['banners']
   if (route.path.startsWith('/deleted-drivers')) return ['deleted-drivers']
   if (route.path === '/analytics' || route.path.startsWith('/reports') || route.path.startsWith('/pdn')) {
@@ -203,6 +205,12 @@ const menuItems = computed((): any[] => {
           icon: () => h(NotificationOutlined),
           label: 'Push',
           title: 'Push по организациям',
+        },
+        {
+          key: 'app-usage',
+          icon: () => h(MobileOutlined),
+          label: 'В приложении',
+          title: 'Водители в приложении',
         },
       )
       content.push(
