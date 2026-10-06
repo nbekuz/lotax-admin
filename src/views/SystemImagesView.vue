@@ -308,20 +308,15 @@ onMounted(load)
 
 .picture-frame img {
   display: block;
-  width: 56px;
-  height: 56px;
-  min-width: 56px;
-  min-height: 56px;
+  width: 100%;
+  height: 100%;
   max-width: none;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
-  transform: scale(1.55);
 }
 
 .picture-frame--lg img {
-  width: 80px;
-  height: 80px;
-  min-width: 80px;
-  min-height: 80px;
+  width: 100%;
+  height: 100%;
 }
 </style>
