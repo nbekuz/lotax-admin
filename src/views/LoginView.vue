@@ -28,6 +28,32 @@ const rules: Record<string, Rule[]> = {
   ],
 }
 
+function nextPath() {
+  const fallback = auth.homePath
+  const raw = route.query.redirect
+  const fromQuery = Array.isArray(raw) ? raw[0] : raw
+  let redirect =
+    typeof fromQuery === 'string' &&
+    fromQuery.startsWith('/') &&
+    !fromQuery.startsWith('//')
+      ? fromQuery
+      : fallback
+  if (
+    auth.isPlatformOperator &&
+    (redirect.startsWith('/drivers') ||
+      redirect.startsWith('/sync') ||
+      redirect === '/organization' ||
+      redirect.startsWith('/organization/') ||
+      redirect.startsWith('/staff') ||
+      redirect.startsWith('/rewards') ||
+      redirect.startsWith('/orders') ||
+      redirect.startsWith('/tasks'))
+  ) {
+    redirect = fallback
+  }
+  return redirect
+}
+
 async function onSubmit() {
   loading.value = true
   const ok = await auth.login({
@@ -42,21 +68,11 @@ async function onSubmit() {
   }
 
   message.success('Добро пожаловать')
-  const fallback = auth.homePath
-  let redirect = (route.query.redirect as string) || fallback
-  if (auth.isPlatformOperator) {
-    const parkOnly =
-      redirect.startsWith('/drivers') ||
-      redirect.startsWith('/sync') ||
-      redirect === '/organization' ||
-      redirect.startsWith('/organization/') ||
-      redirect.startsWith('/staff') ||
-      redirect.startsWith('/rewards') ||
-      redirect.startsWith('/orders') ||
-      redirect.startsWith('/tasks')
-    if (parkOnly) redirect = fallback
+  const target = nextPath()
+  const failure = await router.replace(target).catch(() => true)
+  if (failure || router.currentRoute.value.name === 'login') {
+    window.location.assign(target)
   }
-  router.replace(redirect)
 }
 </script>
 

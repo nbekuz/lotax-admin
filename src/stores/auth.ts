@@ -131,6 +131,7 @@ export const useAuthStore = defineStore('auth', {
         tokenStorage.setTokens(data.access_token, data.refresh_token)
         const me = await authApi.me()
         this.admin = me.data
+        this.bootstrapped = true
         return true
       } catch (e) {
         this.error = extractErrorMessage(e, 'Неверный email или пароль')

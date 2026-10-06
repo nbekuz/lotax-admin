@@ -482,7 +482,9 @@ router.beforeEach(async (to) => {
 
   const roles = to.meta.roles as string[] | undefined
   if (roles && auth.role && !roles.includes(auth.role)) {
-    return homeForRole(auth)
+    const home = auth.homePath
+    if (normalizePath(to.path) === normalizePath(home)) return true
+    return { path: home }
   }
 
   return true
