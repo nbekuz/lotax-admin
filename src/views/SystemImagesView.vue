@@ -32,7 +32,7 @@ const pagination = reactive({
 })
 
 const columns = [
-  { title: 'Картинка', key: 'preview', width: 88 },
+  { title: 'Картинка', key: 'preview', width: 132 },
   { title: 'Название', key: 'title', dataIndex: 'title', ellipsis: true },
   { title: '', key: 'actions', width: 180 },
 ]
@@ -284,26 +284,26 @@ onMounted(load)
 <style scoped>
 .picture-frame {
   display: inline-flex;
-  width: 56px;
-  height: 56px;
-  min-width: 56px;
-  min-height: 56px;
-  flex: 0 0 56px;
+  width: 112px;
+  height: 72px;
+  min-width: 112px;
+  min-height: 72px;
+  flex: 0 0 112px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--lotax-media-well);
   box-shadow: inset 0 0 0 1px var(--lotax-border);
   vertical-align: middle;
 }
 
 .picture-frame--lg {
-  width: 80px;
-  height: 80px;
-  min-width: 80px;
-  min-height: 80px;
-  flex-basis: 80px;
+  width: 280px;
+  height: 180px;
+  min-width: 280px;
+  min-height: 180px;
+  flex-basis: 280px;
 }
 
 .picture-frame img {
@@ -313,10 +313,6 @@ onMounted(load)
   max-width: none;
   object-fit: contain;
   object-position: center;
-}
-
-.picture-frame--lg img {
-  width: 100%;
-  height: 100%;
+  transform: none;
 }
 </style>
