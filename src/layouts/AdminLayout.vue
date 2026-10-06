@@ -278,7 +278,7 @@ const menuItems = computed((): any[] => {
     {
       key: 'system-images',
       icon: () => h(PictureOutlined),
-      label: 'Картинки',
+      label: 'Системные картинки',
       title: 'Системные картинки',
     },
     {

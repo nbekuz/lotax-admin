@@ -374,7 +374,7 @@ onMounted(async () => {
           Иконки
         </a-button>
         <a-button class="lotax-btn-secondary" @click="$router.push({ name: 'system-images' })">
-          Картинки
+          Системные картинки
         </a-button>
         <a-button class="lotax-btn-secondary" @click="load">
           <template #icon><ReloadOutlined /></template>
