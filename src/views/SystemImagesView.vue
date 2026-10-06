@@ -286,7 +286,9 @@ onMounted(load)
   display: inline-flex;
   width: 56px;
   height: 56px;
-  flex-shrink: 0;
+  min-width: 56px;
+  min-height: 56px;
+  flex: 0 0 56px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -297,13 +299,29 @@ onMounted(load)
 }
 
 .picture-frame--lg {
-  width: 120px;
+  width: 80px;
   height: 80px;
+  min-width: 80px;
+  min-height: 80px;
+  flex-basis: 80px;
 }
 
 .picture-frame img {
-  width: 100%;
-  height: 100%;
+  display: block;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
+  max-width: none;
   object-fit: cover;
+  object-position: center;
+  transform: scale(1.55);
+}
+
+.picture-frame--lg img {
+  width: 80px;
+  height: 80px;
+  min-width: 80px;
+  min-height: 80px;
 }
 </style>
