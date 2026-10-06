@@ -75,6 +75,9 @@ const form = reactive({
   notify_on_create: true,
 })
 const dateRange = ref<[Dayjs, Dayjs]>()
+const dailyHours = ref(false)
+const hourFrom = ref<Dayjs | null>(null)
+const hourTo = ref<Dayjs | null>(null)
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
 const scope = ref<ScopeFieldsValue>(defaultSpecificScope())
@@ -262,6 +265,20 @@ function openProgressTpl(item: TaskTemplateItem) {
   router.push({ name: 'task-progress', params: { id: item.task_id } })
 }
 
+function clockValue(value?: string | null) {
+  if (!value) return null
+  const [hour, minute] = value.split(':')
+  return dayjs().hour(Number(hour)).minute(Number(minute)).second(0).millisecond(0)
+}
+
+function hourFields() {
+  if (!dailyHours.value) return { active_time_from: '', active_time_to: '' }
+  return {
+    active_time_from: hourFrom.value ? hourFrom.value.format('HH:mm') : '',
+    active_time_to: hourTo.value ? hourTo.value.format('HH:mm') : '',
+  }
+}
+
 function openCreate() {
   editing.value = null
   form.title = ''
@@ -273,6 +290,9 @@ function openCreate() {
   form.auto_join = true
   form.status = 'draft'
   form.notify_on_create = true
+  dailyHours.value = false
+  hourFrom.value = clockValue('07:00')
+  hourTo.value = clockValue('09:00')
   imageFile.value = null
   imagePreview.value = null
   scope.value = defaultSpecificScope(parkId.value)
@@ -290,6 +310,9 @@ function openEdit(item: TaskAdminItem) {
   form.auto_join = item.auto_join
   form.status = item.status as TaskStatus
   form.notify_on_create = true
+  dailyHours.value = Boolean(item.active_time_from && item.active_time_to)
+  hourFrom.value = clockValue(item.active_time_from) ?? clockValue('07:00')
+  hourTo.value = clockValue(item.active_time_to) ?? clockValue('09:00')
   imageFile.value = null
   imagePreview.value = item.image_url || null
   scope.value = scopeFromApi(item.scope, item.park_id)
@@ -309,6 +332,19 @@ async function save() {
   }
   if (!dateRange.value) {
     message.warning('Укажите период проведения')
+    return
+  }
+  if (dailyHours.value && (!hourFrom.value || !hourTo.value)) {
+    message.warning('Укажите часы, когда засчитываются заказы')
+    return
+  }
+  if (
+    dailyHours.value &&
+    hourFrom.value &&
+    hourTo.value &&
+    hourFrom.value.format('HH:mm') === hourTo.value.format('HH:mm')
+  ) {
+    message.warning('Время начала и конца не должны совпадать')
     return
   }
   if (!editing.value) {
@@ -333,6 +369,7 @@ async function save() {
         auto_join: form.auto_join,
         status: form.status,
         notify_on_create: form.notify_on_create,
+        ...hourFields(),
         image: imageFile.value,
       })
       message.success('Задание обновлено')
@@ -350,6 +387,7 @@ async function save() {
         auto_join: form.auto_join,
         status: form.status,
         notify_on_create: form.notify_on_create,
+        ...(dailyHours.value ? hourFields() : {}),
         scope_type: scope.value.scope_type,
         park_group_id: scope.value.park_group_id,
         park_ids: scope.value.park_ids,
@@ -510,6 +548,12 @@ onMounted(async () => {
             <div class="mt-1 text-[12px] text-ink-muted">
               {{ dayjs(item.start_date).format('DD.MM.YYYY') }} —
               {{ dayjs(item.end_date).format('DD.MM.YYYY') }}
+              <template v-if="item.active_time_from && item.active_time_to">
+                · каждый день {{ item.active_time_from.slice(0, 5) }}–{{
+                  item.active_time_to.slice(0, 5)
+                }}
+                МСК
+              </template>
             </div>
           </div>
           <div class="flex flex-wrap gap-2">
@@ -698,6 +742,24 @@ onMounted(async () => {
             show-time
           />
         </a-form-item>
+        <div class="pb-2">
+          <label class="inline-flex items-center gap-2 text-[13px] text-ink">
+            <a-switch v-model:checked="dailyHours" size="small" />
+            Только в определённые часы, каждый день
+          </label>
+          <p class="lotax-caption mt-1">
+            Заказы вне этих часов не считаются. На следующий день прогресс начинается заново.
+            Время — московское.
+          </p>
+        </div>
+        <div v-if="dailyHours" class="grid grid-cols-2 gap-x-3">
+          <a-form-item label="С">
+            <a-time-picker v-model:value="hourFrom" class="!w-full" format="HH:mm" />
+          </a-form-item>
+          <a-form-item label="До">
+            <a-time-picker v-model:value="hourTo" class="!w-full" format="HH:mm" />
+          </a-form-item>
+        </div>
         <div class="flex flex-wrap gap-x-6 gap-y-2 pb-1">
           <label class="inline-flex items-center gap-2 text-[13px] text-ink">
             <a-switch v-model:checked="form.auto_join" size="small" />

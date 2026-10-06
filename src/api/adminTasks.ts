@@ -37,6 +37,8 @@ export const adminTasksApi = {
         auto_join: rest.auto_join,
         status: rest.status,
         notify_on_create: rest.notify_on_create,
+        active_time_from: rest.active_time_from,
+        active_time_to: rest.active_time_to,
         ...scopeToFormFields({
           scope_type: rest.scope_type,
           park_group_id: rest.park_group_id,
@@ -67,6 +69,8 @@ export const adminTasksApi = {
         auto_join: rest.auto_join,
         status: rest.status,
         notify_on_create: rest.notify_on_create,
+        active_time_from: rest.active_time_from,
+        active_time_to: rest.active_time_to,
         clear_image,
         image: image ?? undefined,
       }),
