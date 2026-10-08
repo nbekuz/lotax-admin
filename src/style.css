@@ -468,27 +468,43 @@ body {
   border-radius: 0;
 }
 
+.ant-table-wrapper table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.ant-table-header,
+.ant-table-sticky-holder {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
 .ant-table-thead > tr > th {
   background: var(--lotax-table-head) !important;
   color: var(--lotax-text-secondary) !important;
-  font-size: 12px !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
   letter-spacing: 0.01em;
   text-transform: none;
   border-bottom: 1px solid var(--lotax-border) !important;
-  padding: 12px !important;
-  line-height: 20px !important;
+  box-sizing: content-box !important;
   height: auto !important;
-  /* ellipsis/sticky header clips the top of the letters */
+  max-height: none !important;
+  padding: 14px 12px !important;
+  line-height: 1.35 !important;
   overflow: visible !important;
+  vertical-align: middle !important;
 }
 
 .ant-table-thead > tr > th.ant-table-cell-ellipsis,
 .ant-table-thead > tr > th .ant-table-column-title {
   overflow: visible !important;
   text-overflow: clip !important;
-  line-height: 20px !important;
+  line-height: 1.35 !important;
   height: auto !important;
+  max-height: none !important;
+  white-space: nowrap;
 }
 
 .ant-table-tbody > tr > td {
