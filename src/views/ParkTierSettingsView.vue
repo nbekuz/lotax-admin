@@ -132,8 +132,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-2xl flex-col gap-4 md:gap-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  <div class="mx-auto flex w-full max-w-5xl flex-col gap-4 md:gap-6">
+    <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
         <h1 class="lotax-page-title">Уровни</h1>
         <p class="lotax-caption mt-1">
@@ -141,7 +141,7 @@ onMounted(async () => {
         </p>
       </div>
       <a-button
-        class="lotax-btn-secondary"
+        class="lotax-btn-secondary self-start"
         :loading="loading"
         :disabled="!parkId"
         @click="load"
@@ -192,7 +192,7 @@ onMounted(async () => {
           </p>
 
           <div class="mb-1 text-[14px] font-semibold text-ink">Бронза</div>
-          <div class="grid grid-cols-1 gap-x-3 sm:grid-cols-3">
+          <div class="grid grid-cols-1 gap-x-3 md:grid-cols-3">
             <a-form-item label="Поездки">
               <a-input-number class="!w-full" :value="0" disabled />
             </a-form-item>
@@ -205,7 +205,7 @@ onMounted(async () => {
           </div>
 
           <div class="mb-1 text-[14px] font-semibold text-ink">Серебро</div>
-          <div class="grid grid-cols-1 gap-x-3 sm:grid-cols-3">
+          <div class="grid grid-cols-1 gap-x-3 md:grid-cols-3">
             <a-form-item label="Поездки">
               <a-input-number
                 v-model:value="form.silver_rides"
@@ -217,6 +217,7 @@ onMounted(async () => {
             <a-form-item label="Коэффициент">
               <a-select
                 v-model:value="form.silver_coefficient"
+                class="!w-full"
                 :options="coefficientOptions"
                 :disabled="!canEdit"
               />
@@ -232,7 +233,7 @@ onMounted(async () => {
           </div>
 
           <div class="mb-1 text-[14px] font-semibold text-ink">Золото</div>
-          <div class="grid grid-cols-1 gap-x-3 sm:grid-cols-3">
+          <div class="grid grid-cols-1 gap-x-3 md:grid-cols-3">
             <a-form-item label="Поездки">
               <a-input-number
                 v-model:value="form.gold_rides"
@@ -244,6 +245,7 @@ onMounted(async () => {
             <a-form-item label="Коэффициент">
               <a-select
                 v-model:value="form.gold_coefficient"
+                class="!w-full"
                 :options="coefficientOptions"
                 :disabled="!canEdit"
               />
@@ -259,7 +261,7 @@ onMounted(async () => {
           </div>
 
           <div class="mb-1 text-[14px] font-semibold text-ink">Платина</div>
-          <div class="grid grid-cols-1 gap-x-3 sm:grid-cols-3">
+          <div class="grid grid-cols-1 gap-x-3 md:grid-cols-3">
             <a-form-item label="Поездки">
               <a-input-number
                 v-model:value="form.platinum_rides"
@@ -271,6 +273,7 @@ onMounted(async () => {
             <a-form-item label="Коэффициент">
               <a-select
                 v-model:value="form.platinum_coefficient"
+                class="!w-full"
                 :options="coefficientOptions"
                 :disabled="!canEdit"
               />
