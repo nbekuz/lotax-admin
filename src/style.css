@@ -476,7 +476,19 @@ body {
   letter-spacing: 0.01em;
   text-transform: none;
   border-bottom: 1px solid var(--lotax-border) !important;
-  padding: 8px 12px !important;
+  padding: 12px !important;
+  line-height: 20px !important;
+  height: auto !important;
+  /* ellipsis/sticky header clips the top of the letters */
+  overflow: visible !important;
+}
+
+.ant-table-thead > tr > th.ant-table-cell-ellipsis,
+.ant-table-thead > tr > th .ant-table-column-title {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  line-height: 20px !important;
+  height: auto !important;
 }
 
 .ant-table-tbody > tr > td {
