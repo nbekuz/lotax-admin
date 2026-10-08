@@ -5,6 +5,7 @@ import type {
   CompetitionStatus,
   DriverStatus,
   DriverTier,
+  OrderStatus,
   TaskStatus,
   TaskType,
 } from '@/types/api'
@@ -95,6 +96,19 @@ export const taskTypeLabel: Record<TaskType, string> = {
   custom: 'Ручной трекинг',
   claim: 'Получить бонус',
   days_active: 'Дни в парке',
+}
+
+export const orderStatusLabel: Record<OrderStatus, string> = {
+  pending: 'На модерации',
+  approved: 'Одобрена',
+  rejected: 'Отклонена',
+  cancelled: 'Отменена',
+  fulfilled: 'Выполнена',
+}
+
+export const pointsTypeLabel: Record<string, string> = {
+  park: 'парковые',
+  system: 'системные',
 }
 
 export const taskStatusLabel: Record<TaskStatus, string> = {

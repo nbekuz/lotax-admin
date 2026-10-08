@@ -5,7 +5,7 @@ import { ReloadOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import { adminOrdersApi } from '@/api/adminOrders'
 import { useOrgStore } from '@/stores/org'
-import { extractErrorMessage, formatPhone } from '@/utils/labels'
+import { extractErrorMessage, formatPhone, orderStatusLabel, pointsTypeLabel } from '@/utils/labels'
 import type { OrderAdminItem, OrderStatus } from '@/types/api'
 import PageHeader from '@/components/PageHeader.vue'
 
@@ -156,7 +156,7 @@ onMounted(async () => {
             <div class="font-semibold text-ink">{{ item.reward_title }}</div>
             <div class="text-[13px] text-ink-muted">
               {{ driverLine(item) }} · −{{ item.points_spent }} б.
-              ({{ item.points_type }})
+              ({{ pointsTypeLabel[item.points_type] || item.points_type }})
             </div>
             <div class="text-[12px] text-ink-muted">
               <template v-if="item.park_name">{{ item.park_name }} · </template>
@@ -164,7 +164,7 @@ onMounted(async () => {
             </div>
           </div>
           <span class="rounded-full bg-surface px-2.5 py-1 text-[12px] font-medium ring-1 ring-line">
-            {{ item.status }}
+            {{ orderStatusLabel[item.status] || item.status }}
           </span>
         </div>
         <div v-if="item.status === 'pending'" class="flex flex-wrap gap-2">
