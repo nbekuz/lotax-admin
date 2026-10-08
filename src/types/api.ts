@@ -976,6 +976,7 @@ export interface TaskAdminItem {
   renew_on_complete?: boolean
   active_time_from?: string | null
   active_time_to?: string | null
+  award_mode?: 'automatic' | 'manual' | string
   scope_id?: string | null
   scope?: ParkScopeInfo | null
   participants_count?: number | null
@@ -1009,6 +1010,8 @@ export interface TaskAdminCreatePayload {
   park_ids?: string[] | null
   active_time_from?: string | null
   active_time_to?: string | null
+  award_mode?: 'automatic' | 'manual'
+  period_days?: number | null
 }
 
 export interface TaskAdminUpdatePayload {
@@ -1024,6 +1027,26 @@ export interface TaskAdminUpdatePayload {
   notify_on_create?: boolean | null
   active_time_from?: string | null
   active_time_to?: string | null
+  award_mode?: 'automatic' | 'manual' | null
+  period_days?: number | null
+}
+
+export interface TaskAwardRequestItem {
+  id: string
+  task_id: string
+  task_title: string
+  driver_id: string
+  driver_display_name?: string | null
+  status: 'pending' | 'approved' | 'rejected' | string
+  comment?: string | null
+  review_comment?: string | null
+  reward_points: number
+  created_at: string
+  reviewed_at?: string | null
+}
+
+export interface TaskAwardRequestListResponse {
+  items: TaskAwardRequestItem[]
 }
 
 export interface TaskProgressParticipant {

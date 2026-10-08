@@ -28,6 +28,7 @@ import {
 } from '@/utils/scope'
 import type {
   TaskAdminItem,
+  TaskAwardRequestItem,
   TaskStatus,
   TaskTemplateItem,
   TaskType,
@@ -73,6 +74,8 @@ const form = reactive({
   auto_join: true,
   status: 'draft' as TaskStatus,
   notify_on_create: true,
+  award_mode: 'automatic' as 'automatic' | 'manual',
+  award_wait_days: 30,
 })
 const dateRange = ref<[Dayjs, Dayjs]>()
 const dailyHours = ref(false)
@@ -84,6 +87,13 @@ const scope = ref<ScopeFieldsValue>(defaultSpecificScope())
 
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageTasks)
+const canReview = computed(() => auth.isParkAdmin)
+const claims = ref<TaskAwardRequestItem[]>([])
+const claimStatus = ref<'pending' | 'all'>('pending')
+const reviewingId = ref<string | null>(null)
+const rejectOpen = ref(false)
+const rejectTarget = ref<TaskAwardRequestItem | null>(null)
+const rejectComment = ref('')
 
 const periodChips = [7, 14, 30, 365]
 
@@ -100,6 +110,11 @@ const statusOptions = [
   { value: 'scheduled', label: taskStatusLabel.scheduled },
   { value: 'active', label: taskStatusLabel.active },
   { value: 'completed', label: taskStatusLabel.completed },
+]
+
+const awardModeOptions = [
+  { value: 'automatic', label: 'Автоматически' },
+  { value: 'manual', label: 'Вручную' },
 ]
 
 function tplPoints(item: TaskTemplateItem) {
@@ -120,18 +135,23 @@ async function load() {
   if (!parkId.value) {
     templates.value = []
     customItems.value = []
+    claims.value = []
     return
   }
   loading.value = true
   try {
-    const [tplRes, tasksRes] = await Promise.all([
+    const [tplRes, tasksRes, claimsRes] = await Promise.all([
       adminTaskTemplatesApi.list(parkId.value),
       adminTasksApi.list({ park_id: parkId.value }),
+      canReview.value
+        ? adminTasksApi.awardRequests(parkId.value, claimStatus.value)
+        : Promise.resolve({ data: { items: [] as TaskAwardRequestItem[] } }),
     ])
     templates.value = tplRes.data.items ?? []
     customItems.value = (tasksRes.data.items ?? []).filter(
       (t) => !t.template_key,
     )
+    claims.value = claimsRes.data.items ?? []
   } catch (e) {
     message.error(extractErrorMessage(e))
   } finally {
@@ -290,6 +310,8 @@ function openCreate() {
   form.auto_join = true
   form.status = 'draft'
   form.notify_on_create = true
+  form.award_mode = 'automatic'
+  form.award_wait_days = 30
   dailyHours.value = false
   hourFrom.value = clockValue('07:00')
   hourTo.value = clockValue('09:00')
@@ -310,6 +332,8 @@ function openEdit(item: TaskAdminItem) {
   form.auto_join = item.auto_join
   form.status = item.status as TaskStatus
   form.notify_on_create = true
+  form.award_mode = item.award_mode === 'manual' ? 'manual' : 'automatic'
+  form.award_wait_days = item.period_days && item.award_mode === 'manual' ? item.period_days : 30
   dailyHours.value = Boolean(item.active_time_from && item.active_time_to)
   hourFrom.value = clockValue(item.active_time_from) ?? clockValue('07:00')
   hourTo.value = clockValue(item.active_time_to) ?? clockValue('09:00')
@@ -347,6 +371,10 @@ async function save() {
     message.warning('Время начала и конца не должны совпадать')
     return
   }
+  if (form.award_mode === 'manual' && (!form.award_wait_days || form.award_wait_days < 1)) {
+    message.warning('Укажите, через сколько дней водитель может отправить заявку')
+    return
+  }
   if (!editing.value) {
     const scopeError = validateScopeFields(scope.value)
     if (scopeError) {
@@ -358,6 +386,11 @@ async function save() {
   try {
     const start_date = dateRange.value[0].toISOString()
     const end_date = dateRange.value[1].toISOString()
+    const award = {
+      award_mode: form.award_mode,
+      period_days: form.award_mode === 'manual' ? form.award_wait_days : null,
+    }
+    const autoJoin = form.award_mode === 'manual' ? true : form.auto_join
     if (editing.value) {
       await adminTasksApi.update(editing.value.id, {
         title: form.title.trim(),
@@ -366,10 +399,11 @@ async function save() {
         reward_points: form.reward_points,
         start_date,
         end_date,
-        auto_join: form.auto_join,
+        auto_join: autoJoin,
         status: form.status,
         notify_on_create: form.notify_on_create,
         ...hourFields(),
+        ...award,
         image: imageFile.value,
       })
       message.success('Задание обновлено')
@@ -384,10 +418,11 @@ async function save() {
         reward_points: form.reward_points,
         start_date,
         end_date,
-        auto_join: form.auto_join,
+        auto_join: autoJoin,
         status: form.status,
         notify_on_create: form.notify_on_create,
         ...(dailyHours.value ? hourFields() : {}),
+        ...award,
         scope_type: scope.value.scope_type,
         park_group_id: scope.value.park_group_id,
         park_ids: scope.value.park_ids,
@@ -401,6 +436,56 @@ async function save() {
     message.error(extractErrorMessage(e))
   } finally {
     saving.value = false
+  }
+}
+
+function claimStatusLabel(status: string) {
+  if (status === 'pending') return 'На проверке'
+  if (status === 'approved') return 'Начислено'
+  if (status === 'rejected') return 'Отклонено'
+  return status
+}
+
+async function approveClaim(item: TaskAwardRequestItem) {
+  Modal.confirm({
+    title: 'Начислить баллы?',
+    content: `${item.driver_display_name || 'Водитель'} · ${item.task_title} · +${item.reward_points} б.`,
+    okText: 'Начислить',
+    cancelText: 'Отмена',
+    centered: true,
+    async onOk() {
+      reviewingId.value = item.id
+      try {
+        await adminTasksApi.approveAward(item.id)
+        message.success('Баллы начислены')
+        await load()
+      } catch (e) {
+        message.error(extractErrorMessage(e))
+      } finally {
+        reviewingId.value = null
+      }
+    },
+  })
+}
+
+function openReject(item: TaskAwardRequestItem) {
+  rejectTarget.value = item
+  rejectComment.value = ''
+  rejectOpen.value = true
+}
+
+async function confirmReject() {
+  if (!rejectTarget.value) return
+  reviewingId.value = rejectTarget.value.id
+  try {
+    await adminTasksApi.rejectAward(rejectTarget.value.id, rejectComment.value.trim())
+    message.success('Заявка отклонена')
+    rejectOpen.value = false
+    await load()
+  } catch (e) {
+    message.error(extractErrorMessage(e))
+  } finally {
+    reviewingId.value = null
   }
 }
 
@@ -554,6 +639,9 @@ onMounted(async () => {
                 }}
                 МСК
               </template>
+              <template v-if="item.award_mode === 'manual'">
+                · вручную, заявка через {{ item.period_days || '—' }} дн.
+              </template>
             </div>
           </div>
           <div class="flex flex-wrap gap-2">
@@ -565,6 +653,56 @@ onMounted(async () => {
               <a-button class="lotax-btn-secondary" @click="openEdit(item)">Изменить</a-button>
               <a-button danger @click="remove(item)">Удалить</a-button>
             </template>
+          </div>
+        </article>
+      </section>
+
+      <section v-if="canReview" class="mt-2 flex flex-col gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-[16px] font-semibold text-ink">Заявки на баллы</h2>
+          <a-select
+            v-model:value="claimStatus"
+            class="w-[180px]"
+            :options="[
+              { value: 'pending', label: 'На проверке' },
+              { value: 'all', label: 'Все' },
+            ]"
+            @change="load"
+          />
+        </div>
+        <div v-if="!claims.length" class="lotax-card p-6 text-center lotax-caption">
+          Заявок нет
+        </div>
+        <article
+          v-for="item in claims"
+          :key="item.id"
+          class="lotax-card flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between"
+        >
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-semibold text-ink">{{ item.driver_display_name || 'Водитель' }}</span>
+              <span class="text-[13px] text-ink-muted">{{ claimStatusLabel(item.status) }}</span>
+            </div>
+            <div class="mt-1 text-[13px] text-ink-muted">
+              {{ item.task_title }} · +{{ item.reward_points }} б. ·
+              {{ dayjs(item.created_at).format('DD.MM.YYYY HH:mm') }}
+            </div>
+            <p v-if="item.comment" class="mt-1 text-[13px] text-ink">{{ item.comment }}</p>
+            <p v-if="item.review_comment" class="mt-1 text-[12px] text-ink-muted">
+              {{ item.review_comment }}
+            </p>
+          </div>
+          <div v-if="item.status === 'pending'" class="flex flex-wrap gap-2">
+            <a-button
+              type="primary"
+              :loading="reviewingId === item.id"
+              @click="approveClaim(item)"
+            >
+              Начислить
+            </a-button>
+            <a-button danger :disabled="reviewingId === item.id" @click="openReject(item)">
+              Отклонить
+            </a-button>
           </div>
         </article>
       </section>
@@ -734,6 +872,25 @@ onMounted(async () => {
             <p class="lotax-caption mt-1">Только парковые баллы</p>
           </a-form-item>
         </div>
+        <a-form-item label="Начисление баллов">
+          <a-select v-model:value="form.award_mode" :options="awardModeOptions" />
+          <p v-if="form.award_mode === 'automatic'" class="lotax-caption mt-1">
+            Условие выполнено — баллы падают сами.
+          </p>
+          <p v-else class="lotax-caption mt-1">
+            Система баллы сама не ставит и ДТП не проверяет. После срока водитель отправляет
+            заявку, менеджер начисляет или отклоняет. Дата окончания задания должна быть позже
+            этого срока.
+          </p>
+        </a-form-item>
+        <a-form-item v-if="form.award_mode === 'manual'" label="Дней до заявки">
+          <a-input-number
+            v-model:value="form.award_wait_days"
+            class="!w-full"
+            :min="1"
+            :max="365"
+          />
+        </a-form-item>
         <a-form-item label="Период" required>
           <a-range-picker
             v-model:value="dateRange"
@@ -762,7 +919,11 @@ onMounted(async () => {
         </div>
         <div class="flex flex-wrap gap-x-6 gap-y-2 pb-1">
           <label class="inline-flex items-center gap-2 text-[13px] text-ink">
-            <a-switch v-model:checked="form.auto_join" size="small" />
+            <a-switch
+              v-model:checked="form.auto_join"
+              size="small"
+              :disabled="form.award_mode === 'manual'"
+            />
             Автоучастие
           </label>
           <label class="inline-flex items-center gap-2 text-[13px] text-ink">
@@ -771,6 +932,27 @@ onMounted(async () => {
           </label>
         </div>
         <ScopeFields v-model="scope" :disabled="Boolean(editing)" />
+      </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:open="rejectOpen"
+      title="Отклонить заявку"
+      ok-text="Отклонить"
+      cancel-text="Отмена"
+      :confirm-loading="Boolean(reviewingId)"
+      ok-type="danger"
+      centered
+      :width="440"
+      @ok="confirmReject"
+    >
+      <p v-if="rejectTarget" class="mb-3 text-[14px] text-ink">
+        {{ rejectTarget.driver_display_name || 'Водитель' }} · {{ rejectTarget.task_title }}
+      </p>
+      <a-form layout="vertical">
+        <a-form-item label="Комментарий">
+          <a-textarea v-model:value="rejectComment" :rows="3" placeholder="Необязательно" />
+        </a-form-item>
       </a-form>
     </a-modal>
   </div>

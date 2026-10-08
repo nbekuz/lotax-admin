@@ -6,6 +6,8 @@ import type {
   TaskAdminItem,
   TaskAdminListResponse,
   TaskAdminUpdatePayload,
+  TaskAwardRequestItem,
+  TaskAwardRequestListResponse,
   TaskProgressResponse,
 } from '@/types/api'
 
@@ -39,6 +41,8 @@ export const adminTasksApi = {
         notify_on_create: rest.notify_on_create,
         active_time_from: rest.active_time_from,
         active_time_to: rest.active_time_to,
+        award_mode: rest.award_mode,
+        period_days: rest.period_days,
         ...scopeToFormFields({
           scope_type: rest.scope_type,
           park_group_id: rest.park_group_id,
@@ -71,6 +75,8 @@ export const adminTasksApi = {
         notify_on_create: rest.notify_on_create,
         active_time_from: rest.active_time_from,
         active_time_to: rest.active_time_to,
+        award_mode: rest.award_mode,
+        period_days: rest.period_days,
         clear_image,
         image: image ?? undefined,
       }),
@@ -83,5 +89,25 @@ export const adminTasksApi = {
 
   progress(taskId: string) {
     return http.get<TaskProgressResponse>(`/admin/tasks/${taskId}/progress`)
+  },
+
+  awardRequests(parkId: string, status: 'pending' | 'approved' | 'rejected' | 'all' = 'pending') {
+    return http.get<TaskAwardRequestListResponse>('/admin/task-award-requests', {
+      params: { park_id: parkId, status },
+    })
+  },
+
+  approveAward(requestId: string, comment?: string) {
+    return http.post<TaskAwardRequestItem>(
+      `/admin/task-award-requests/${requestId}/approve`,
+      { comment: comment || null },
+    )
+  },
+
+  rejectAward(requestId: string, comment?: string) {
+    return http.post<TaskAwardRequestItem>(
+      `/admin/task-award-requests/${requestId}/reject`,
+      { comment: comment || null },
+    )
   },
 }
