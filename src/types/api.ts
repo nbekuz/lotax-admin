@@ -6,14 +6,18 @@ export type DriverTier = 'bronze' | 'silver' | 'gold' | 'platinum'
 export type StaffAssignableRole = 'manager'
 
 export interface TokenResponse {
-  access_token: string
-  refresh_token: string
+  access_token?: string | null
+  refresh_token?: string | null
   token_type: string
-  expires_in: number
+  expires_in?: number | null
   role?: AdminRole
   email?: string
   organization_id?: string | null
   organization_ids?: string[]
+  two_factor_required?: boolean
+  two_factor_setup_required?: boolean
+  challenge_token?: string | null
+  device_token?: string | null
 }
 
 export interface AdminProfile {
@@ -27,6 +31,7 @@ export interface AdminProfile {
   park_id?: string | null
   organization_id?: string | null
   organization_ids?: string[]
+  totp_enabled?: boolean
   created_at: string
 }
 
@@ -550,6 +555,7 @@ export interface YandexLiveEarningsItem {
 export interface AdminLoginPayload {
   email: string
   password: string
+  device_token?: string
 }
 
 export interface BalanceUpdatePayload {

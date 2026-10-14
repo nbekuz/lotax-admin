@@ -13,6 +13,12 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true, title: 'Вход' },
   },
   {
+    path: '/2fa-setup',
+    name: '2fa-setup',
+    component: () => import('@/views/TwoFactorSetupView.vue'),
+    meta: { title: 'Двухфакторная защита', roles: ['super_admin', 'director', 'manager'] },
+  },
+  {
     path: '/forgot-password',
     name: 'forgot-password',
     component: () => import('@/views/StaffForgotPasswordView.vue'),
@@ -471,6 +477,7 @@ router.beforeEach(async (to) => {
 
   if (publicRoute) {
     if (auth.isAuthenticated && to.name === 'login') {
+      if (auth.needsTwoFactorSetup) return { name: '2fa-setup' }
       return homeForRole(auth)
     }
     return true
@@ -478,6 +485,10 @@ router.beforeEach(async (to) => {
 
   if (!auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  if (auth.needsTwoFactorSetup && to.name !== '2fa-setup') {
+    return { name: '2fa-setup' }
   }
 
   const roles = to.meta.roles as string[] | undefined

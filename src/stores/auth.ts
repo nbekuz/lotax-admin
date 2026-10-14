@@ -15,6 +15,7 @@ interface AuthState {
   loading: boolean
   bootstrapped: boolean
   error: string | null
+  challengeToken: string | null
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -23,6 +24,7 @@ export const useAuthStore = defineStore('auth', {
     loading: false,
     bootstrapped: false,
     error: null,
+    challengeToken: null,
   }),
 
   getters: {
@@ -87,6 +89,9 @@ export const useAuthStore = defineStore('auth', {
     canUseSupportChat: (s) => s.admin?.role === 'director',
     /** Soft-delete org/park — super_admin only. Platform `admin` gets 403. */
     canDeleteOrganizations: (s) => s.admin?.role === 'super_admin',
+    needsTwoFactorSetup: (s) =>
+      ['super_admin', 'director', 'manager'].includes(s.admin?.role ?? '') &&
+      s.admin?.totp_enabled === false,
     /** Director may adjust park points only; system points → 403. */
     adjustPointsTypes: (s): Array<'park'> => {
       if (s.admin?.role === 'director') return ['park']
@@ -128,11 +133,21 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       try {
         const { data } = await authApi.login(payload)
+        if (data.two_factor_required && data.challenge_token) {
+          this.challengeToken = data.challenge_token
+          this.admin = null
+          return '2fa' as const
+        }
+        if (!data.access_token || !data.refresh_token) {
+          this.error = 'Сервер не выдал токен'
+          return false
+        }
         tokenStorage.setTokens(data.access_token, data.refresh_token)
         const me = await authApi.me()
         this.admin = me.data
         this.bootstrapped = true
-        return true
+        this.challengeToken = null
+        return 'ok' as const
       } catch (e) {
         this.error = extractErrorMessage(e, 'Неверный email или пароль')
         tokenStorage.clear()
@@ -143,10 +158,54 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    logout() {
+    async verifyTwoFactor(code: string) {
+      if (!this.challengeToken) {
+        this.error = 'Сначала введите пароль'
+        return false
+      }
+      this.loading = true
+      this.error = null
+      try {
+        const { data } = await authApi.verifyTwoFactor(this.challengeToken, code)
+        if (!data.access_token || !data.refresh_token) {
+          this.error = 'Неверный код'
+          return false
+        }
+        tokenStorage.setTokens(data.access_token, data.refresh_token)
+        const me = await authApi.me()
+        this.admin = me.data
+        this.bootstrapped = true
+        this.challengeToken = null
+        return true
+      } catch (e) {
+        this.error = extractErrorMessage(e, 'Неверный код')
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async confirmTwoFactor(code: string) {
+      const { data } = await authApi.confirmTwoFactor(code)
+      if (data.access_token && data.refresh_token) {
+        tokenStorage.setTokens(data.access_token, data.refresh_token)
+      }
+      const me = await authApi.me()
+      this.admin = me.data
+    },
+
+    async logout() {
+      const access = tokenStorage.getAccess()
       tokenStorage.clear()
       this.admin = null
+      this.challengeToken = null
       this.error = null
+      if (!access) return
+      try {
+        await authApi.logout(access)
+      } catch {
+        // Local session is already cleared.
+      }
     },
 
     async changePassword(payload: PasswordChangePayload) {

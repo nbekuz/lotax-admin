@@ -14,8 +14,10 @@ const route = useRoute()
 const form = reactive({
   email: '',
   password: '',
+  code: '',
 })
 const loading = ref(false)
+const needCode = ref(false)
 
 const rules: Record<string, Rule[]> = {
   email: [
@@ -62,13 +64,33 @@ async function onSubmit() {
   })
   loading.value = false
 
+  if (ok === '2fa') {
+    needCode.value = true
+    return
+  }
   if (!ok) {
     message.error(auth.error || 'Ошибка входа')
     return
   }
 
   message.success('Добро пожаловать')
-  const target = nextPath()
+  const target = auth.needsTwoFactorSetup ? '/2fa-setup' : nextPath()
+  const failure = await router.replace(target).catch(() => true)
+  if (failure || router.currentRoute.value.name === 'login') {
+    window.location.assign(target)
+  }
+}
+
+async function onVerifyCode() {
+  loading.value = true
+  const ok = await auth.verifyTwoFactor(form.code.trim())
+  loading.value = false
+  if (!ok) {
+    message.error(auth.error || 'Неверный код')
+    return
+  }
+  message.success('Добро пожаловать')
+  const target = auth.needsTwoFactorSetup ? '/2fa-setup' : nextPath()
   const failure = await router.replace(target).catch(() => true)
   if (failure || router.currentRoute.value.name === 'login') {
     window.location.assign(target)
@@ -104,6 +126,7 @@ async function onSubmit() {
 
       <div class="lotax-card p-5 md:p-8">
         <a-form
+          v-if="!needCode"
           :model="form"
           :rules="rules"
           layout="vertical"
@@ -146,6 +169,35 @@ async function onSubmit() {
           >
             Забыли пароль?
           </router-link>
+        </a-form>
+        <a-form v-else :model="form" layout="vertical" @finish="onVerifyCode">
+          <p class="mb-4 text-[14px] text-ink-muted">
+            Введите 6-значный код из приложения-аутентификатора. Код нужен при каждом входе.
+          </p>
+          <a-form-item
+            label="Код"
+            name="code"
+            :rules="[{ required: true, message: 'Введите 6 цифр' }]"
+          >
+            <a-input
+              v-model:value="form.code"
+              size="large"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              placeholder="123456"
+              class="!w-full"
+            />
+          </a-form-item>
+          <a-button
+            type="primary"
+            html-type="submit"
+            size="large"
+            block
+            class="lotax-btn-primary !h-12"
+            :loading="loading"
+          >
+            Подтвердить
+          </a-button>
         </a-form>
       </div>
     </div>

@@ -500,13 +500,14 @@ async function onOrgChange(id: string) {
   }
 }
 
-function logout() {
+async function logout() {
   chat.reset()
   driverSupport.reset()
   passwordReset.reset()
   staffPasswordReset.reset()
-  auth.logout()
-  router.push({ name: 'login' })
+  const pending = auth.logout()
+  await router.replace({ name: 'login' })
+  await pending
 }
 
 function toggleNav() {

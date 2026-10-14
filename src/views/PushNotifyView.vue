@@ -31,6 +31,17 @@ const categoryOptions = [
 const parkId = computed(() => org.selectedParkId)
 const canSend = computed(() => auth.canManageRewards)
 
+function pushErrorText(errors: unknown): string {
+  if (!Array.isArray(errors) || errors.length === 0) return ''
+  const first = errors[0]
+  if (typeof first === 'string') return first
+  if (first && typeof first === 'object' && 'error' in first) {
+    const text = (first as { error?: unknown }).error
+    return typeof text === 'string' ? text : ''
+  }
+  return ''
+}
+
 async function send() {
   if (!parkId.value) {
     message.warning('Выберите парк')
@@ -49,18 +60,26 @@ async function send() {
       category: form.category,
       data: { type: form.category },
     })
+    const firstError = pushErrorText(data.errors)
     if (data.success_count === 0) {
       message.warning(
         data.detail ||
+          firstError ||
           `Не доставлено. Устройств: ${data.devices_targeted}, ошибок: ${data.failure_count}`,
+      )
+    } else if (data.failure_count > 0) {
+      message.warning(
+        `Доставлено: ${data.success_count} · не доставлено: ${data.failure_count}${firstError ? ` · ${firstError}` : ''}`,
       )
     } else {
       message.success(
-        `Отправлено: ${data.success_count} · ошибок: ${data.failure_count} · устройств: ${data.devices_targeted}`,
+        `Доставлено: ${data.success_count} · устройств: ${data.devices_targeted}`,
       )
     }
-    form.title = ''
-    form.body = ''
+    if (data.success_count > 0) {
+      form.title = ''
+      form.body = ''
+    }
   } catch (e) {
     message.error(extractErrorMessage(e, 'Не удалось отправить push'))
   } finally {

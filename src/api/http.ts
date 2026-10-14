@@ -5,6 +5,7 @@ import type { TokenResponse } from '@/types/api'
 
 const PUBLIC_API_PATHS = [
   '/auth/admin/login',
+  '/auth/admin/2fa/verify',
   '/auth/refresh',
   '/auth/driver/sms/request',
   '/auth/driver/sms/verify',
@@ -64,6 +65,7 @@ async function refreshAccessToken(): Promise<string | null> {
     },
   )
 
+  if (!data.access_token || !data.refresh_token) return null
   tokenStorage.setTokens(data.access_token, data.refresh_token)
   return data.access_token
 }
