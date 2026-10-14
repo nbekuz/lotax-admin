@@ -47,10 +47,18 @@ async function send() {
       title: form.title.trim(),
       body: form.body.trim(),
       category: form.category,
+      data: { type: form.category },
     })
-    message.success(
-      `Отправлено: ${data.success_count} · ошибок: ${data.failure_count} · устройств: ${data.devices_targeted}`,
-    )
+    if (data.success_count === 0) {
+      message.warning(
+        data.detail ||
+          `Не доставлено. Устройств: ${data.devices_targeted}, ошибок: ${data.failure_count}`,
+      )
+    } else {
+      message.success(
+        `Отправлено: ${data.success_count} · ошибок: ${data.failure_count} · устройств: ${data.devices_targeted}`,
+      )
+    }
     form.title = ''
     form.body = ''
   } catch (e) {
