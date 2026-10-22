@@ -10,7 +10,7 @@ const auth = useAuthStore()
 const router = useRouter()
 
 const links = computed(() => {
-  if (!auth.canManageStaff) return []
+  if (!auth.inspecting && !auth.canManageStaff) return []
   return [
     {
       key: 'staff',

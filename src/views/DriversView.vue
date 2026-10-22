@@ -41,10 +41,10 @@ const createForm = reactive({
   yandex_driver_id: '',
 })
 
-/** API may still send legacy *_masked keys; they now hold full values. Never show `И***`. */
+/** Director responses are plaintext. Inspection responses keep the mask, including `*`. */
 function unmasked(value?: string | null): string | null {
   if (!value) return null
-  if (/[*•]/.test(value)) return null
+  if (!auth.inspecting && /[*•]/.test(value)) return null
   return value
 }
 

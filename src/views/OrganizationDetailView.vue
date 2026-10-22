@@ -14,6 +14,8 @@ import {
   UserAddOutlined,
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import { useInspectionStore } from '@/stores/inspection'
+import { inspectionApi } from '@/api/inspection'
 import { useOrganizationsStore } from '@/stores/organizations'
 import {
   extractErrorMessage,
@@ -29,6 +31,12 @@ import type { ParkResponse } from '@/types/api'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const inspection = useInspectionStore()
+const inspectOpen = ref(false)
+const inspectBusy = ref(false)
+const inspectPassword = ref('')
+const inspectCode = ref('')
+const inspectRemaining = ref<number | null>(null)
 const orgs = useOrganizationsStore()
 
 const orgId = computed(() => route.params.id as string)
@@ -180,6 +188,50 @@ async function submitPark() {
   }
 }
 
+function formatRemaining(total: number) {
+  const minutes = Math.floor(Math.max(0, total) / 60)
+  const seconds = Math.max(0, total) % 60
+  return `${minutes} мин ${String(seconds).padStart(2, '0')} с`
+}
+
+async function openInspect() {
+  inspectPassword.value = ''
+  inspectCode.value = ''
+  inspectRemaining.value = null
+  inspectOpen.value = true
+  try {
+    const { data } = await inspectionApi.quota()
+    inspectRemaining.value = data.remaining_seconds
+  } catch (e) {
+    message.error(extractErrorMessage(e, 'Не удалось получить лимит'))
+  }
+}
+
+async function submitInspect() {
+  if (!orgs.current) return
+  if (!inspectPassword.value || inspectCode.value.trim().length < 6) {
+    message.warning('Введите свой пароль и код из приложения')
+    return Promise.reject(new Error('validation'))
+  }
+  inspectBusy.value = true
+  try {
+    await inspection.start({
+      organizationId: orgs.current.id,
+      organizationName: orgs.current.name,
+      password: inspectPassword.value,
+      code: inspectCode.value.trim(),
+    })
+    inspectPassword.value = ''
+    inspectCode.value = ''
+    await router.push({ name: 'organization' })
+  } catch (e) {
+    message.error(extractErrorMessage(e, 'Не удалось начать проверку'))
+    return Promise.reject(e)
+  } finally {
+    inspectBusy.value = false
+  }
+}
+
 async function submitDirector() {
   if (!directorForm.email.trim()) {
     message.warning('Укажите email')
@@ -319,6 +371,9 @@ onMounted(load)
               ? 'Отключить подписку'
               : 'Включить подписку'
           }}
+        </a-button>
+        <a-button v-if="auth.isSuperAdmin" type="primary" class="lotax-btn-primary" @click="openInspect">
+          Войти для проверки
         </a-button>
         <a-button class="lotax-btn-secondary" @click="directorOpen = true">
           <template #icon><UserAddOutlined /></template>
@@ -550,6 +605,34 @@ onMounted(load)
         </a-form-item>
         <a-form-item label="Заметки">
           <a-textarea v-model:value="parkForm.notes" :rows="2" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:open="inspectOpen"
+      title="Войти для проверки"
+      ok-text="Начать проверку"
+      cancel-text="Отмена"
+      centered
+      :confirm-loading="inspectBusy"
+      @ok="submitInspect"
+    >
+      <p class="text-[14px] leading-relaxed">
+        Откроется кабинет организации
+        <strong>{{ orgs.current?.name }}</strong>
+        в режиме только чтения. Это не вход директора: нужен ваш пароль и ваш код.
+        Активное время списывается из дневного лимита 60 минут.
+        <span v-if="inspectRemaining != null">
+          Сегодня осталось {{ formatRemaining(inspectRemaining) }}.
+        </span>
+      </p>
+      <a-form layout="vertical" class="mt-4">
+        <a-form-item label="Ваш пароль">
+          <a-input-password v-model:value="inspectPassword" size="large" />
+        </a-form-item>
+        <a-form-item label="Код из вашего приложения">
+          <a-input v-model:value="inspectCode" size="large" inputmode="numeric" placeholder="6 цифр" />
         </a-form-item>
       </a-form>
     </a-modal>

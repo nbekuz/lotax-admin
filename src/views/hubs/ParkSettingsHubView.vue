@@ -19,7 +19,7 @@ const router = useRouter()
 
 const links = computed(() => {
   const items = []
-  if (auth.canManageRules) {
+  if (auth.inspecting || auth.canManageRules) {
     items.push({
       key: 'rules',
       title: 'Правила',
@@ -28,7 +28,7 @@ const links = computed(() => {
       route: 'rules',
     })
   }
-  if (auth.canViewParkGroups) {
+  if (auth.inspecting || auth.canViewParkGroups) {
     items.push({
       key: 'park-groups',
       title: 'Группы парков',
@@ -37,7 +37,7 @@ const links = computed(() => {
       route: 'park-groups',
     })
   }
-  if (auth.canViewLeaderboardSettings) {
+  if (auth.inspecting || auth.canViewLeaderboardSettings) {
     items.push({
       key: 'leaderboard-settings',
       title: 'ТОП-5',
@@ -46,7 +46,7 @@ const links = computed(() => {
       route: 'leaderboard-settings',
     })
   }
-  if (auth.canViewTierSettings) {
+  if (auth.inspecting || auth.canViewTierSettings) {
     items.push({
       key: 'tier-settings',
       title: 'Уровни',
@@ -55,7 +55,7 @@ const links = computed(() => {
       route: 'tier-settings',
     })
   }
-  if (auth.canManageRewards) {
+  if (auth.inspecting || auth.canManageRewards) {
     items.push({
       key: 'push',
       title: 'Push-уведомления',
@@ -64,7 +64,7 @@ const links = computed(() => {
       route: 'push',
     })
   }
-  if (auth.canManageYandex) {
+  if (auth.inspecting || auth.canManageYandex) {
     items.push({
       key: 'organization-yandex',
       title: 'Yandex Fleet',
@@ -73,7 +73,7 @@ const links = computed(() => {
       route: 'organization-yandex',
     })
   }
-  if (auth.canSync) {
+  if (auth.inspecting || auth.canSync) {
     items.push({
       key: 'sync',
       title: 'Синхронизация',

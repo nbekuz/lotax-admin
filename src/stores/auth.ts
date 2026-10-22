@@ -16,6 +16,7 @@ interface AuthState {
   bootstrapped: boolean
   error: string | null
   challengeToken: string | null
+  inspecting: boolean
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -25,6 +26,7 @@ export const useAuthStore = defineStore('auth', {
     bootstrapped: false,
     error: null,
     challengeToken: null,
+    inspecting: false,
   }),
 
   getters: {
@@ -199,6 +201,7 @@ export const useAuthStore = defineStore('auth', {
       tokenStorage.clear()
       this.admin = null
       this.challengeToken = null
+      this.inspecting = false
       this.error = null
       if (!access) return
       try {

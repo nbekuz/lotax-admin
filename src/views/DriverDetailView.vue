@@ -307,7 +307,7 @@ const tierOptions = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function unmasked(value?: string | null): string | null {
   if (!value) return null
-  if (/[*•]/.test(value)) return null
+  if (!auth.inspecting && /[*•]/.test(value)) return null
   return value
 }
 

@@ -4,6 +4,7 @@ import {
   type RouteRecordRaw,
 } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { isInspectionRoute, useInspectionStore } from '@/stores/inspection'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -489,6 +490,17 @@ router.beforeEach(async (to) => {
 
   if (auth.needsTwoFactorSetup && to.name !== '2fa-setup') {
     return { name: '2fa-setup' }
+  }
+
+  if (auth.inspecting) {
+    const inspection = useInspectionStore()
+    if (to.name === 'login') {
+      await inspection.end()
+    } else if (isInspectionRoute(to.name)) {
+      return true
+    } else {
+      await inspection.end()
+    }
   }
 
   const roles = to.meta.roles as string[] | undefined

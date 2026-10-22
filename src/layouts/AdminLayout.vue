@@ -28,6 +28,7 @@ import {
   NotificationOutlined,
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import { useInspectionStore } from '@/stores/inspection'
 import { useChatStore } from '@/stores/chat'
 import { useOrgStore } from '@/stores/org'
 import { usePasswordResetStore } from '@/stores/passwordReset'
@@ -41,6 +42,7 @@ import ThemeMenuButton from '@/components/ThemeMenuButton.vue'
 import { useThemeStore } from '@/stores/theme'
 
 const auth = useAuthStore()
+const inspection = useInspectionStore()
 const themeStore = useThemeStore()
 const chat = useChatStore()
 const passwordReset = usePasswordResetStore()
@@ -156,10 +158,36 @@ function navGroup(label: string, children: Record<string, unknown>[]) {
   return { type: 'group' as const, label, children }
 }
 
+function formatInspectionTime(total: number) {
+  const seconds = Math.max(0, total)
+  const minutes = Math.floor(seconds / 60)
+  const rest = seconds % 60
+  return `${minutes} мин ${String(rest).padStart(2, '0')} с`
+}
+
+watch(
+  () => inspection.error,
+  (value) => {
+    if (!value || auth.inspecting) return
+    message.error(value)
+    inspection.error = null
+    void router.push({ name: 'organizations' })
+  },
+)
+
+async function finishInspection() {
+  const result = await inspection.end()
+  if (result.alive && result.organizationId) {
+    await router.push({ name: 'organization-detail', params: { id: result.organizationId } })
+    return
+  }
+  await router.replace({ name: 'login' })
+}
+
 const menuItems = computed((): any[] => {
   const unreadCount = chat.appealUnread
 
-  if (auth.isPlatformOperator) {
+  if (auth.isPlatformOperator && !auth.inspecting) {
     const platform = [
       {
         key: 'organizations',
@@ -296,8 +324,9 @@ const menuItems = computed((): any[] => {
       title: 'Заявки',
     },
   ]
+  const asDirector = auth.inspecting || auth.isDirector
   const contact: Record<string, unknown>[] = []
-  if (auth.isDirector) {
+  if (asDirector) {
     contact.push(
       {
         key: 'support-contacts',
@@ -321,7 +350,7 @@ const menuItems = computed((): any[] => {
       title: 'Чаты',
     })
   }
-  if (auth.canViewPasswordReset) {
+  if (auth.inspecting || auth.canViewPasswordReset) {
     contact.push({
       key: 'password-reset',
       icon: () => h(LockOutlined),
@@ -333,7 +362,7 @@ const menuItems = computed((): any[] => {
     })
   }
   const manage: Record<string, unknown>[] = []
-  if (showAnalyticsHub.value) {
+  if (auth.inspecting || showAnalyticsHub.value) {
     manage.push({
       key: 'analytics-hub',
       icon: () => h(BarChartOutlined),
@@ -341,7 +370,7 @@ const menuItems = computed((): any[] => {
       title: 'Аналитика',
     })
   }
-  if (showEngagementHub.value) {
+  if (auth.inspecting || showEngagementHub.value) {
     manage.push({
       key: 'engagement-hub',
       icon: () => h(RocketOutlined),
@@ -349,7 +378,7 @@ const menuItems = computed((): any[] => {
       title: 'Активность',
     })
   }
-  if (showParkSettingsHub.value) {
+  if (auth.inspecting || showParkSettingsHub.value) {
     manage.push({
       key: 'park-settings-hub',
       icon: () => h(SettingOutlined),
@@ -357,7 +386,7 @@ const menuItems = computed((): any[] => {
       title: 'Настройки парка',
     })
   }
-  if (auth.canManageStaff) {
+  if (auth.inspecting || auth.canManageStaff) {
     manage.push({
       key: 'staff',
       icon: () => h(TeamOutlined),
@@ -501,6 +530,7 @@ async function onOrgChange(id: string) {
 }
 
 async function logout() {
+  if (auth.inspecting) await inspection.end()
   chat.reset()
   driverSupport.reset()
   passwordReset.reset()
@@ -745,6 +775,19 @@ function toggleNav() {
         </div>
       </a-layout-header>
 
+      <div
+        v-if="auth.inspecting"
+        class="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-4 py-3 text-amber-950"
+      >
+        <p class="text-[14px] font-medium">
+          Режим проверки организации
+          <span v-if="inspection.organizationName">· {{ inspection.organizationName }}</span>
+          · осталось {{ formatInspectionTime(inspection.remainingSeconds) }}
+        </p>
+        <a-button class="lotax-btn-secondary" @click="finishInspection">
+          Завершить проверку и вернуться в Super Admin
+        </a-button>
+      </div>
       <a-layout-content
         class="lotax-page-pad"
         :class="fillsViewport ? 'lotax-page-pad--fill' : ''"

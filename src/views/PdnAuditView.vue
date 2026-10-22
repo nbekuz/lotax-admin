@@ -57,7 +57,7 @@ function actionLabel(action: string) {
 }
 
 onMounted(() => {
-  if (!auth.canViewPdnAudit) return
+  if (!auth.inspecting && !auth.canViewPdnAudit) return
   void load()
 })
 </script>

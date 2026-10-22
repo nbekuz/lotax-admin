@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { API_BASE_URL } from '@/config'
 import { tokenStorage } from '@/utils/tokenStorage'
+import { getInspectionToken } from '@/utils/inspectionMemory'
 import type { TokenResponse } from '@/types/api'
 
 const PUBLIC_API_PATHS = [
@@ -79,6 +80,10 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const token = tokenStorage.getAccess()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    const inspection = getInspectionToken()
+    if (inspection) {
+      config.headers['X-Inspection-Token'] = inspection
     }
   }
   return config

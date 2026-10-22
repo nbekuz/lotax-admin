@@ -182,7 +182,7 @@ const activityColumns = [
 ]
 
 onMounted(async () => {
-  if (!auth.canViewReports) return
+  if (!auth.inspecting && !auth.canViewReports) return
   if (!org.parks.length) {
     try {
       await org.fetchParks(1, 50)

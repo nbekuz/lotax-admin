@@ -15,7 +15,7 @@ const router = useRouter()
 
 const links = computed(() => {
   const items = []
-  if (auth.canViewTasks) {
+  if (auth.inspecting || auth.canViewTasks) {
     items.push({
       key: 'tasks',
       title: 'Задания',
@@ -24,7 +24,7 @@ const links = computed(() => {
       route: 'tasks',
     })
   }
-  if (auth.canViewCompetitions) {
+  if (auth.inspecting || auth.canViewCompetitions) {
     items.push({
       key: 'competitions',
       title: 'Соревнования',
@@ -33,7 +33,7 @@ const links = computed(() => {
       route: 'competitions',
     })
   }
-  if (auth.canManageReferral) {
+  if (auth.inspecting || auth.canManageReferral) {
     items.push({
       key: 'referral',
       title: 'Рефералы',

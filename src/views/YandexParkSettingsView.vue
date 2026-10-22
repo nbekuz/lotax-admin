@@ -66,7 +66,7 @@ async function save() {
 
 watch(parkId, load)
 onMounted(async () => {
-  if (!auth.canManageYandex) return
+  if (!auth.inspecting && !auth.canManageYandex) return
   if (!org.parks.length) await org.fetchParks()
   await load()
 })

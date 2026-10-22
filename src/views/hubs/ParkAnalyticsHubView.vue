@@ -11,7 +11,7 @@ const router = useRouter()
 
 const links = computed(() => {
   const items = []
-  if (auth.canViewReports) {
+  if (auth.inspecting || auth.canViewReports) {
     items.push({
       key: 'reports',
       title: 'Отчёт',
@@ -20,7 +20,7 @@ const links = computed(() => {
       route: 'reports',
     })
   }
-  if (auth.canViewPdnAudit) {
+  if (auth.inspecting || auth.canViewPdnAudit) {
     items.push({
       key: 'pdn',
       title: 'Журнал ПДн',
