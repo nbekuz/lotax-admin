@@ -87,8 +87,8 @@ async function save() {
   }
   if (form.rule_type === 'per_ride') {
     const points = Number(form.points_per_ride)
-    if (!Number.isInteger(points) || points < 1 || points > 9) {
-      message.warning('Баллы за поездку — целое число от 1 до 9')
+    if (!Number.isInteger(points) || points < 1) {
+      message.warning('Баллы за поездку — целое число от 1')
       return
     }
   }
@@ -224,13 +224,12 @@ onMounted(async () => {
             v-model:value="form.points_per_ride"
             class="!w-full"
             :min="1"
-            :max="9"
             :step="1"
             :precision="0"
             size="large"
           />
           <p class="lotax-caption mt-1">
-            Целое число от 1 до 9. Коэффициент уровня считает десятые: 1 × 1.1 = 1.1, 10 поездок = 11.
+            Целое число от 1, можно 10 и больше. Коэффициент уровня считает десятые: 10 × 1.1 = 11.
           </p>
         </a-form-item>
         <template v-if="form.rule_type === 'per_ruble'">
