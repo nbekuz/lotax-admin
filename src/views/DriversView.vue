@@ -73,7 +73,6 @@ function driverFullName(d: DriverListItem) {
   )
 }
 
-/** Search matches only first and last name, not phone or Yandex ID. */
 function driverNameHaystack(d: DriverListItem) {
   const first = unmasked(d.first_name) || unmasked(d.first_name_masked) || ''
   const last = unmasked(d.last_name) || unmasked(d.last_name_masked) || ''
@@ -88,6 +87,27 @@ function matchesNameSearch(d: DriverListItem, raw: string) {
   if (!q) return true
   const hay = driverNameHaystack(d).toLocaleLowerCase('ru').replace(/\s+/g, ' ')
   return q.split(' ').every((part) => hay.includes(part))
+}
+
+function isPhoneQuery(raw: string) {
+  const digits = raw.replace(/\D/g, '')
+  return digits.length >= 4 && !/[a-zA-Zа-яА-ЯёЁ]/.test(raw)
+}
+
+function matchesPhoneSearch(d: DriverListItem, raw: string) {
+  const qDigits = raw.replace(/\D/g, '')
+  if (qDigits.length < 4) return false
+  const phone = (driverPhone(d) || '').replace(/\D/g, '')
+  if (!phone || /[*•]/.test(driverPhone(d) || '')) return true
+  const variants = [qDigits]
+  if (qDigits.length === 11 && qDigits.startsWith('8')) variants.push(`7${qDigits.slice(1)}`)
+  if (qDigits.length === 10) variants.push(`7${qDigits}`)
+  return variants.some((part) => phone.includes(part))
+}
+
+function matchesDriverSearch(d: DriverListItem, raw: string) {
+  if (isPhoneQuery(raw)) return matchesPhoneSearch(d, raw)
+  return matchesNameSearch(d, raw)
 }
 
 /** Fixed columns + x-scroll only when viewport is tight (tablet). */
@@ -216,7 +236,7 @@ async function collectNameMatches(q: string) {
       park_id: parkFilter.value === 'all' ? null : parkFilter.value,
     })
     total = data.total
-    matched.push(...data.items.filter((item) => matchesNameSearch(item, q)))
+    matched.push(...data.items.filter((item) => matchesDriverSearch(item, q)))
     if (!data.items.length) break
     page += 1
   }
@@ -517,7 +537,7 @@ onMounted(async () => {
           allow-clear
           class="w-full lg:!w-64 lg:!flex-none"
           size="large"
-          placeholder="Поиск: имя, фамилия"
+          placeholder="Поиск: имя, фамилия, телефон"
         />
         <div class="flex min-w-0 flex-1 flex-nowrap items-center gap-2">
           <a-select
@@ -670,7 +690,7 @@ onMounted(async () => {
         <p class="lotax-caption max-w-sm">
           {{
             searchQ.trim()
-              ? 'Поиск только по имени и фамилии. Телефон и ID не ищутся.'
+              ? 'Поиск по имени, фамилии или телефону.'
               : statusFilter === 'pending'
                 ? 'Нет водителей в статусе «Ожидание». Они появляются после синхронизации с Яндекс.'
                 : 'Сначала нажмите «Синхронизировать водителей» или измените фильтр'
