@@ -27,9 +27,20 @@ const form = reactive({
 
 const parkId = computed(() => org.selectedParkId)
 
+function ridePointsLabel(points: number) {
+  return `${points} баллов за поездку`
+}
+
+function ruleHeading(item: PointsRuleItem) {
+  if (item.rule_type !== 'per_ride') return item.name
+  const points = Number(item.conditions?.points_per_ride)
+  if (!Number.isInteger(points) || points < 1) return item.name
+  return ridePointsLabel(points)
+}
+
 function buildConditions() {
   if (form.rule_type === 'per_ride') {
-    return { points_per_ride: form.points_per_ride }
+    return { points_per_ride: Math.trunc(Number(form.points_per_ride)) }
   }
   if (form.rule_type === 'per_ruble') {
     return {
@@ -58,7 +69,7 @@ async function load() {
 
 function openCreate() {
   editing.value = null
-  form.name = '5 баллов за поездку'
+  form.name = ridePointsLabel(5)
   form.description = ''
   form.rule_type = 'per_ride'
   form.points_per_ride = 5
@@ -66,6 +77,20 @@ function openCreate() {
   form.priority = 10
   modalOpen.value = true
 }
+
+watch(
+  () => form.points_per_ride,
+  (points, previous) => {
+    if (form.rule_type !== 'per_ride') return
+    const next = Number(points)
+    if (!Number.isInteger(next) || next < 1) return
+    const previousLabel = ridePointsLabel(Number(previous ?? next))
+    const current = form.name.trim()
+    if (!current || current === previousLabel || /^\d+\s+баллов за поездку$/.test(current)) {
+      form.name = ridePointsLabel(next)
+    }
+  },
+)
 
 function openEdit(item: PointsRuleItem) {
   editing.value = item
@@ -86,11 +111,12 @@ async function save() {
     return
   }
   if (form.rule_type === 'per_ride') {
-    const points = Number(form.points_per_ride)
+    const points = Math.trunc(Number(form.points_per_ride))
     if (!Number.isInteger(points) || points < 1) {
       message.warning('Баллы за поездку — целое число от 1')
       return
     }
+    form.points_per_ride = points
   }
   saving.value = true
   try {
@@ -180,7 +206,7 @@ onMounted(async () => {
         class="lotax-card flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <div class="font-semibold text-ink">{{ item.name }}</div>
+          <div class="font-semibold text-ink">{{ ruleHeading(item) }}</div>
           <div class="text-[13px] text-ink-muted">
             {{ item.rule_type }} · приоритет {{ item.priority }} ·
             {{ item.is_active ? 'активно' : 'выкл.' }}
