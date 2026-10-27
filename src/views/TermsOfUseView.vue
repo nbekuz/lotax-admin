@@ -60,7 +60,7 @@ import LegalLayout from '@/layouts/LegalLayout.vue'
         <h2 class="text-[18px] font-semibold">7. Контакты</h2>
         <p>
           Вопросы по сервису:
-          <a class="text-brand underline" href="mailto:support@lotax.ru">support@lotax.ru</a>.
+          <a class="text-brand underline" href="mailto:Info@lotax.su">Info@lotax.su</a>.
         </p>
       </section>
     </article>

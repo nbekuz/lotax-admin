@@ -43,7 +43,7 @@ import LegalLayout from '@/layouts/LegalLayout.vue'
           Если кнопка недоступна или возникла ошибка, откройте
           <a class="text-brand underline" href="/help">помощь</a>
           или напишите:
-          <a class="text-brand underline" href="mailto:support@lotax.ru">support@lotax.ru</a>
+          <a class="text-brand underline" href="mailto:Info@lotax.su">Info@lotax.su</a>
           . Тема письма: «Удаление аккаунта Lotax» и укажите номер телефона из приложения.
         </p>
 

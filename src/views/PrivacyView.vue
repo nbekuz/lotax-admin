@@ -18,7 +18,7 @@ import LegalLayout from '@/layouts/LegalLayout.vue'
         <h2 class="text-[18px] font-semibold">1. Оператор</h2>
         <p>
           Оператор платформы Lotax. По вопросам персональных данных:
-          <a class="text-brand underline" href="mailto:privacy@lotax.ru">privacy@lotax.ru</a>.
+          <a class="text-brand underline" href="mailto:Info@lotax.su">Info@lotax.su</a>.
         </p>
 
         <h2 id="security" class="text-[18px] font-semibold">2. Какие данные собираем</h2>
@@ -57,7 +57,7 @@ import LegalLayout from '@/layouts/LegalLayout.vue'
         <p>
           Вы можете запросить уточнение, ограничение обработки или удаление
           аккаунта, обратившись в поддержку парка или на
-          <a class="text-brand underline" href="mailto:privacy@lotax.ru">privacy@lotax.ru</a>.
+          <a class="text-brand underline" href="mailto:Info@lotax.su">Info@lotax.su</a>.
         </p>
 
         <h2 class="text-[18px] font-semibold">7. Изменения</h2>

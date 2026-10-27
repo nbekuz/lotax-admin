@@ -66,11 +66,11 @@ import LegalLayout from '@/layouts/LegalLayout.vue'
         <ul class="list-disc space-y-2 pl-5">
           <li>
             Поддержка сервиса:
-            <a class="text-brand underline" href="mailto:support@lotax.ru">support@lotax.ru</a>
+            <a class="text-brand underline" href="mailto:Info@lotax.su">Info@lotax.su</a>
           </li>
           <li>
             Персональные данные:
-            <a class="text-brand underline" href="mailto:privacy@lotax.ru">privacy@lotax.ru</a>
+            <a class="text-brand underline" href="mailto:Info@lotax.su">Info@lotax.su</a>
           </li>
           <li>Правила парка, баллы и награды парка — у директора вашего таксопарка.</li>
         </ul>
