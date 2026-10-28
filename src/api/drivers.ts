@@ -35,6 +35,8 @@ export interface DriversQuery {
   status?: DriverStatus | null
   tier?: DriverTier | null
   park_id?: string | null
+  sort_by?: string | null
+  order?: 'asc' | 'desc' | null
 }
 
 export interface DriverHistoryQuery extends HistoryPeriodQuery {
@@ -112,6 +114,8 @@ export const driversApi = {
         status: params.status || undefined,
         tier: params.tier || undefined,
         park_id: params.park_id || undefined,
+        sort_by: params.sort_by || undefined,
+        order: params.order || undefined,
       },
     })
   },

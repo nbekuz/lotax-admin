@@ -254,6 +254,11 @@ export interface DriverListItem {
   work_status?: string | null
   tiers_enabled?: boolean | null
   referral_code?: string | null
+  trips_count?: number
+  online_hours?: number
+  rewards_count?: number
+  rewards_points?: number
+  last_ride_at?: string | null
   created_at: string
 }
 
@@ -1350,6 +1355,26 @@ export interface ReportQuery {
   start_date: string
   end_date: string
   park_id?: string | null
+  sort_by?: string | null
+  order?: 'asc' | 'desc' | null
+}
+
+export interface ReportDayPoint {
+  day: string
+  rides: number
+  system_points: number
+  park_points: number
+}
+
+export interface ReportRewardRank {
+  title: string
+  orders: number
+  points_spent: number
+}
+
+export interface ReportTierCount {
+  tier: string
+  drivers: number
 }
 
 export interface ReportDriverRow {
@@ -1359,6 +1384,11 @@ export interface ReportDriverRow {
   rides: number
   system_points: number
   park_points: number
+  tier?: string | null
+  online_hours?: number
+  rewards_count?: number
+  rewards_points?: number
+  last_ride_at?: string | null
 }
 
 export interface ReportRewardOrderRow {
@@ -1398,6 +1428,9 @@ export interface ReportSummary {
   drivers: ReportDriverRow[]
   reward_orders: ReportRewardOrderRow[]
   tasks_and_competitions: ReportActivityRow[]
+  daily?: ReportDayPoint[]
+  reward_ranks?: ReportRewardRank[]
+  tiers?: ReportTierCount[]
 }
 
 export interface PdnAuditLogItem {

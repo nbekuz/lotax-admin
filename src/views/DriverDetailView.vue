@@ -436,13 +436,19 @@ function taskItemDate(item: DriverTaskHistoryItem) {
 }
 
 const displayTitle = computed(() => {
+  const pdn = drivers.personalData
+  const fromPdn = [pdn?.last_name, pdn?.first_name, pdn?.middle_name]
+    .map((part) => unmasked(part))
+    .filter(Boolean)
+    .join(' ')
+  if (fromPdn) return fromPdn
   const d = drivers.current
   return (
-    unmasked(drivers.personalData?.display_name) ||
     unmasked(d?.display_name) ||
     [
-      unmasked(d?.first_name) || unmasked(d?.first_name_masked),
       unmasked(d?.last_name) || unmasked(d?.last_name_masked),
+      unmasked(d?.first_name) || unmasked(d?.first_name_masked),
+      unmasked(d?.middle_name),
     ]
       .filter(Boolean)
       .join(' ') ||

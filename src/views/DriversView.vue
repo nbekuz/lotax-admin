@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import type { TableColumnsType } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { CloudSyncOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons-vue'
 import { driversApi } from '@/api/drivers'
@@ -18,7 +17,12 @@ import TierBadge from '@/components/TierBadge.vue'
 const auth = useAuthStore()
 const drivers = useDriversStore()
 const org = useOrgStore()
+const route = useRoute()
 const router = useRouter()
+const sortBy = ref(typeof route.query.sort === 'string' ? route.query.sort : '')
+const sortOrder = ref<'asc' | 'desc' | ''>(
+  route.query.order === 'asc' || route.query.order === 'desc' ? route.query.order : '',
+)
 const { isMobile, isLgUp, width } = useBreakpoint()
 
 const searchQ = ref('')
@@ -118,18 +122,14 @@ const stickyConfig = computed(() => ({
   offsetHeader: width.value >= 1280 ? 72 : width.value >= 768 ? 64 : 56,
 }))
 
-const columns = computed<TableColumnsType<DriverListItem>>(() => {
+const columns = computed(() => {
   const pin = needsHorizontalScroll.value
   return [
     {
-      title: 'Имя',
-      key: 'first_name',
-      ...(pin ? { fixed: 'left' as const, width: 110 } : { ellipsis: true }),
-    },
-    {
-      title: 'Фамилия',
-      key: 'last_name',
-      ...(pin ? { fixed: 'left' as const, width: 110 } : { ellipsis: true }),
+      title: 'ФИО',
+      key: 'fio',
+      sortKey: 'name',
+      ...(pin ? { fixed: 'left' as const, width: 220 } : { ellipsis: true }),
     },
     {
       title: 'Телефон',
@@ -138,9 +138,17 @@ const columns = computed<TableColumnsType<DriverListItem>>(() => {
       ...(pin ? { fixed: 'left' as const } : {}),
     },
     {
+      title: 'Поездки',
+      key: 'trips_count',
+      sortKey: 'trips',
+      width: 100,
+      align: 'right' as const,
+    },
+    {
       title: 'Сист. баллы',
       dataIndex: 'balance_system_points',
       key: 'balance_system_points',
+      sortKey: 'sys_points',
       width: 110,
       align: 'right' as const,
     },
@@ -148,13 +156,42 @@ const columns = computed<TableColumnsType<DriverListItem>>(() => {
       title: 'Парк',
       dataIndex: 'balance_park_points',
       key: 'balance_park_points',
+      sortKey: 'park_points',
       width: 90,
       align: 'right' as const,
+    },
+    {
+      title: 'Часы',
+      key: 'online_hours',
+      sortKey: 'online_hours',
+      width: 90,
+      align: 'right' as const,
+    },
+    {
+      title: 'Награды',
+      key: 'rewards_count',
+      sortKey: 'rewards_count',
+      width: 100,
+      align: 'right' as const,
+    },
+    {
+      title: 'Баллы наград',
+      key: 'rewards_points',
+      sortKey: 'rewards_points',
+      width: 130,
+      align: 'right' as const,
+    },
+    {
+      title: 'Последняя поездка',
+      key: 'last_ride_at',
+      sortKey: 'last_ride',
+      width: 170,
     },
     {
       title: 'Уровень',
       dataIndex: 'tier',
       key: 'tier',
+      sortKey: 'tier',
       width: 120,
     },
     {
@@ -180,7 +217,7 @@ const columns = computed<TableColumnsType<DriverListItem>>(() => {
 
 const tableScroll = computed(() => {
   if (needsHorizontalScroll.value) {
-    return { x: 1000 }
+    return { x: 1400 }
   }
   return undefined
 })
@@ -234,6 +271,8 @@ async function collectNameMatches(q: string) {
       status: statusFilter.value === 'all' ? null : statusFilter.value,
       tier: tierFilter.value === 'all' ? null : tierFilter.value,
       park_id: parkFilter.value === 'all' ? null : parkFilter.value,
+      sort_by: sortBy.value || null,
+      order: sortOrder.value || null,
     })
     total = data.total
     matched.push(...data.items.filter((item) => matchesDriverSearch(item, q)))
@@ -256,6 +295,8 @@ async function load() {
         status: statusFilter.value === 'all' ? null : statusFilter.value,
         tier: tierFilter.value === 'all' ? null : tierFilter.value,
         park_id: parkFilter.value === 'all' ? null : parkFilter.value,
+        sort_by: sortBy.value || null,
+        order: sortOrder.value || null,
       })
       pagination.total = drivers.total
       return
@@ -398,6 +439,34 @@ function confirmLaunchReset() {
       }
     },
   })
+}
+
+function sortMark(key: string) {
+  if (sortBy.value !== key || !sortOrder.value) return '⇅'
+  return sortOrder.value === 'desc' ? '▼' : '▲'
+}
+
+function cycleSort(key: string) {
+  if (sortBy.value !== key) {
+    sortBy.value = key
+    sortOrder.value = 'desc'
+  } else if (sortOrder.value === 'desc') {
+    sortOrder.value = 'asc'
+  } else {
+    sortBy.value = ''
+    sortOrder.value = ''
+  }
+  pagination.current = 1
+  const query = { ...route.query }
+  if (sortBy.value && sortOrder.value) {
+    query.sort = sortBy.value
+    query.order = sortOrder.value
+  } else {
+    delete query.sort
+    delete query.order
+  }
+  void router.replace({ query })
+  void load()
 }
 
 function resetPageAndLoad() {
@@ -740,17 +809,47 @@ onMounted(async () => {
         })"
         @change="onTableChange"
       >
+        <template #headerCell="{ column }">
+          <button
+            v-if="(column as { sortKey?: string }).sortKey"
+            type="button"
+            class="inline-flex items-center gap-1"
+            @click.stop="cycleSort(String((column as { sortKey?: string }).sortKey))"
+          >
+            {{ column.title }}
+            <span class="text-[11px] text-ink-muted">
+              {{ sortMark(String((column as { sortKey?: string }).sortKey)) }}
+            </span>
+          </button>
+          <template v-else>{{ column.title }}</template>
+        </template>
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'first_name'">
+          <template v-if="column.key === 'fio'">
             <a
               class="font-medium text-ink transition-colors duration-fast md:hover:text-brand"
               @click.prevent="openDriver(record as DriverListItem)"
             >
-              {{ driverFirstName(record as DriverListItem) }}
+              {{ driverFullName(record as DriverListItem) }}
             </a>
           </template>
-          <template v-else-if="column.key === 'last_name'">
-            {{ driverLastName(record as DriverListItem) }}
+          <template v-else-if="column.key === 'trips_count'">
+            {{ (record as DriverListItem).trips_count ?? 0 }}
+          </template>
+          <template v-else-if="column.key === 'online_hours'">
+            {{ (record as DriverListItem).online_hours ?? 0 }}
+          </template>
+          <template v-else-if="column.key === 'rewards_count'">
+            {{ (record as DriverListItem).rewards_count ?? 0 }}
+          </template>
+          <template v-else-if="column.key === 'rewards_points'">
+            {{ (record as DriverListItem).rewards_points ?? 0 }}
+          </template>
+          <template v-else-if="column.key === 'last_ride_at'">
+            {{
+              (record as DriverListItem).last_ride_at
+                ? dayjs((record as DriverListItem).last_ride_at).format('DD.MM.YYYY HH:mm')
+                : '—'
+            }}
           </template>
           <template v-else-if="column.key === 'phone'">
             <span class="font-mono text-[13px] text-ink-muted">

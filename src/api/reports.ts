@@ -6,6 +6,8 @@ function reportParams(query: ReportQuery) {
     start_date: query.start_date,
     end_date: query.end_date,
     park_id: query.park_id || undefined,
+    sort_by: query.sort_by || undefined,
+    order: query.order || undefined,
   }
 }
 
@@ -25,6 +27,13 @@ export const reportsApi = {
 
   exportCsv(query: ReportQuery) {
     return http.get<Blob>('/reports/export/csv', {
+      params: reportParams(query),
+      responseType: 'blob',
+    })
+  },
+
+  exportPdf(query: ReportQuery) {
+    return http.get<Blob>('/reports/export/pdf', {
       params: reportParams(query),
       responseType: 'blob',
     })

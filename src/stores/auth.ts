@@ -52,7 +52,7 @@ export const useAuthStore = defineStore('auth', {
     canSync: (s) => s.admin?.role === 'director',
     canViewPdn: (s) => s.admin?.role === 'director',
     canViewPdnAudit: (s) => s.admin?.role === 'director',
-    canViewReports: (s) => s.admin?.role === 'director',
+    canViewReports: (s) => s.admin?.role === 'director' || s.admin?.role === 'manager',
     canManageBanners: (s) => s.admin?.role === 'super_admin',
     canManageStaff: (s) => s.admin?.role === 'director',
     canManageYandex: (s) => s.admin?.role === 'director',

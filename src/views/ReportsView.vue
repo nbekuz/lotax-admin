@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 import {
@@ -36,10 +36,15 @@ import type {
 
 const auth = useAuthStore()
 const org = useOrgStore()
+const route = useRoute()
 const router = useRouter()
+const sortBy = ref(typeof route.query.sort === 'string' ? route.query.sort : '')
+const sortOrder = ref<'asc' | 'desc' | ''>(
+  route.query.order === 'asc' || route.query.order === 'desc' ? route.query.order : '',
+)
 
 const loading = ref(false)
-const exporting = ref<'excel' | 'csv' | null>(null)
+const exporting = ref<'excel' | 'csv' | 'pdf' | null>(null)
 const summary = ref<ReportSummary | null>(null)
 const activeTab = ref('drivers')
 const parkId = ref<string | undefined>(undefined)
@@ -56,7 +61,59 @@ const query = computed(() => ({
   start_date: dateRange.value[0].format('YYYY-MM-DD'),
   end_date: dateRange.value[1].format('YYYY-MM-DD'),
   park_id: parkId.value || null,
+  sort_by: sortBy.value || null,
+  order: sortOrder.value || null,
 }))
+
+const chartMax = computed(() =>
+  Math.max(1, ...(summary.value?.daily ?? []).map((day) => day.rides)),
+)
+
+function applyPreset(key: 'today' | 'yesterday' | 'week' | 'month' | 'prev-month') {
+  const today = dayjs()
+  if (key === 'today') dateRange.value = [today, today]
+  if (key === 'yesterday') {
+    const day = today.subtract(1, 'day')
+    dateRange.value = [day, day]
+  }
+  if (key === 'week') {
+    const mondayOffset = today.day() === 0 ? 6 : today.day() - 1
+    dateRange.value = [today.subtract(mondayOffset, 'day').startOf('day'), today]
+  }
+  if (key === 'month') dateRange.value = [today.startOf('month'), today]
+  if (key === 'prev-month') {
+    const start = today.subtract(1, 'month').startOf('month')
+    dateRange.value = [start, start.endOf('month')]
+  }
+  void load()
+}
+
+function sortMark(key: string) {
+  if (sortBy.value !== key || !sortOrder.value) return '⇅'
+  return sortOrder.value === 'desc' ? '▼' : '▲'
+}
+
+function cycleSort(key: string) {
+  if (sortBy.value !== key) {
+    sortBy.value = key
+    sortOrder.value = 'desc'
+  } else if (sortOrder.value === 'desc') {
+    sortOrder.value = 'asc'
+  } else {
+    sortBy.value = ''
+    sortOrder.value = ''
+  }
+  const next = { ...route.query }
+  if (sortBy.value && sortOrder.value) {
+    next.sort = sortBy.value
+    next.order = sortOrder.value
+  } else {
+    delete next.sort
+    delete next.order
+  }
+  void router.replace({ query: next })
+  void load()
+}
 
 const orderStatusLabel: Record<string, string> = {
   pending: 'На модерации',
@@ -121,18 +178,22 @@ async function load() {
   }
 }
 
-async function exportFile(kind: 'excel' | 'csv') {
+async function exportFile(kind: 'excel' | 'csv' | 'pdf') {
   if (!validateRange()) return
   exporting.value = kind
   try {
     const response =
       kind === 'excel'
         ? await reportsApi.exportExcel(query.value)
-        : await reportsApi.exportCsv(query.value)
+        : kind === 'pdf'
+          ? await reportsApi.exportPdf(query.value)
+          : await reportsApi.exportCsv(query.value)
     const fallback =
       kind === 'excel'
         ? `report_${query.value.start_date}_${query.value.end_date}.xlsx`
-        : `report_${query.value.start_date}_${query.value.end_date}.csv`
+        : kind === 'pdf'
+          ? `report_${query.value.start_date}_${query.value.end_date}.pdf`
+          : `report_${query.value.start_date}_${query.value.end_date}.csv`
     const filename = filenameFromContentDisposition(
       response.headers['content-disposition'] as string | undefined,
       fallback,
@@ -140,7 +201,9 @@ async function exportFile(kind: 'excel' | 'csv') {
     const mime =
       kind === 'excel'
         ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        : 'text/csv;charset=utf-8'
+        : kind === 'pdf'
+          ? 'application/pdf'
+          : 'text/csv;charset=utf-8'
     const blob =
       response.data instanceof Blob
         ? response.data
@@ -158,11 +221,16 @@ async function exportFile(kind: 'excel' | 'csv') {
 }
 
 const driverColumns = [
-  { title: 'Водитель', dataIndex: 'display_name', key: 'display_name', ellipsis: true },
+  { title: 'Водитель', dataIndex: 'display_name', key: 'display_name', sortKey: 'name', ellipsis: true },
   { title: 'Статус', key: 'status', width: 140 },
-  { title: 'Поездки', dataIndex: 'rides', key: 'rides', width: 110, align: 'right' as const },
-  { title: 'Сист. баллы', dataIndex: 'system_points', key: 'system_points', width: 120, align: 'right' as const },
-  { title: 'Парк. баллы', dataIndex: 'park_points', key: 'park_points', width: 120, align: 'right' as const },
+  { title: 'Поездки', dataIndex: 'rides', key: 'rides', sortKey: 'trips', width: 110, align: 'right' as const },
+  { title: 'Сист. баллы', dataIndex: 'system_points', key: 'system_points', sortKey: 'sys_points', width: 120, align: 'right' as const },
+  { title: 'Парк. баллы', dataIndex: 'park_points', key: 'park_points', sortKey: 'park_points', width: 120, align: 'right' as const },
+  { title: 'Часы', dataIndex: 'online_hours', key: 'online_hours', sortKey: 'online_hours', width: 90, align: 'right' as const },
+  { title: 'Награды', dataIndex: 'rewards_count', key: 'rewards_count', sortKey: 'rewards_count', width: 100, align: 'right' as const },
+  { title: 'Баллы наград', dataIndex: 'rewards_points', key: 'rewards_points', sortKey: 'rewards_points', width: 130, align: 'right' as const },
+  { title: 'Уровень', dataIndex: 'tier', key: 'tier', sortKey: 'tier', width: 110 },
+  { title: 'Последняя поездка', key: 'last_ride_at', sortKey: 'last_ride', width: 170 },
 ]
 
 const orderColumns = [
@@ -201,6 +269,11 @@ onMounted(async () => {
       subtitle="Сводка по водителям, поездкам и баллам за период"
     >
       <template #actions>
+        <a-button class="lotax-btn-secondary" @click="applyPreset('today')">Сегодня</a-button>
+        <a-button class="lotax-btn-secondary" @click="applyPreset('yesterday')">Вчера</a-button>
+        <a-button class="lotax-btn-secondary" @click="applyPreset('week')">Неделя</a-button>
+        <a-button class="lotax-btn-secondary" @click="applyPreset('month')">Месяц</a-button>
+        <a-button class="lotax-btn-secondary" @click="applyPreset('prev-month')">Прошлый месяц</a-button>
         <a-range-picker
           v-model:value="dateRange"
           size="large"
@@ -227,6 +300,15 @@ onMounted(async () => {
         >
           <template #icon><DownloadOutlined /></template>
           Excel
+        </a-button>
+        <a-button
+          class="lotax-btn-secondary"
+          :loading="exporting === 'pdf'"
+          :disabled="loading"
+          @click="exportFile('pdf')"
+        >
+          <template #icon><DownloadOutlined /></template>
+          PDF
         </a-button>
         <a-button
           class="lotax-btn-secondary"
@@ -296,6 +378,37 @@ onMounted(async () => {
         </KpiCard>
       </section>
 
+      <section v-if="summary.daily?.length" class="lotax-card p-4 md:p-6">
+        <h2 class="mb-3 text-[15px] font-semibold text-ink">Поездки по дням</h2>
+        <div class="flex h-28 items-end gap-1 overflow-x-auto">
+          <div
+            v-for="day in summary.daily"
+            :key="day.day"
+            class="flex min-w-6 flex-1 flex-col items-center justify-end"
+            :title="`${day.day}: ${day.rides}`"
+          >
+            <div
+              class="w-full rounded-sm bg-brand"
+              :style="{ height: `${Math.max(4, (day.rides / chartMax) * 96)}px` }"
+            />
+          </div>
+        </div>
+      </section>
+      <section v-if="summary.reward_ranks?.length" class="lotax-card p-4 md:p-6">
+        <h2 class="mb-3 text-[15px] font-semibold text-ink">Награды</h2>
+        <div v-for="rank in summary.reward_ranks" :key="rank.title" class="flex justify-between py-1 text-[14px]">
+          <span>{{ rank.title }}</span>
+          <span class="tabular-nums text-ink-muted">{{ rank.orders }} · {{ rank.points_spent }} б.</span>
+        </div>
+      </section>
+      <section v-if="summary.tiers?.length" class="lotax-card p-4 md:p-6">
+        <h2 class="mb-3 text-[15px] font-semibold text-ink">Уровни</h2>
+        <div v-for="row in summary.tiers" :key="row.tier" class="flex justify-between py-1 text-[14px]">
+          <span>{{ row.tier }}</span>
+          <span class="tabular-nums">{{ row.drivers }}</span>
+        </div>
+      </section>
+
       <section class="lotax-card p-4 md:p-6">
         <a-tabs v-model:activeKey="activeTab">
           <a-tab-pane key="drivers" tab="Водители">
@@ -304,11 +417,28 @@ onMounted(async () => {
               :columns="driverColumns"
               :data-source="summary.drivers"
               :pagination="{ pageSize: 20, showSizeChanger: true }"
-              :scroll="{ x: 720 }"
+              :scroll="{ x: 1280 }"
             >
+              <template #headerCell="{ column }">
+                <button
+                  v-if="(column as { sortKey?: string }).sortKey"
+                  type="button"
+                  class="inline-flex items-center gap-1"
+                  @click.stop="cycleSort(String((column as { sortKey?: string }).sortKey))"
+                >
+                  {{ column.title }}
+                  <span class="text-[11px] text-ink-muted">
+                    {{ sortMark(String((column as { sortKey?: string }).sortKey)) }}
+                  </span>
+                </button>
+                <template v-else>{{ column.title }}</template>
+              </template>
               <template #bodyCell="{ column, record }">
                 <template v-if="column.key === 'status'">
                   {{ statusLabel(record.status) }}
+                </template>
+                <template v-else-if="column.key === 'last_ride_at'">
+                  {{ record.last_ride_at ? dayjs(record.last_ride_at).format('DD.MM.YYYY HH:mm') : '—' }}
                 </template>
               </template>
             </a-table>

@@ -134,7 +134,7 @@ const routes: RouteRecordRaw[] = [
         path: 'analytics',
         name: 'analytics-hub',
         component: () => import('@/views/hubs/ParkAnalyticsHubView.vue'),
-        meta: { title: 'Аналитика', roles: ['director'] },
+        meta: { title: 'Аналитика', roles: ['director', 'manager'] },
       },
       {
         path: 'engagement',
@@ -260,7 +260,7 @@ const routes: RouteRecordRaw[] = [
         path: 'reports',
         name: 'reports',
         component: () => import('@/views/ReportsView.vue'),
-        meta: { title: 'Отчёт', roles: ['director'] },
+        meta: { title: 'Отчёт', roles: ['director', 'manager'] },
       },
       {
         path: 'pdn',
