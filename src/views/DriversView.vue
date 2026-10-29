@@ -23,7 +23,7 @@ const sortBy = ref(typeof route.query.sort === 'string' ? route.query.sort : '')
 const sortOrder = ref<'asc' | 'desc' | ''>(
   route.query.order === 'asc' || route.query.order === 'desc' ? route.query.order : '',
 )
-const { isMobile, width } = useBreakpoint()
+const { isMobile, isLgUp, width } = useBreakpoint()
 
 const searchQ = ref('')
 const statusFilter = ref<DriverStatus | 'all'>('all')
@@ -69,10 +69,6 @@ function driverPhone(d: DriverListItem) {
   return unmasked(d.phone) || unmasked(d.phone_masked)
 }
 
-function driverMiddleName(d: DriverListItem) {
-  return unmasked(d.middle_name) || '—'
-}
-
 function driverFullName(d: DriverListItem) {
   return (
     [driverFirstName(d), driverLastName(d)].filter((p) => p && p !== '—').join(' ') || '—'
@@ -116,50 +112,39 @@ function matchesDriverSearch(d: DriverListItem, raw: string) {
   return matchesNameSearch(d, raw)
 }
 
+/** Fixed columns + x-scroll only when the viewport is tight. */
+const needsHorizontalScroll = computed(() => !isLgUp.value)
+
 /** Sticky header offset under AdminLayout topbar (antd sticky). */
 const stickyConfig = computed(() => ({
   offsetHeader: width.value >= 1280 ? 72 : width.value >= 768 ? 64 : 56,
 }))
 
 const columns = computed(() => {
+  const pin = needsHorizontalScroll.value
   return [
     {
       title: 'Имя',
       key: 'first_name',
-      width: 140,
-      fixed: 'left' as const,
       ellipsis: true,
+      ...(pin ? { fixed: 'left' as const, width: 120 } : {}),
     },
     {
       title: 'Фамилия',
       key: 'last_name',
-      sortKey: 'name',
-      width: 140,
       ellipsis: true,
-    },
-    {
-      title: 'Отчество',
-      key: 'middle_name',
-      width: 140,
-      ellipsis: true,
+      ...(pin ? { fixed: 'left' as const, width: 120 } : {}),
     },
     {
       title: 'Телефон',
       key: 'phone',
-      width: 168,
-    },
-    {
-      title: 'Поездки',
-      key: 'trips_count',
-      sortKey: 'trips',
-      width: 100,
-      align: 'right' as const,
+      width: pin ? 148 : 170,
+      ...(pin ? { fixed: 'left' as const } : {}),
     },
     {
       title: 'Сист. баллы',
       dataIndex: 'balance_system_points',
       key: 'balance_system_points',
-      sortKey: 'sys_points',
       width: 110,
       align: 'right' as const,
     },
@@ -167,42 +152,13 @@ const columns = computed(() => {
       title: 'Парк',
       dataIndex: 'balance_park_points',
       key: 'balance_park_points',
-      sortKey: 'park_points',
       width: 90,
       align: 'right' as const,
-    },
-    {
-      title: 'Часы',
-      key: 'online_hours',
-      sortKey: 'online_hours',
-      width: 90,
-      align: 'right' as const,
-    },
-    {
-      title: 'Награды',
-      key: 'rewards_count',
-      sortKey: 'rewards_count',
-      width: 100,
-      align: 'right' as const,
-    },
-    {
-      title: 'Баллы наград',
-      key: 'rewards_points',
-      sortKey: 'rewards_points',
-      width: 130,
-      align: 'right' as const,
-    },
-    {
-      title: 'Последняя поездка',
-      key: 'last_ride_at',
-      sortKey: 'last_ride',
-      width: 170,
     },
     {
       title: 'Уровень',
       dataIndex: 'tier',
       key: 'tier',
-      sortKey: 'tier',
       width: 120,
     },
     {
@@ -226,7 +182,7 @@ const columns = computed(() => {
   ]
 })
 
-const tableScroll = computed(() => ({ x: 1960 }))
+const tableScroll = computed(() => (needsHorizontalScroll.value ? { x: 1100 } : undefined))
 
 const pagination = reactive({
   current: 1,
@@ -445,34 +401,6 @@ function confirmLaunchReset() {
       }
     },
   })
-}
-
-function sortMark(key: string) {
-  if (sortBy.value !== key || !sortOrder.value) return '⇅'
-  return sortOrder.value === 'desc' ? '▼' : '▲'
-}
-
-function cycleSort(key: string) {
-  if (sortBy.value !== key) {
-    sortBy.value = key
-    sortOrder.value = 'desc'
-  } else if (sortOrder.value === 'desc') {
-    sortOrder.value = 'asc'
-  } else {
-    sortBy.value = ''
-    sortOrder.value = ''
-  }
-  pagination.current = 1
-  const query = { ...route.query }
-  if (sortBy.value && sortOrder.value) {
-    query.sort = sortBy.value
-    query.order = sortOrder.value
-  } else {
-    delete query.sort
-    delete query.order
-  }
-  void router.replace({ query })
-  void load()
 }
 
 function resetPageAndLoad() {
@@ -787,6 +715,7 @@ onMounted(async () => {
     <div
       v-else
       class="lotax-card drivers-table-card !p-0"
+      :class="{ 'drivers-table-card--fluid': !needsHorizontalScroll }"
     >
       <a-table
         row-key="id"
@@ -814,53 +743,17 @@ onMounted(async () => {
         })"
         @change="onTableChange"
       >
-        <template #headerCell="{ column }">
-          <button
-            v-if="(column as { sortKey?: string }).sortKey"
-            type="button"
-            class="inline-flex items-center gap-1 whitespace-nowrap"
-            @click.stop="cycleSort(String((column as { sortKey?: string }).sortKey))"
-          >
-            {{ column.title }}
-            <span class="text-[11px] text-ink-muted">
-              {{ sortMark(String((column as { sortKey?: string }).sortKey)) }}
-            </span>
-          </button>
-          <template v-else>{{ column.title }}</template>
-        </template>
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'first_name'">
             <a
-              class="font-medium text-ink transition-colors duration-fast md:hover:text-brand"
+              class="driver-name-cell font-medium text-ink transition-colors duration-fast md:hover:text-brand"
               @click.prevent="openDriver(record as DriverListItem)"
             >
               {{ driverFirstName(record as DriverListItem) }}
             </a>
           </template>
           <template v-else-if="column.key === 'last_name'">
-            {{ driverLastName(record as DriverListItem) }}
-          </template>
-          <template v-else-if="column.key === 'middle_name'">
-            {{ driverMiddleName(record as DriverListItem) }}
-          </template>
-          <template v-else-if="column.key === 'trips_count'">
-            {{ (record as DriverListItem).trips_count ?? 0 }}
-          </template>
-          <template v-else-if="column.key === 'online_hours'">
-            {{ (record as DriverListItem).online_hours ?? 0 }}
-          </template>
-          <template v-else-if="column.key === 'rewards_count'">
-            {{ (record as DriverListItem).rewards_count ?? 0 }}
-          </template>
-          <template v-else-if="column.key === 'rewards_points'">
-            {{ (record as DriverListItem).rewards_points ?? 0 }}
-          </template>
-          <template v-else-if="column.key === 'last_ride_at'">
-            {{
-              (record as DriverListItem).last_ride_at
-                ? dayjs((record as DriverListItem).last_ride_at).format('DD.MM.YYYY HH:mm')
-                : '—'
-            }}
+            <span class="driver-name-cell">{{ driverLastName(record as DriverListItem) }}</span>
           </template>
           <template v-else-if="column.key === 'phone'">
             <span class="font-mono text-[13px] text-ink-muted">
@@ -980,6 +873,17 @@ onMounted(async () => {
 /* sticky uchun overflow:hidden bo‘lmasligi kerak */
 .drivers-table-card {
   overflow: visible;
+}
+
+.drivers-table-card--fluid :deep(.ant-table table) {
+  width: 100% !important;
+}
+
+.drivers-table :deep(.driver-name-cell) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 :deep(.ant-table) {
