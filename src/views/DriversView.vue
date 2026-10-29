@@ -69,11 +69,13 @@ function driverPhone(d: DriverListItem) {
   return unmasked(d.phone) || unmasked(d.phone_masked)
 }
 
+function driverMiddleName(d: DriverListItem) {
+  return unmasked(d.middle_name) || '—'
+}
+
 function driverFullName(d: DriverListItem) {
   return (
-    unmasked(d.display_name) ||
-    [driverFirstName(d), driverLastName(d)].filter((p) => p && p !== '—').join(' ') ||
-    '—'
+    [driverFirstName(d), driverLastName(d)].filter((p) => p && p !== '—').join(' ') || '—'
   )
 }
 
@@ -122,11 +124,23 @@ const stickyConfig = computed(() => ({
 const columns = computed(() => {
   return [
     {
-      title: 'ФИО',
-      key: 'fio',
-      sortKey: 'name',
-      width: 240,
+      title: 'Имя',
+      key: 'first_name',
+      width: 140,
       fixed: 'left' as const,
+      ellipsis: true,
+    },
+    {
+      title: 'Фамилия',
+      key: 'last_name',
+      sortKey: 'name',
+      width: 140,
+      ellipsis: true,
+    },
+    {
+      title: 'Отчество',
+      key: 'middle_name',
+      width: 140,
       ellipsis: true,
     },
     {
@@ -212,7 +226,7 @@ const columns = computed(() => {
   ]
 })
 
-const tableScroll = computed(() => ({ x: 1780 }))
+const tableScroll = computed(() => ({ x: 1960 }))
 
 const pagination = reactive({
   current: 1,
@@ -815,13 +829,19 @@ onMounted(async () => {
           <template v-else>{{ column.title }}</template>
         </template>
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'fio'">
+          <template v-if="column.key === 'first_name'">
             <a
               class="font-medium text-ink transition-colors duration-fast md:hover:text-brand"
               @click.prevent="openDriver(record as DriverListItem)"
             >
-              {{ driverFullName(record as DriverListItem) }}
+              {{ driverFirstName(record as DriverListItem) }}
             </a>
+          </template>
+          <template v-else-if="column.key === 'last_name'">
+            {{ driverLastName(record as DriverListItem) }}
+          </template>
+          <template v-else-if="column.key === 'middle_name'">
+            {{ driverMiddleName(record as DriverListItem) }}
           </template>
           <template v-else-if="column.key === 'trips_count'">
             {{ (record as DriverListItem).trips_count ?? 0 }}
