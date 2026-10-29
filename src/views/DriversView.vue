@@ -23,7 +23,7 @@ const sortBy = ref(typeof route.query.sort === 'string' ? route.query.sort : '')
 const sortOrder = ref<'asc' | 'desc' | ''>(
   route.query.order === 'asc' || route.query.order === 'desc' ? route.query.order : '',
 )
-const { isMobile, isLgUp, width } = useBreakpoint()
+const { isMobile, width } = useBreakpoint()
 
 const searchQ = ref('')
 const statusFilter = ref<DriverStatus | 'all'>('all')
@@ -114,28 +114,25 @@ function matchesDriverSearch(d: DriverListItem, raw: string) {
   return matchesNameSearch(d, raw)
 }
 
-/** Fixed columns + x-scroll only when viewport is tight (tablet). */
-const needsHorizontalScroll = computed(() => !isLgUp.value)
-
 /** Sticky header offset under AdminLayout topbar (antd sticky). */
 const stickyConfig = computed(() => ({
   offsetHeader: width.value >= 1280 ? 72 : width.value >= 768 ? 64 : 56,
 }))
 
 const columns = computed(() => {
-  const pin = needsHorizontalScroll.value
   return [
     {
       title: 'ФИО',
       key: 'fio',
       sortKey: 'name',
-      ...(pin ? { fixed: 'left' as const, width: 220 } : { ellipsis: true }),
+      width: 240,
+      fixed: 'left' as const,
+      ellipsis: true,
     },
     {
       title: 'Телефон',
       key: 'phone',
-      width: pin ? 148 : 170,
-      ...(pin ? { fixed: 'left' as const } : {}),
+      width: 168,
     },
     {
       title: 'Поездки',
@@ -215,12 +212,7 @@ const columns = computed(() => {
   ]
 })
 
-const tableScroll = computed(() => {
-  if (needsHorizontalScroll.value) {
-    return { x: 1400 }
-  }
-  return undefined
-})
+const tableScroll = computed(() => ({ x: 1780 }))
 
 const pagination = reactive({
   current: 1,
@@ -781,7 +773,6 @@ onMounted(async () => {
     <div
       v-else
       class="lotax-card drivers-table-card !p-0"
-      :class="{ 'drivers-table-card--fluid': !needsHorizontalScroll }"
     >
       <a-table
         row-key="id"
@@ -813,7 +804,7 @@ onMounted(async () => {
           <button
             v-if="(column as { sortKey?: string }).sortKey"
             type="button"
-            class="inline-flex items-center gap-1"
+            class="inline-flex items-center gap-1 whitespace-nowrap"
             @click.stop="cycleSort(String((column as { sortKey?: string }).sortKey))"
           >
             {{ column.title }}
@@ -969,10 +960,6 @@ onMounted(async () => {
 /* sticky uchun overflow:hidden bo‘lmasligi kerak */
 .drivers-table-card {
   overflow: visible;
-}
-
-.drivers-table-card--fluid :deep(.ant-table table) {
-  width: 100% !important;
 }
 
 :deep(.ant-table) {
