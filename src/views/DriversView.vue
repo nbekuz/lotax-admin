@@ -23,7 +23,7 @@ const sortBy = ref(typeof route.query.sort === 'string' ? route.query.sort : '')
 const sortOrder = ref<'asc' | 'desc' | ''>(
   route.query.order === 'asc' || route.query.order === 'desc' ? route.query.order : '',
 )
-const { isMobile, isLgUp, width } = useBreakpoint()
+const { isMobile, isLgUp } = useBreakpoint()
 
 const searchQ = ref('')
 const statusFilter = ref<DriverStatus | 'all'>('all')
@@ -114,11 +114,6 @@ function matchesDriverSearch(d: DriverListItem, raw: string) {
 
 /** Fixed columns + x-scroll only when the viewport is tight. */
 const needsHorizontalScroll = computed(() => !isLgUp.value)
-
-/** Sticky header offset under AdminLayout topbar (antd sticky). */
-const stickyConfig = computed(() => ({
-  offsetHeader: width.value >= 1280 ? 72 : width.value >= 768 ? 64 : 56,
-}))
 
 const columns = computed(() => {
   const pin = needsHorizontalScroll.value
@@ -725,7 +720,6 @@ onMounted(async () => {
         :loading="listLoading || drivers.loading"
         :pagination="pagination"
         :scroll="tableScroll"
-        :sticky="stickyConfig"
         :row-selection="auth.canEditStatus ? {
           selectedRowKeys,
           onChange: onSelectChange,
@@ -870,9 +864,8 @@ onMounted(async () => {
   }
 }
 
-/* sticky uchun overflow:hidden bo‘lmasligi kerak */
 .drivers-table-card {
-  overflow: visible;
+  overflow: hidden;
 }
 
 .drivers-table-card--fluid :deep(.ant-table table) {
