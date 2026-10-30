@@ -29,6 +29,7 @@ const threadMessages = computed<ChatMessage[]>(() =>
     sender_type: item.is_mine ? 'initiator' : 'receiver',
     sender_name: '',
     is_mine: item.is_mine === true,
+    delivery_status: item.delivery_status ?? null,
   })),
 )
 

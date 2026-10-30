@@ -248,7 +248,7 @@ const routes: RouteRecordRaw[] = [
         path: 'push',
         name: 'push',
         component: () => import('@/views/PushNotifyView.vue'),
-        meta: { title: 'Push', roles: ['director'] },
+        meta: { title: 'Push', roles: ['director', 'manager'] },
       },
       {
         path: 'sync',
@@ -289,7 +289,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/DriverSupportChatView.vue'),
         meta: {
           title: 'Чаты с водителями',
-          roles: ['director'],
+          roles: ['director', 'manager'],
         },
       },
       {
@@ -298,7 +298,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/DriverSupportChatView.vue'),
         meta: {
           title: 'Чат с водителем',
-          roles: ['director'],
+          roles: ['director', 'manager'],
         },
       },
       {

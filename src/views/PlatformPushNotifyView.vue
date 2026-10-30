@@ -41,6 +41,9 @@ const form = reactive({
   category: 'promo' as PushNotifyCategory,
   all_organizations: false,
   organization_ids: [] as string[],
+  send_mode: 'now',
+  scheduled_at: '',
+  deep_link: 'none',
 })
 
 const categoryOptions = [
@@ -91,6 +94,9 @@ function resetForm() {
   form.category = 'promo'
   form.all_organizations = false
   form.organization_ids = []
+  form.send_mode = 'now'
+  form.scheduled_at = ''
+  form.deep_link = 'none'
 }
 
 function openCreate() {
@@ -158,6 +164,30 @@ async function send() {
   try {
     const title = form.title.trim()
     const body = form.body.trim()
+    if (form.send_mode === 'scheduled') {
+      if (!form.scheduled_at) {
+        message.warning('Укажите дату и время')
+        return
+      }
+      if (title.length > 65 || body.length > 240) {
+        message.warning('Для отложенной рассылки заголовок до 65 символов, текст до 240')
+        return
+      }
+      await superAdminApi.createPushCampaign({
+        title,
+        body,
+        deep_link: form.deep_link,
+        send_mode: 'scheduled',
+        scheduled_at: form.scheduled_at,
+        target_filter: form.all_organizations
+          ? {}
+          : { organization_ids: [...form.organization_ids] },
+      })
+      message.success('Рассылка запланирована по московскому времени')
+      modalOpen.value = false
+      resetForm()
+      return
+    }
     const category = form.category
     const allOrgs = form.all_organizations
     const orgIds = [...form.organization_ids]
@@ -321,6 +351,32 @@ onMounted(() => {
         Перед эфиром укажите ссылку Zoom в тексте. Это не повтор пуша, который сервер уже отправил при создании активного купона.
       </p>
       <a-form layout="vertical" class="mt-2">
+        <a-form-item label="Когда">
+          <a-select
+            v-model:value="form.send_mode"
+            class="!w-full"
+            :options="[
+              { value: 'now', label: 'Сейчас' },
+              { value: 'scheduled', label: 'В выбранное время' },
+            ]"
+          />
+        </a-form-item>
+        <a-form-item v-if="form.send_mode === 'scheduled'" label="Дата и время (Москва)">
+          <a-input v-model:value="form.scheduled_at" placeholder="2026-11-02T07:30:00" />
+        </a-form-item>
+        <a-form-item v-if="form.send_mode === 'scheduled'" label="Куда открыть">
+          <a-select
+            v-model:value="form.deep_link"
+            class="!w-full"
+            :options="[
+              { value: 'none', label: 'Без перехода' },
+              { value: 'tasks', label: 'Задания' },
+              { value: 'rewards', label: 'Каталог наград' },
+              { value: 'competition', label: 'Турнир' },
+              { value: 'chat', label: 'Чат с парком' },
+            ]"
+          />
+        </a-form-item>
         <a-form-item label="Категория">
           <a-select
             v-model:value="form.category"

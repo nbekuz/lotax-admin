@@ -20,6 +20,8 @@ export interface DriverSupportMessage {
   sender_role: string
   sender_name: string | null
   is_mine?: boolean
+  delivery_status?: 'sent' | 'read' | null
+  read_at?: string | null
 }
 
 export interface DriverSupportMessagePage {
@@ -74,6 +76,19 @@ export const driverSupportApi = {
       `/driver-support/inbox/${conversationId}/messages`,
       { body },
     )
+    return data
+  },
+
+  async broadcast(driverIds: string[], body: string, attachmentUrl?: string) {
+    const { data } = await http.post<{
+      id: string
+      total_recipients: number
+      delivered_count: number
+    }>('/driver-support/broadcast', {
+      driver_ids: driverIds,
+      body,
+      attachment_url: attachmentUrl || null,
+    })
     return data
   },
 

@@ -327,20 +327,20 @@ const menuItems = computed((): any[] => {
   const asDirector = auth.inspecting || auth.isDirector
   const contact: Record<string, unknown>[] = []
   if (asDirector) {
-    contact.push(
-      {
-        key: 'support-contacts',
-        icon: () => h(CustomerServiceOutlined),
-        label: 'Контакты',
-        title: 'Контакты для водителей',
-      },
-      {
-        key: 'driver-support',
-        icon: () => h(CommentOutlined),
-        label: chatMenuLabel('Водители', driverSupport.totalUnread) as unknown as string,
-        title: 'Чаты с водителями',
-      },
-    )
+    contact.push({
+      key: 'support-contacts',
+      icon: () => h(CustomerServiceOutlined),
+      label: 'Контакты',
+      title: 'Контакты для водителей',
+    })
+  }
+  if (asDirector || auth.isManager) {
+    contact.push({
+      key: 'driver-support',
+      icon: () => h(CommentOutlined),
+      label: chatMenuLabel('Водители', driverSupport.totalUnread) as unknown as string,
+      title: 'Чаты с водителями',
+    })
   }
   if (auth.canViewChat) {
     contact.push({

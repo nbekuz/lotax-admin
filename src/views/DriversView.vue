@@ -5,6 +5,7 @@ import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { CloudSyncOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons-vue'
 import { driversApi } from '@/api/drivers'
+import { driverSupportApi } from '@/api/driverSupport'
 import { useAuthStore } from '@/stores/auth'
 import { useDriversStore } from '@/stores/drivers'
 import { useOrgStore } from '@/stores/org'
@@ -32,6 +33,11 @@ const parkFilter = ref<string | 'all'>('all')
 const createOpen = ref(false)
 const creating = ref(false)
 const selectedRowKeys = ref<string[]>([])
+const broadcastOpen = ref(false)
+const broadcastBody = ref('')
+const broadcastLink = ref('')
+const broadcastBusy = ref(false)
+const canMessageDrivers = computed(() => auth.isDirector || auth.isManager)
 const bulkBusy = ref(false)
 const launchBusy = ref(false)
 const listLoading = ref(false)
@@ -418,6 +424,30 @@ function onSelectChange(keys: (string | number)[]) {
   selectedRowKeys.value = keys.map(String)
 }
 
+async function sendBroadcast() {
+  if (!selectedRowKeys.value.length || !broadcastBody.value.trim()) {
+    message.warning('Выберите водителей и напишите текст')
+    return
+  }
+  broadcastBusy.value = true
+  try {
+    const result = await driverSupportApi.broadcast(
+      selectedRowKeys.value,
+      broadcastBody.value.trim(),
+      broadcastLink.value.trim() || undefined,
+    )
+    message.success(`Личных сообщений: ${result.delivered_count} из ${result.total_recipients}`)
+    broadcastOpen.value = false
+    broadcastBody.value = ''
+    broadcastLink.value = ''
+    selectedRowKeys.value = []
+  } catch (error) {
+    message.error(extractErrorMessage(error, 'Не удалось отправить'))
+  } finally {
+    broadcastBusy.value = false
+  }
+}
+
 function onMobilePageChange(page: number) {
   pagination.current = page
   if (searchQ.value.trim()) return
@@ -602,6 +632,13 @@ onMounted(async () => {
       >
         Старт парка
       </a-button>
+      <a-button
+        v-if="selectedRowKeys.length"
+        class="lotax-btn-secondary !h-9"
+        @click="broadcastOpen = true"
+      >
+        Написать ({{ selectedRowKeys.length }})
+      </a-button>
       <span v-if="selectedRowKeys.length" class="ml-auto text-[13px] text-ink-muted">
         Выбрано: {{ selectedRowKeys.length }}
       </span>
@@ -609,6 +646,34 @@ onMounted(async () => {
         Старт парка уже выполнен
       </span>
     </div>
+
+    <div
+      v-if="auth.isManager && selectedRowKeys.length"
+      class="drivers-bulk flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface-card px-3 py-2.5"
+    >
+      <a-button class="lotax-btn-secondary !h-9" @click="broadcastOpen = true">
+        Написать ({{ selectedRowKeys.length }})
+      </a-button>
+    </div>
+
+    <a-modal
+      v-model:open="broadcastOpen"
+      title="Личное сообщение"
+      ok-text="Отправить"
+      :confirm-loading="broadcastBusy"
+      @ok="sendBroadcast"
+    >
+      <p class="mb-3 text-[13px] text-ink-muted">
+        Каждому выбранному водителю придёт отдельный чат. Общая группа не создаётся.
+        Выбрано: {{ selectedRowKeys.length }}
+      </p>
+      <a-textarea v-model:value="broadcastBody" :rows="4" :maxlength="4000" placeholder="Текст" />
+      <a-input
+        v-model:value="broadcastLink"
+        class="mt-3"
+        placeholder="Ссылка на файл, если нужна"
+      />
+    </a-modal>
 
     <!-- Mobile: card list -->
     <div v-if="isMobile" class="flex flex-col gap-4">
@@ -720,7 +785,7 @@ onMounted(async () => {
         :loading="listLoading || drivers.loading"
         :pagination="pagination"
         :scroll="tableScroll"
-        :row-selection="auth.canEditStatus ? {
+        :row-selection="canMessageDrivers ? {
           selectedRowKeys,
           onChange: onSelectChange,
         } : undefined"

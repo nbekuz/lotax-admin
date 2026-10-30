@@ -285,6 +285,10 @@ export const superAdminApi = {
     return http.post<PushNotifyResponse>('/super-admin/push/notify', payload)
   },
 
+  createPushCampaign(payload: Record<string, unknown>) {
+    return http.post('/super-admin/push/campaigns', payload)
+  },
+
   appUsage() {
     return http.get<AppUsageResponse>('/super-admin/app-usage')
   },

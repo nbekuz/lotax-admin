@@ -55,7 +55,7 @@ const links = computed(() => {
       route: 'tier-settings',
     })
   }
-  if (auth.inspecting || auth.canManageRewards) {
+  if (auth.inspecting || auth.canSendPush) {
     items.push({
       key: 'push',
       title: 'Push-уведомления',

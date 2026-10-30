@@ -43,6 +43,9 @@ const bubbleClass = computed(() => {
             :class="message.is_mine ? 'chat-bubble__time--mine' : 'chat-bubble__time--other'"
           >
             {{ time }}
+            <template v-if="message.is_mine && message.delivery_status">
+              {{ message.delivery_status === 'read' ? ' ✓✓' : ' ✓' }}
+            </template>
           </span>
         </div>
       </div>

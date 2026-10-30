@@ -45,6 +45,7 @@ export interface ChatMessage {
   sender_type: ChatSenderType
   sender_name: string
   is_mine: boolean
+  delivery_status?: 'sent' | 'read' | null
 }
 
 export interface ChatMessagesResponse {
