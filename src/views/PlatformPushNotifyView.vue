@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
+import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 import {
   NotificationOutlined,
@@ -54,12 +55,12 @@ const form = reactive({
   all_organizations: false,
   organization_ids: [] as string[],
   send_mode: 'now',
-  scheduled_at: '',
+  scheduled_at: undefined as Dayjs | undefined,
   deep_link: 'none',
   frequency: 'daily',
   weekdays: [] as number[],
-  time: '09:00',
-  until: '',
+  time: dayjs('09:00', 'HH:mm') as Dayjs | undefined,
+  until: undefined as Dayjs | undefined,
 })
 
 const categoryOptions = [
@@ -100,12 +101,12 @@ function resetForm() {
   form.all_organizations = false
   form.organization_ids = []
   form.send_mode = 'now'
-  form.scheduled_at = ''
+  form.scheduled_at = undefined
   form.deep_link = 'none'
   form.frequency = 'daily'
   form.weekdays = []
-  form.time = '09:00'
-  form.until = ''
+  form.time = dayjs('09:00', 'HH:mm')
+  form.until = undefined
 }
 
 async function loadCampaigns() {
@@ -195,14 +196,17 @@ async function send() {
       body,
       deep_link: form.deep_link,
       send_mode: form.send_mode,
-      scheduled_at: form.send_mode === 'scheduled' ? form.scheduled_at : null,
+      scheduled_at:
+        form.send_mode === 'scheduled' && form.scheduled_at
+          ? form.scheduled_at.format('YYYY-MM-DDTHH:mm:ss')
+          : null,
       schedule:
         form.send_mode === 'recurring'
           ? {
               frequency: form.frequency,
               weekdays: form.weekdays,
-              time: form.time,
-              until: form.until || null,
+              time: form.time ? form.time.format('HH:mm') : '09:00',
+              until: form.until ? form.until.format('YYYY-MM-DD') : null,
             }
           : null,
       target_filter: {
@@ -243,7 +247,7 @@ onMounted(() => {
   <div class="flex flex-col gap-4 md:gap-6">
     <PageHeader
       title="Push по организациям"
-      subtitle="Сейчас, в выбранное время или по расписанию. В тексте можно писать {driver_name}, {points_balance}, {rank}."
+      subtitle="Сейчас, в выбранное время или по расписанию. В текст можно вставить имя водителя, баллы парка и уровень."
     >
       <template #actions>
         <a-button type="primary" class="lotax-btn-primary" @click="openCreate">
@@ -401,7 +405,13 @@ onMounted(() => {
           />
         </a-form-item>
         <a-form-item v-if="form.send_mode === 'scheduled'" label="Дата и время (Москва)">
-          <a-input v-model:value="form.scheduled_at" placeholder="2026-11-02T07:30:00" />
+          <a-date-picker
+            v-model:value="form.scheduled_at"
+            class="!w-full"
+            show-time
+            format="DD.MM.YYYY HH:mm"
+            placeholder="Выберите дату и время"
+          />
         </a-form-item>
         <template v-if="form.send_mode === 'recurring'">
           <a-form-item label="Периодичность">
@@ -434,10 +444,20 @@ onMounted(() => {
             />
           </a-form-item>
           <a-form-item label="Время (Москва)">
-            <a-input v-model:value="form.time" placeholder="07:30" />
+            <a-time-picker
+              v-model:value="form.time"
+              class="!w-full"
+              format="HH:mm"
+              placeholder="Выберите время"
+            />
           </a-form-item>
           <a-form-item label="До даты, если нужно">
-            <a-input v-model:value="form.until" placeholder="2026-12-31" />
+            <a-date-picker
+              v-model:value="form.until"
+              class="!w-full"
+              format="DD.MM.YYYY"
+              placeholder="Выберите дату"
+            />
           </a-form-item>
         </template>
         <a-form-item label="Куда открыть">
@@ -474,6 +494,11 @@ onMounted(() => {
             :maxlength="240"
             placeholder="Эфир: https://zoom.us/…"
           />
+          <div class="mt-2 flex flex-wrap gap-2">
+            <a-button size="small" @click="form.body += '{имя}'">Имя водителя</a-button>
+            <a-button size="small" @click="form.body += '{баллы}'">Баллы парка</a-button>
+            <a-button size="small" @click="form.body += '{уровень}'">Уровень</a-button>
+          </div>
         </a-form-item>
         <a-form-item>
           <div class="flex items-center gap-2">

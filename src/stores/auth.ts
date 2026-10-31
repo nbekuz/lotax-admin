@@ -58,7 +58,8 @@ export const useAuthStore = defineStore('auth', {
     canManageYandex: (s) => s.admin?.role === 'director',
     canCreateDriver: (s) => s.admin?.role === 'director',
     canManageRewards: (s) => s.admin?.role === 'director',
-    canSendPush: (s) => s.admin?.role === 'director' || s.admin?.role === 'manager',
+    canSendPush: (s) =>
+      s.inspecting || s.admin?.role === 'director' || s.admin?.role === 'manager',
     canViewRewards: (s) =>
       ['director', 'manager'].includes(s.admin?.role ?? ''),
     canModerateOrders: (s) =>

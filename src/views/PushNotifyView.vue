@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
+import type { Dayjs } from 'dayjs'
+import dayjs from 'dayjs'
 import { SendOutlined } from '@ant-design/icons-vue'
 import { http } from '@/api/http'
 import { driversApi } from '@/api/drivers'
@@ -35,11 +37,11 @@ const form = reactive({
   body: '',
   deep_link: 'none',
   send_mode: 'now',
-  scheduled_at: '',
+  scheduled_at: undefined as Dayjs | undefined,
   frequency: 'daily',
   weekdays: [] as number[],
-  time: '09:00',
-  until: '',
+  time: dayjs('09:00', 'HH:mm') as Dayjs | undefined,
+  until: undefined as Dayjs | undefined,
   tiers: [] as string[],
   online: 'any',
 })
@@ -85,7 +87,7 @@ const onlineOptions = [
 ]
 
 const parkId = computed(() => org.selectedParkId)
-const canSend = computed(() => auth.isDirector || auth.isManager)
+const canSend = computed(() => auth.canSendPush)
 
 const columns = [
   { title: 'Заголовок', dataIndex: 'title', key: 'title' },
@@ -130,6 +132,10 @@ async function send() {
     message.warning('Укажите заголовок и текст')
     return
   }
+  if (form.send_mode === 'scheduled' && !form.scheduled_at) {
+    message.warning('Выберите дату и время')
+    return
+  }
   sending.value = true
   try {
     await http.post('/admin/push/campaigns', {
@@ -138,14 +144,17 @@ async function send() {
       body: form.body.trim(),
       deep_link: form.deep_link,
       send_mode: form.send_mode,
-      scheduled_at: form.send_mode === 'scheduled' ? form.scheduled_at || null : null,
+      scheduled_at:
+        form.send_mode === 'scheduled' && form.scheduled_at
+          ? form.scheduled_at.format('YYYY-MM-DDTHH:mm:ss')
+          : null,
       schedule:
         form.send_mode === 'recurring'
           ? {
               frequency: form.frequency,
               weekdays: form.weekdays,
-              time: form.time,
-              until: form.until || null,
+              time: form.time ? form.time.format('HH:mm') : '09:00',
+              until: form.until ? form.until.format('YYYY-MM-DD') : null,
             }
           : null,
       target_filter: {
@@ -209,7 +218,7 @@ onMounted(async () => {
   <div class="mx-auto flex w-full max-w-3xl flex-col gap-4 md:gap-6">
     <PageHeader
       title="Push-уведомления"
-      subtitle="Сейчас, в выбранное время или по расписанию. В тексте можно писать {driver_name}, {points_balance}, {rank}."
+      subtitle="Сейчас, в выбранное время или по расписанию. В текст можно вставить имя водителя, баллы парка и уровень."
     />
 
     <section class="lotax-card p-5 md:p-7">
@@ -236,7 +245,14 @@ onMounted(async () => {
           <a-select v-model:value="form.send_mode" size="large" :options="modeOptions" />
         </a-form-item>
         <a-form-item v-if="form.send_mode === 'scheduled'" label="Дата и время (Москва)">
-          <a-input v-model:value="form.scheduled_at" size="large" placeholder="2026-11-02T07:30:00" />
+          <a-date-picker
+            v-model:value="form.scheduled_at"
+            class="!w-full"
+            size="large"
+            show-time
+            format="DD.MM.YYYY HH:mm"
+            placeholder="Выберите дату и время"
+          />
         </a-form-item>
         <template v-if="form.send_mode === 'recurring'">
           <a-form-item label="Периодичность">
@@ -250,11 +266,23 @@ onMounted(async () => {
               :options="weekdayOptions"
             />
           </a-form-item>
-          <a-form-item label="Время">
-            <a-input v-model:value="form.time" size="large" placeholder="07:30" />
+          <a-form-item label="Время (Москва)">
+            <a-time-picker
+              v-model:value="form.time"
+              class="!w-full"
+              size="large"
+              format="HH:mm"
+              placeholder="Выберите время"
+            />
           </a-form-item>
           <a-form-item label="До даты, если нужно">
-            <a-input v-model:value="form.until" size="large" placeholder="2026-12-31" />
+            <a-date-picker
+              v-model:value="form.until"
+              class="!w-full"
+              size="large"
+              format="DD.MM.YYYY"
+              placeholder="Выберите дату"
+            />
           </a-form-item>
         </template>
         <a-form-item label="Заголовок" required>
@@ -262,6 +290,11 @@ onMounted(async () => {
         </a-form-item>
         <a-form-item label="Текст" required>
           <a-textarea v-model:value="form.body" :rows="4" :maxlength="240" />
+          <div class="mt-2 flex flex-wrap gap-2">
+            <a-button size="small" @click="form.body += '{имя}'">Имя водителя</a-button>
+            <a-button size="small" @click="form.body += '{баллы}'">Баллы парка</a-button>
+            <a-button size="small" @click="form.body += '{уровень}'">Уровень</a-button>
+          </div>
         </a-form-item>
         <a-form-item label="Проверка на одном водителе">
           <a-select
