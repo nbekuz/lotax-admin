@@ -289,6 +289,26 @@ export const superAdminApi = {
     return http.post('/super-admin/push/campaigns', payload)
   },
 
+  listPushCampaigns() {
+    return http.get<
+      {
+        id: string
+        title: string
+        body: string
+        deep_link: string
+        send_mode: string
+        status: string
+        sent: number
+        failed: number
+        clicked: number
+      }[]
+    >('/super-admin/push/campaigns')
+  },
+
+  setPushCampaignStatus(id: string, status: string) {
+    return http.put(`/super-admin/push/campaigns/${id}/status`, { status })
+  },
+
   appUsage() {
     return http.get<AppUsageResponse>('/super-admin/app-usage')
   },

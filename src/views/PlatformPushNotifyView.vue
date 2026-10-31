@@ -13,7 +13,6 @@ import type { OrganizationResponse, PushNotifyCategory } from '@/types/api'
 import PageHeader from '@/components/PageHeader.vue'
 
 const HISTORY_KEY = 'lotax.superadmin.push.history'
-const HISTORY_LIMIT = 100
 
 interface PlatformPushHistoryItem {
   id: string
@@ -29,11 +28,24 @@ interface PlatformPushHistoryItem {
   sent_at: string
 }
 
+interface PlatformCampaign {
+  id: string
+  title: string
+  body: string
+  deep_link: string
+  send_mode: string
+  status: string
+  sent: number
+  failed: number
+  clicked: number
+}
+
 const sending = ref(false)
 const loadingOrgs = ref(false)
 const modalOpen = ref(false)
 const organizations = ref<OrganizationResponse[]>([])
 const history = ref<PlatformPushHistoryItem[]>([])
+const campaigns = ref<PlatformCampaign[]>([])
 
 const form = reactive({
   title: '',
@@ -44,6 +56,10 @@ const form = reactive({
   send_mode: 'now',
   scheduled_at: '',
   deep_link: 'none',
+  frequency: 'daily',
+  weekdays: [] as number[],
+  time: '09:00',
+  until: '',
 })
 
 const categoryOptions = [
@@ -63,12 +79,6 @@ const orgOptions = computed(() =>
   organizations.value.map((o) => ({ value: o.id, label: o.name })),
 )
 
-const orgNameById = computed(() => {
-  const map = new Map<string, string>()
-  for (const o of organizations.value) map.set(o.id, o.name)
-  return map
-})
-
 function loadHistory() {
   try {
     const raw = localStorage.getItem(HISTORY_KEY)
@@ -83,11 +93,6 @@ function loadHistory() {
   }
 }
 
-function saveHistory(items: PlatformPushHistoryItem[]) {
-  history.value = items.slice(0, HISTORY_LIMIT)
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.value))
-}
-
 function resetForm() {
   form.title = ''
   form.body = ''
@@ -97,6 +102,15 @@ function resetForm() {
   form.send_mode = 'now'
   form.scheduled_at = ''
   form.deep_link = 'none'
+  form.frequency = 'daily'
+  form.weekdays = []
+  form.time = '09:00'
+  form.until = ''
+}
+
+async function loadCampaigns() {
+  const { data } = await superAdminApi.listPushCampaigns()
+  campaigns.value = data
 }
 
 function openCreate() {
@@ -160,88 +174,68 @@ async function send() {
     message.warning('Выберите организации или «Все организации»')
     return
   }
+  const title = form.title.trim()
+  const body = form.body.trim()
+  if (title.length > 65 || body.length > 240) {
+    message.warning('Заголовок до 65 символов, текст до 240')
+    return
+  }
+  if (form.send_mode === 'scheduled' && !form.scheduled_at) {
+    message.warning('Укажите дату и время')
+    return
+  }
+  if (form.send_mode === 'recurring' && form.frequency === 'weekly' && !form.weekdays.length) {
+    message.warning('Выберите дни недели')
+    return
+  }
   sending.value = true
   try {
-    const title = form.title.trim()
-    const body = form.body.trim()
-    if (form.send_mode === 'scheduled') {
-      if (!form.scheduled_at) {
-        message.warning('Укажите дату и время')
-        return
-      }
-      if (title.length > 65 || body.length > 240) {
-        message.warning('Для отложенной рассылки заголовок до 65 символов, текст до 240')
-        return
-      }
-      await superAdminApi.createPushCampaign({
-        title,
-        body,
-        deep_link: form.deep_link,
-        send_mode: 'scheduled',
-        scheduled_at: form.scheduled_at,
-        target_filter: form.all_organizations
-          ? {}
-          : { organization_ids: [...form.organization_ids] },
-      })
-      message.success('Рассылка запланирована по московскому времени')
-      modalOpen.value = false
-      resetForm()
-      return
-    }
-    const category = form.category
-    const allOrgs = form.all_organizations
-    const orgIds = [...form.organization_ids]
-
-    const { data } = await superAdminApi.pushNotify({
+    await superAdminApi.createPushCampaign({
       title,
       body,
-      category,
-      all_organizations: allOrgs || undefined,
-      organization_ids: allOrgs ? undefined : orgIds,
-      data: { type: category },
-    })
-
-    if (data.devices_targeted === 0) {
-      message.warning(data.detail || 'Нет активных устройств')
-    } else {
-      message.success(
-        `Отправлено: ${data.success_count} · ошибок: ${data.failure_count} · устройств: ${data.devices_targeted}`,
-      )
-    }
-
-    const names = orgIds
-      .map((id) => orgNameById.value.get(id) ?? id)
-      .filter(Boolean)
-
-    saveHistory([
-      {
-        id: crypto.randomUUID(),
-        title,
-        body,
-        category,
-        all_organizations: allOrgs,
-        organization_ids: orgIds,
-        organization_names: names,
-        success_count: data.success_count,
-        failure_count: data.failure_count,
-        devices_targeted: data.devices_targeted,
-        sent_at: new Date().toISOString(),
+      deep_link: form.deep_link,
+      send_mode: form.send_mode,
+      scheduled_at: form.send_mode === 'scheduled' ? form.scheduled_at : null,
+      schedule:
+        form.send_mode === 'recurring'
+          ? {
+              frequency: form.frequency,
+              weekdays: form.weekdays,
+              time: form.time,
+              until: form.until || null,
+            }
+          : null,
+      target_filter: {
+        category: form.category,
+        ...(form.all_organizations ? {} : { organization_ids: [...form.organization_ids] }),
       },
-      ...history.value,
-    ])
-
+    })
+    message.success(form.send_mode === 'now' ? 'Отправлено' : 'Рассылка сохранена')
     modalOpen.value = false
     resetForm()
+    await loadCampaigns()
+    return
   } catch (e) {
-    message.error(extractErrorMessage(e, 'Не удалось отправить push'))
+    message.error(extractErrorMessage(e, 'Не удалось сохранить рассылку'))
+    return
   } finally {
     sending.value = false
+  }
+}
+
+async function setStatus(row: Record<string, string>, status: string) {
+  try {
+    await superAdminApi.setPushCampaignStatus(row.id, status)
+    await loadCampaigns()
+  } catch (e) {
+    message.error(extractErrorMessage(e, 'Не удалось изменить статус'))
   }
 }
 
 onMounted(() => {
   loadHistory()
   void loadOrganizations()
+  void loadCampaigns()
 })
 </script>
 
@@ -249,7 +243,7 @@ onMounted(() => {
   <div class="flex flex-col gap-4 md:gap-6">
     <PageHeader
       title="Push по организациям"
-      subtitle="Напоминание перед эфиром и другие рассылки. Пуш при создании купона сервер шлёт сам."
+      subtitle="Сейчас, в выбранное время или по расписанию. В тексте можно писать {driver_name}, {points_balance}, {rank}."
     >
       <template #actions>
         <a-button type="primary" class="lotax-btn-primary" @click="openCreate">
@@ -259,8 +253,52 @@ onMounted(() => {
       </template>
     </PageHeader>
 
+    <section v-if="campaigns.length" class="lotax-card p-5">
+      <a-table
+        row-key="id"
+        :pagination="false"
+        size="small"
+        :data-source="campaigns"
+        :columns="[
+          { title: 'Заголовок', dataIndex: 'title', key: 'title' },
+          { title: 'Режим', dataIndex: 'send_mode', key: 'send_mode' },
+          { title: 'Статус', dataIndex: 'status', key: 'status' },
+          { title: 'Доставлено', dataIndex: 'sent', key: 'sent', width: 110 },
+          { title: 'Клики', dataIndex: 'clicked', key: 'clicked', width: 80 },
+          { title: '', key: 'actions', width: 160 },
+        ]"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'actions'">
+            <a-button
+              v-if="record.status === 'active' && record.send_mode === 'recurring'"
+              type="link"
+              @click="setStatus(record, 'paused')"
+            >
+              Пауза
+            </a-button>
+            <a-button
+              v-else-if="record.status === 'paused'"
+              type="link"
+              @click="setStatus(record, 'active')"
+            >
+              Включить
+            </a-button>
+            <a-button
+              v-if="record.status !== 'cancelled' && record.status !== 'done'"
+              type="link"
+              danger
+              @click="setStatus(record, 'cancelled')"
+            >
+              Отменить
+            </a-button>
+          </template>
+        </template>
+      </a-table>
+    </section>
+
     <div
-      v-if="!history.length"
+      v-if="!history.length && !campaigns.length"
       class="lotax-card lotax-empty"
     >
       <div class="lotax-empty__icon">
@@ -280,7 +318,7 @@ onMounted(() => {
       </a-button>
     </div>
 
-    <div v-else class="flex flex-col gap-3">
+    <div v-else-if="history.length" class="flex flex-col gap-3">
       <article
         v-for="item in history"
         :key="item.id"
@@ -358,13 +396,51 @@ onMounted(() => {
             :options="[
               { value: 'now', label: 'Сейчас' },
               { value: 'scheduled', label: 'В выбранное время' },
+              { value: 'recurring', label: 'По расписанию' },
             ]"
           />
         </a-form-item>
         <a-form-item v-if="form.send_mode === 'scheduled'" label="Дата и время (Москва)">
           <a-input v-model:value="form.scheduled_at" placeholder="2026-11-02T07:30:00" />
         </a-form-item>
-        <a-form-item v-if="form.send_mode === 'scheduled'" label="Куда открыть">
+        <template v-if="form.send_mode === 'recurring'">
+          <a-form-item label="Периодичность">
+            <a-select
+              v-model:value="form.frequency"
+              class="!w-full"
+              :options="[
+                { value: 'daily', label: 'Каждый день' },
+                { value: 'weekdays', label: 'По рабочим дням' },
+                { value: 'weekends', label: 'По выходным' },
+                { value: 'weekly', label: 'По выбранным дням' },
+                { value: 'monthly', label: '1-го числа' },
+              ]"
+            />
+          </a-form-item>
+          <a-form-item v-if="form.frequency === 'weekly'" label="Дни">
+            <a-select
+              v-model:value="form.weekdays"
+              mode="multiple"
+              class="!w-full"
+              :options="[
+                { value: 0, label: 'Пн' },
+                { value: 1, label: 'Вт' },
+                { value: 2, label: 'Ср' },
+                { value: 3, label: 'Чт' },
+                { value: 4, label: 'Пт' },
+                { value: 5, label: 'Сб' },
+                { value: 6, label: 'Вс' },
+              ]"
+            />
+          </a-form-item>
+          <a-form-item label="Время (Москва)">
+            <a-input v-model:value="form.time" placeholder="07:30" />
+          </a-form-item>
+          <a-form-item label="До даты, если нужно">
+            <a-input v-model:value="form.until" placeholder="2026-12-31" />
+          </a-form-item>
+        </template>
+        <a-form-item label="Куда открыть">
           <a-select
             v-model:value="form.deep_link"
             class="!w-full"
@@ -387,7 +463,7 @@ onMounted(() => {
         <a-form-item label="Заголовок" required>
           <a-input
             v-model:value="form.title"
-            :maxlength="120"
+            :maxlength="65"
             placeholder="Розыгрыш LOTAX сейчас"
           />
         </a-form-item>
@@ -395,7 +471,7 @@ onMounted(() => {
           <a-textarea
             v-model:value="form.body"
             :rows="4"
-            :maxlength="500"
+            :maxlength="240"
             placeholder="Эфир: https://zoom.us/…"
           />
         </a-form-item>
@@ -432,7 +508,7 @@ onMounted(() => {
           @click="send"
         >
           <template #icon><SendOutlined /></template>
-          Отправить
+          {{ form.send_mode === 'now' ? 'Отправить' : 'Сохранить' }}
         </a-button>
       </div>
     </a-modal>
