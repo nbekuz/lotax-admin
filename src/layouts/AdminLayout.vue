@@ -452,7 +452,7 @@ onMounted(async () => {
       /* ignore */
     }
   }
-  if (auth.isDirector) {
+  if (auth.canMessageDrivers) {
     try {
       await driverSupport.fetchNotifications()
       driverSupport.startRealtime()
@@ -468,6 +468,18 @@ onMounted(async () => {
     }
   }
 })
+
+watch(
+  () => auth.canMessageDrivers,
+  (allowed) => {
+    if (!allowed) {
+      driverSupport.reset()
+      return
+    }
+    void driverSupport.fetchNotifications().catch(() => undefined)
+    driverSupport.startRealtime()
+  },
+)
 
 watch(isLgUp, (lg) => {
   if (lg) {

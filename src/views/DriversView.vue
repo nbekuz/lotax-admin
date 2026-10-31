@@ -37,7 +37,7 @@ const broadcastOpen = ref(false)
 const broadcastBody = ref('')
 const broadcastLink = ref('')
 const broadcastBusy = ref(false)
-const canMessageDrivers = computed(() => auth.isDirector || auth.isManager)
+const canMessageDrivers = computed(() => auth.canMessageDrivers)
 const bulkBusy = ref(false)
 const launchBusy = ref(false)
 const listLoading = ref(false)
@@ -648,7 +648,7 @@ onMounted(async () => {
     </div>
 
     <div
-      v-if="auth.isManager && selectedRowKeys.length"
+      v-if="!auth.canEditStatus && canMessageDrivers && selectedRowKeys.length"
       class="drivers-bulk flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface-card px-3 py-2.5"
     >
       <a-button class="lotax-btn-secondary !h-9" @click="broadcastOpen = true">

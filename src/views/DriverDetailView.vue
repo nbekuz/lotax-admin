@@ -1061,7 +1061,7 @@ watch(driverId, () => { load() })
           Изменить уровень
         </a-button>
         <a-button
-          v-if="auth.isDirector"
+          v-if="auth.canMessageDrivers"
           class="lotax-btn-secondary"
           @click="openMessageModal"
         >
