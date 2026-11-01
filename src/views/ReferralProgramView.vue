@@ -35,11 +35,25 @@ const form = reactive({
   referee_bonus: 50,
   bonus_points_type: 'park' as PointsType,
   max_referrals: 0,
-  share_text_template: 'Присоединяйся! Код {CODE}. Ссылка: {LINK}',
+  share_text_template: 'Присоединяйся! Код {код}',
 })
 
 const parkId = computed(() => org.selectedParkId)
 const canEdit = computed(() => auth.canManageReferral)
+
+const sharePreview = computed(() => {
+  const sample = 'LOT7K2AB'
+  return (form.share_text_template || '')
+    .replace(/\{(?:code|код)\}/gi, sample)
+    .replace(/[\s.,:;–—-]*(?:ссылка|link)\s*:\s*\{(?:link|ссылка)\}/gi, '')
+    .replace(/\{(?:link|ссылка)\}/gi, '')
+    .replace(/^[\s.,;]+|[\s.,;]+$/g, '')
+})
+
+function insertCodeTag() {
+  if (!canEdit.value) return
+  form.share_text_template = `${form.share_text_template || ''}{код}`
+}
 
 const columns: TableColumnsType<ReferralTopReferrerItem> = [
   { title: 'Водитель', key: 'driver', dataIndex: 'display_name' },
@@ -59,8 +73,7 @@ async function loadSettings() {
     form.referee_bonus = data.referee_bonus
     form.bonus_points_type = 'park'
     form.max_referrals = data.max_referrals
-    form.share_text_template =
-      data.share_text_template || 'Присоединяйся! Код {CODE}. Ссылка: {LINK}'
+    form.share_text_template = data.share_text_template || 'Присоединяйся! Код {код}'
   } catch (e) {
     message.error(extractErrorMessage(e))
   } finally {
@@ -233,14 +246,27 @@ onMounted(async () => {
               <p class="lotax-caption md:col-span-2 -mt-1 mb-3">
                 Бонусы начисляются парковыми баллами
               </p>
-              <a-form-item label="Шаблон текста для приглашения" class="md:col-span-2">
+              <a-form-item class="md:col-span-2">
+                <template #label>Текст приглашения</template>
+                <p class="lotax-caption mb-2">
+                  Водитель отправит этот текст другу. Кнопка «Код» вставляет метку,
+                  которая заменится на реферальный код водителя.
+                </p>
                 <a-textarea
                   v-model:value="form.share_text_template"
                   :rows="2"
                   :auto-size="{ minRows: 2, maxRows: 4 }"
                   :disabled="!canEdit"
+                  placeholder="Присоединяйся! Код {код}"
                 />
-                <p class="lotax-caption mt-1">Переменные: {CODE}, {LINK}</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <a-button size="small" :disabled="!canEdit" @click="insertCodeTag">
+                    Код
+                  </a-button>
+                </div>
+                <p v-if="sharePreview" class="lotax-caption mt-2">
+                  Как увидит друг: {{ sharePreview }}
+                </p>
               </a-form-item>
             </div>
             <a-button
