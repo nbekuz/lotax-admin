@@ -75,10 +75,20 @@ function driverPhone(d: DriverListItem) {
   return unmasked(d.phone) || unmasked(d.phone_masked)
 }
 
+function wordCount(value?: string | null) {
+  return (value || '').trim().split(/\s+/).filter(Boolean).length
+}
+
 function driverFullName(d: DriverListItem) {
-  return (
-    [driverFirstName(d), driverLastName(d)].filter((p) => p && p !== '—').join(' ') || '—'
-  )
+  const display = unmasked(d.display_name)
+  const first = unmasked(d.first_name) || unmasked(d.first_name_masked)
+  const last = unmasked(d.last_name) || unmasked(d.last_name_masked)
+  if (first && wordCount(first) >= 3) return first
+  if (display && wordCount(display) >= 3) return display
+  if (last && first && last !== first && !first.includes(last)) {
+    return `${last} ${first}`.trim()
+  }
+  return display || first || last || '—'
 }
 
 function driverNameHaystack(d: DriverListItem) {
@@ -125,16 +135,10 @@ const columns = computed(() => {
   const pin = needsHorizontalScroll.value
   return [
     {
-      title: 'Имя',
-      key: 'first_name',
-      ellipsis: true,
-      ...(pin ? { fixed: 'left' as const, width: 120 } : {}),
-    },
-    {
-      title: 'Фамилия',
-      key: 'last_name',
-      ellipsis: true,
-      ...(pin ? { fixed: 'left' as const, width: 120 } : {}),
+      title: 'ФИО',
+      key: 'full_name',
+      ellipsis: false,
+      ...(pin ? { fixed: 'left' as const, width: 260 } : { width: 280 }),
     },
     {
       title: 'Телефон',
@@ -693,7 +697,7 @@ onMounted(async () => {
         >
           <div class="mb-3 flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <h3 class="truncate text-[16px] font-semibold text-ink">
+              <h3 class="text-[16px] font-semibold leading-snug text-ink">
                 {{ driverFullName(driver) }}
               </h3>
               <p class="mt-0.5 font-mono text-[12px] text-ink-muted">
@@ -803,16 +807,13 @@ onMounted(async () => {
         @change="onTableChange"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'first_name'">
+          <template v-if="column.key === 'full_name'">
             <a
               class="driver-name-cell font-medium text-ink transition-colors duration-fast md:hover:text-brand"
               @click.prevent="openDriver(record as DriverListItem)"
             >
-              {{ driverFirstName(record as DriverListItem) }}
+              {{ driverFullName(record as DriverListItem) }}
             </a>
-          </template>
-          <template v-else-if="column.key === 'last_name'">
-            <span class="driver-name-cell">{{ driverLastName(record as DriverListItem) }}</span>
           </template>
           <template v-else-if="column.key === 'phone'">
             <span class="font-mono text-[13px] text-ink-muted">
@@ -939,9 +940,10 @@ onMounted(async () => {
 
 .drivers-table :deep(.driver-name-cell) {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow: visible;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 :deep(.ant-table) {
