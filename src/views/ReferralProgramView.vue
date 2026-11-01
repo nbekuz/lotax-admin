@@ -136,7 +136,7 @@ onMounted(async () => {
     <div v-if="!parkId" class="lotax-card p-8 text-center">Выберите парк в шапке</div>
 
     <template v-else>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           title="Всего приглашений"
           :value="stats?.total_referrals ?? (loadingStats ? '…' : 0)"
@@ -193,8 +193,8 @@ onMounted(async () => {
             <a-switch v-model:checked="form.is_active" :disabled="!canEdit" />
           </div>
 
-          <a-form layout="vertical" class="referral-settings-form">
-            <div class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+          <a-form layout="vertical" class="referral-settings-form max-w-3xl">
+            <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
               <a-form-item label="Поездок для активации">
                 <a-input-number
                   v-model:value="form.rides_required"
@@ -230,10 +230,10 @@ onMounted(async () => {
                   addon-after="б."
                 />
               </a-form-item>
-              <a-form-item label="Тип баллов бонуса" class="sm:col-span-2 sm:!max-w-xs">
-                <a-input value="Парковые" disabled />
-              </a-form-item>
-              <a-form-item label="Шаблон текста для приглашения" class="sm:col-span-2">
+              <p class="lotax-caption md:col-span-2 -mt-1 mb-3">
+                Бонусы начисляются парковыми баллами
+              </p>
+              <a-form-item label="Шаблон текста для приглашения" class="md:col-span-2">
                 <a-textarea
                   v-model:value="form.share_text_template"
                   :rows="2"
