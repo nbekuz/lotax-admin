@@ -57,7 +57,7 @@ async function loadSettings() {
     form.rides_required = data.rides_required
     form.referrer_bonus = data.referrer_bonus
     form.referee_bonus = data.referee_bonus
-    form.bonus_points_type = data.bonus_points_type
+    form.bonus_points_type = 'park'
     form.max_referrals = data.max_referrals
     form.share_text_template =
       data.share_text_template || 'Присоединяйся! Код {CODE}. Ссылка: {LINK}'
@@ -100,7 +100,7 @@ async function save() {
         rides_required: form.rides_required,
         referrer_bonus: form.referrer_bonus,
         referee_bonus: form.referee_bonus,
-        bonus_points_type: form.bonus_points_type,
+        bonus_points_type: 'park',
         max_referrals: form.max_referrals,
         share_text_template: form.share_text_template,
       },
@@ -231,14 +231,7 @@ onMounted(async () => {
                 />
               </a-form-item>
               <a-form-item label="Тип баллов бонуса" class="sm:col-span-2 sm:!max-w-xs">
-                <a-select
-                  v-model:value="form.bonus_points_type"
-                  :disabled="!canEdit"
-                  :options="[
-                    { value: 'system', label: 'Системные' },
-                    { value: 'park', label: 'Парковые' },
-                  ]"
-                />
+                <a-input value="Парковые" disabled />
               </a-form-item>
               <a-form-item label="Шаблон текста для приглашения" class="sm:col-span-2">
                 <a-textarea

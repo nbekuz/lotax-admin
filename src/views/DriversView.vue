@@ -51,7 +51,7 @@ const createForm = reactive({
   yandex_driver_id: '',
 })
 
-/** Director responses are plaintext. Inspection responses keep the mask, including `*`. */
+/** Director: plaintext. Inspection: full ФИО, phone with last four digits (may contain `*`). */
 function unmasked(value?: string | null): string | null {
   if (!value) return null
   if (!auth.inspecting && /[*•]/.test(value)) return null
